@@ -3,28 +3,32 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
 from db import init_db, query_all
 from routers.analytics import router as analytics_router
 from routers.recommendations import router as recommendations_router
+from routers.posts import router as posts_router
+from routers.users import router as users_router
 
 load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize SQLite database and tables on startup
+    # Auto-initialize SQLite database tables on startup
     init_db()
     yield
 
 app = FastAPI(
     title="Social Media Analytics API",
-    description="Python FastAPI backend with SQLite database",
+    description="Python FastAPI backend with SQLite database and modern web dashboard",
     version="1.0.0",
     lifespan=lifespan
 )
 
-# Enable CORS (Cross-Origin Resource Sharing)
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,14 +37,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include API routers
+app.include_router(posts_router)
+app.include_router(users_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)
 
-@app.get("/")
-def read_root():
+@app.get("/api/info")
+def read_info():
     return {
-        "message": "Social Media Analytics API is running (SQLite)"
+        "name": "Social Media Analytics API",
+        "status": "online",
+        "database": "SQLite",
+        "docs_url": "/docs"
     }
 
 @app.get("/api/test-db")
@@ -62,7 +71,21 @@ def test_db_connection():
             }
         )
 
+# Mount static directory for frontend UI
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/")
+def serve_ui():
+    index_file = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"message": "Social Media Analytics API is running (SQLite). Visit /docs for API documentation."}
+
 if __name__ == "__main__":
     init_db()
     port = int(os.getenv("PORT", 5000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)

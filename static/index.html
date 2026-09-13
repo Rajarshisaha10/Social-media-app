@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Hub & Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="glass">
+        <div class="logo">
+            <div class="logo-icon">✨</div>
+            <span>SocialSphere</span>
+        </div>
+
+        <nav>
+            <button class="nav-btn active" data-tab="feed-tab">📰 Feed</button>
+            <button class="nav-btn" data-tab="recommendations-tab">🤝 Recommendations</button>
+            <button class="nav-btn" data-tab="analytics-tab">📊 Analytics</button>
+            <button class="nav-btn" data-tab="users-tab">👥 Users</button>
+        </nav>
+
+        <div class="header-right">
+            <div class="user-switch-wrap">
+                <span>Active User:</span>
+                <select id="userSelect" class="user-select">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <a href="/docs" target="_blank" class="api-docs-link">
+                <span>⚡ Swagger API Docs</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+
+        <!-- FEED TAB -->
+        <section id="feed-tab" class="tab-content active">
+            <div class="feed-layout">
+                
+                <!-- Main Feed Column -->
+                <div class="feed-main-col">
+                    <!-- Create Post Box -->
+                    <div class="create-post-card">
+                        <div class="create-post-header">
+                            <img id="currentUserAvatar" class="avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Avatar">
+                            <span id="currentUserName" style="font-weight: 600;">alice_w</span>
+                        </div>
+                        <textarea id="postContent" class="create-post-input" placeholder="What's happening in your network today?"></textarea>
+                        <div class="create-post-options">
+                            <input type="url" id="postUrl" class="post-url-input" placeholder="Attach image or link URL (optional)...">
+                            <button id="submitPostBtn" class="btn-primary">Post Update</button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Post Feed List -->
+                    <div id="postsList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Sidebar Column -->
+                <div class="feed-sidebar">
+                    <!-- Friend Recommendations Widget -->
+                    <div class="sidebar-widget">
+                        <div class="widget-title">
+                            <span>🤝 Recommended for You</span>
+                            <span id="recCountBadge" class="score-badge">0</span>
+                        </div>
+                        <div id="sidebarRecsList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Platform Quick Stats Widget -->
+                    <div class="sidebar-widget">
+                        <div class="widget-title">
+                            <span>📈 Live Platform Stats</span>
+                        </div>
+                        <div id="sidebarStats" style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.9rem;">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- RECOMMENDATIONS TAB -->
+        <section id="recommendations-tab" class="tab-content">
+            <div style="margin-bottom: 1.5rem;">
+                <h2>Friend Recommendations</h2>
+                <p style="color: var(--text-secondary); font-size: 0.95rem;">Algorithmically scored connections tailored to your active user profile.</p>
+            </div>
+            <div id="fullRecsGrid" class="users-grid">
+                <!-- Populated dynamically -->
+            </div>
+        </section>
+
+        <!-- ANALYTICS TAB -->
+        <section id="analytics-tab" class="tab-content">
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2>Platform Analytics & Telemetry</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.95rem;">Real-time database metrics across all entities in SQLite.</p>
+                </div>
+                <button id="refreshAnalyticsBtn" class="nav-btn" style="border: 1px solid var(--border-color);">🔄 Refresh Stats</button>
+            </div>
+
+            <div id="analyticsGrid" class="stats-grid">
+                <!-- Populated dynamically -->
+            </div>
+        </section>
+
+        <!-- USERS TAB -->
+        <section id="users-tab" class="tab-content">
+            <div style="margin-bottom: 1.5rem;">
+                <h2>Platform Members</h2>
+                <p style="color: var(--text-secondary); font-size: 0.95rem;">Explore all registered user profiles and administrator accounts.</p>
+            </div>
+            <div id="usersGrid" class="users-grid">
+                <!-- Populated dynamically -->
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

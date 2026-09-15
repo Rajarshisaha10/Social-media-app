@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
-from db import init_db, query_all
+from db import init_db, query_all, get_engine
 from routers.analytics import router as analytics_router
 from routers.recommendations import router as recommendations_router
 from routers.posts import router as posts_router
@@ -53,10 +53,11 @@ app.include_router(sql_router)
 
 @app.get("/api/info")
 def read_info():
+    engine = get_engine().upper()
     return {
         "name": "Social Media Analytics API",
         "status": "online",
-        "database": "MySQL",
+        "database": engine,
         "pwa": "enabled",
         "docs_url": "/docs",
         "sql_studio_url": "/sql"
@@ -64,11 +65,13 @@ def read_info():
 
 @app.get("/api/test-db")
 def test_db_connection():
+    engine = get_engine().upper()
     try:
         rows = query_all("SELECT 1 AS connected")
         return {
             "success": True,
-            "message": "MySQL connection successful",
+            "engine": engine,
+            "message": f"{engine} connection successful",
             "data": rows
         }
     except Exception as error:
@@ -76,7 +79,8 @@ def test_db_connection():
             status_code=500,
             detail={
                 "success": False,
-                "message": "MySQL connection failed",
+                "engine": engine,
+                "message": f"{engine} connection failed",
                 "error": str(error)
             }
         )

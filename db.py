@@ -1,457 +1,337 @@
 import os
-import sqlite3
+import re
 import logging
 from contextlib import contextmanager
 from dotenv import load_dotenv
+import pymysql
+import pymysql.cursors
+from dbutils.pooled_db import PooledDB
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.getenv("DB_PATH", "social_media.db")
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = int(os.getenv("DB_PORT", "3306"))
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "raju@123")
+DB_NAME = os.getenv("DB_NAME", "social_media")
+
+# Thread-safe MySQL Connection Pool
+_pool = None
+
+def get_pool() -> PooledDB:
+    global _pool
+    if _pool is None:
+        # First ensure target database exists
+        try:
+            temp_conn = pymysql.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                autocommit=True
+            )
+            with temp_conn.cursor() as cur:
+                cur.execute(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+            temp_conn.close()
+        except Exception as e:
+            logger.warning(f"Could not verify database creation: {e}")
+
+        _pool = PooledDB(
+            creator=pymysql,
+            mincached=5,
+            maxcached=20,
+            maxshared=10,
+            maxconnections=50,
+            blocking=True,
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=False
+        )
+    return _pool
 
 @contextmanager
 def get_db():
-    """Context manager for obtaining a SQLite connection."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    """Context manager yielding a pooled MySQL connection."""
+    pool = get_pool()
+    conn = pool.connection()
     try:
         yield conn
     finally:
         conn.close()
 
+def _adapt_sql(sql: str) -> str:
+    """Adapt SQLite syntax quirks to MySQL."""
+    # Convert SQLite 'INSERT OR IGNORE' -> MySQL 'INSERT IGNORE'
+    sql = re.sub(r'INSERT\s+OR\s+IGNORE\s+INTO', 'INSERT IGNORE INTO', sql, flags=re.IGNORECASE)
+    # Convert SQLite 'INSERT OR REPLACE' -> MySQL 'REPLACE INTO'
+    sql = re.sub(r'INSERT\s+OR\s+REPLACE\s+INTO', 'REPLACE INTO', sql, flags=re.IGNORECASE)
+    # Convert '?' placeholder to '%s' for PyMySQL
+    # PyMySQL expects '%s' while SQLite code uses '?'
+    sql = sql.replace("?", "%s")
+    return sql
+
 def query_all(sql: str, params: tuple | list = ()):
     """Execute a query and return all matching rows as a list of dicts."""
+    adapted_sql = _adapt_sql(sql)
     with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(sql, params)
-        rows = cursor.fetchall()
-        return [dict(row) for row in rows]
+        with conn.cursor() as cursor:
+            if params:
+                cursor.execute(adapted_sql, params)
+            else:
+                cursor.execute(adapted_sql)
+            rows = cursor.fetchall()
+            return list(rows) if rows else []
 
 def query_one(sql: str, params: tuple | list = ()):
     """Execute a query and return a single row as a dict."""
+    adapted_sql = _adapt_sql(sql)
     with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(sql, params)
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        with conn.cursor() as cursor:
+            if params:
+                cursor.execute(adapted_sql, params)
+            else:
+                cursor.execute(adapted_sql)
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
 def execute_write(sql: str, params: tuple | list = ()):
-    """Execute an INSERT/UPDATE/DELETE query and return the lastrowid."""
+    """Execute an INSERT/UPDATE/DELETE query, commit, and return cursor.lastrowid."""
+    adapted_sql = _adapt_sql(sql)
     with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(sql, params)
-        conn.commit()
-        return cursor.lastrowid
+        with conn.cursor() as cursor:
+            if params:
+                cursor.execute(adapted_sql, params)
+            else:
+                cursor.execute(adapted_sql)
+            conn.commit()
+            return cursor.lastrowid
 
 def init_db():
-    """Initialize all SQLite database tables exactly according to schema specification."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.executescript("""
-            -- 1. Users table
-            CREATE TABLE IF NOT EXISTS Users (
-                user_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                username       TEXT NOT NULL UNIQUE,
-                email          TEXT NOT NULL UNIQUE,
-                password       TEXT NOT NULL,
-                bio            TEXT,
-                account_status TEXT DEFAULT 'ACTIVE',
-                dob            TEXT
-            );
-
-            -- 2. User_Credentials table (Dedicated Authentication & Password Store)
-            CREATE TABLE IF NOT EXISTS User_Credentials (
-                credential_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id       INTEGER NOT NULL UNIQUE,
-                username      TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                account_role  TEXT DEFAULT 'USER',
-                last_login    DATETIME DEFAULT CURRENT_TIMESTAMP,
-                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_cred_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 3. Profile_Pic table
-            CREATE TABLE IF NOT EXISTS Profile_Pic (
-                profile_pic_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id        INTEGER NOT NULL,
-                image_url      TEXT NOT NULL,
-                pic_type       TEXT DEFAULT 'AVATAR',
-                CONSTRAINT fk_profile_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 4. Regular_User table
-            CREATE TABLE IF NOT EXISTS Regular_User (
-                user_id   INTEGER PRIMARY KEY,
-                interests TEXT,
-                location  TEXT,
-                CONSTRAINT fk_regular_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 5. Admin_User table
-            CREATE TABLE IF NOT EXISTS Admin_User (
-                user_id     INTEGER PRIMARY KEY,
-                admin_level TEXT NOT NULL,
-                CONSTRAINT fk_admin_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 6. Post table
-            CREATE TABLE IF NOT EXISTS Post (
-                post_id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id      INTEGER NOT NULL,
-                content      TEXT,
-                created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                url          TEXT,
-                visibility   TEXT DEFAULT 'PUBLIC',
-                CONSTRAINT fk_post_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 7. Comment table
-            CREATE TABLE IF NOT EXISTS Comment (
-                comment_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_id      INTEGER NOT NULL,
-                user_id      INTEGER NOT NULL,
-                reply_to     INTEGER,
-                content      TEXT,
-                created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_comment_post
-                    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE,
-                CONSTRAINT fk_comment_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT fk_comment_reply
-                    FOREIGN KEY (reply_to) REFERENCES Comment(comment_id) ON DELETE CASCADE
-            );
-
-            -- 8. Reaction table
-            CREATE TABLE IF NOT EXISTS Reaction (
-                reaction_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_id       INTEGER NOT NULL,
-                user_id       INTEGER NOT NULL,
-                reaction_type TEXT NOT NULL,
-                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-                comment_id    INTEGER,
-                CONSTRAINT fk_reaction_post
-                    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE,
-                CONSTRAINT fk_reaction_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT fk_reaction_comment
-                    FOREIGN KEY (comment_id) REFERENCES Comment(comment_id) ON DELETE CASCADE
-            );
-
-            -- 9. Community_Group table
-            CREATE TABLE IF NOT EXISTS Community_Group (
-                group_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                group_name      TEXT NOT NULL,
-                description     TEXT,
-                created_date    DATETIME DEFAULT CURRENT_TIMESTAMP,
-                privacy_setting TEXT DEFAULT 'PUBLIC'
-            );
-
-            -- 10. Group_Members table
-            CREATE TABLE IF NOT EXISTS Group_Members (
-                group_id  INTEGER NOT NULL,
-                user_id   INTEGER NOT NULL,
-                join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                role      TEXT DEFAULT 'MEMBER',
-                CONSTRAINT pk_group_members
-                    PRIMARY KEY (group_id, user_id),
-                CONSTRAINT fk_gm_group
-                    FOREIGN KEY (group_id) REFERENCES Community_Group(group_id) ON DELETE CASCADE,
-                CONSTRAINT fk_gm_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 11. Hashtag table
-            CREATE TABLE IF NOT EXISTS Hashtag (
-                hashtag_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tag        TEXT NOT NULL UNIQUE,
-                category   TEXT
-            );
-
-            -- 12. Post_Hashtag table
-            CREATE TABLE IF NOT EXISTS Post_Hashtag (
-                post_id    INTEGER NOT NULL,
-                hashtag_id INTEGER NOT NULL,
-                CONSTRAINT pk_post_hashtag
-                    PRIMARY KEY (post_id, hashtag_id),
-                CONSTRAINT fk_ph_post
-                    FOREIGN KEY (post_id) REFERENCES Post(post_id) ON DELETE CASCADE,
-                CONSTRAINT fk_ph_hashtag
-                    FOREIGN KEY (hashtag_id) REFERENCES Hashtag(hashtag_id) ON DELETE CASCADE
-            );
-
-            -- 13. Notification table
-            CREATE TABLE IF NOT EXISTS Notification (
-                notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                recipient_id    INTEGER NOT NULL,
-                content         TEXT,
-                created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                ref_id          INTEGER,
-                ref_type        TEXT,
-                CONSTRAINT fk_notification_user
-                    FOREIGN KEY (recipient_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 14. Friend_Recommendation table
-            CREATE TABLE IF NOT EXISTS Friend_Recommendation (
-                user_id             INTEGER NOT NULL,
-                recommended_user_id INTEGER NOT NULL,
-                score               REAL,
-                generated_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT pk_friend_recommendation
-                    PRIMARY KEY (user_id, recommended_user_id),
-                CONSTRAINT fk_fr_source_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT fk_fr_recommended_user
-                    FOREIGN KEY (recommended_user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT chk_fr_different_users
-                    CHECK (user_id <> recommended_user_id)
-            );
-
-            -- 15. Message table
-            CREATE TABLE IF NOT EXISTS Message (
-                message_id  INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id   INTEGER NOT NULL,
-                receiver_id INTEGER NOT NULL,
-                content     TEXT,
-                sent_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-                read_status TEXT DEFAULT 'UNREAD',
-                CONSTRAINT fk_message_sender
-                    FOREIGN KEY (sender_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT fk_message_receiver
-                    FOREIGN KEY (receiver_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 16. Event_Analysis table
-            CREATE TABLE IF NOT EXISTS Event_Analysis (
-                event_id    INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id     INTEGER NOT NULL,
-                event_type  TEXT,
-                event_time  DATETIME DEFAULT CURRENT_TIMESTAMP,
-                device_type TEXT,
-                metadata    TEXT,
-                CONSTRAINT fk_event_user
-                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
-            );
-
-            -- 17. User_Follow table (Social Follows & Graph Connections)
-            CREATE TABLE IF NOT EXISTS User_Follow (
-                follow_id    INTEGER PRIMARY KEY AUTOINCREMENT,
-                follower_id  INTEGER NOT NULL,
-                following_id INTEGER NOT NULL,
-                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_follow_follower
-                    FOREIGN KEY (follower_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT fk_follow_following
-                    FOREIGN KEY (following_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-                CONSTRAINT chk_not_self_follow
-                    CHECK (follower_id <> following_id),
-                CONSTRAINT uq_follower_following
-                    UNIQUE (follower_id, following_id)
-            );
-        """)
-        conn.commit()
-
-        # Seed sample data if fresh
-        cursor.execute("SELECT COUNT(*) AS count FROM Users")
-        if cursor.fetchone()["count"] == 0:
-            cursor.executescript("""
-                -- Users
-                INSERT INTO Users (username, email, password, bio, account_status, dob) VALUES
-                ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20'),
-                ('kandarp', 'kandarp@socialsphere.io', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
-                ('Shobita', 'shobita@socialsphere.io', 'password123', 'Landscape photographer & creative tech writer', 'ACTIVE', '1992-08-25'),
-                ('Aditi', 'aditi@socialsphere.io', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
-                ('admin_user', 'admin@socialapp.com', 'password123', 'Platform Operations Lead', 'ACTIVE', '1988-01-15');
-
-                -- User_Credentials table
-                INSERT INTO User_Credentials (user_id, username, password_hash, account_role) VALUES
-                (1, 'rajarshi', 'dbms108', 'SUPER_ADMIN'),
-                (2, 'kandarp', 'password123', 'USER'),
-                (3, 'Shobita', 'password123', 'USER'),
-                (4, 'Aditi', 'password123', 'USER'),
-                (5, 'admin_user', 'password123', 'OPS_ADMIN');
-
-                -- Regular & Admin Users
-                INSERT INTO Admin_User (user_id, admin_level) VALUES
-                (1, 'SUPER_ADMIN'),
-                (5, 'OPS_ADMIN');
-
-                INSERT INTO Regular_User (user_id, interests, location) VALUES
-                (1, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland'),
-                (2, 'FastAPI, Python, Machine Learning', 'San Francisco, CA'),
-                (3, 'Photography, Mountain Expeditions, Optics', 'Denver, CO'),
-                (4, 'Web Architecture, PostgreSQL, SQLite, React', 'Seattle, WA'),
-                (5, 'Infrastructure, Security, Telemetry', 'Boston, MA');
-
-                -- Profile Pics
-                INSERT INTO Profile_Pic (user_id, image_url, pic_type) VALUES
-                (1, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR'),
-                (2, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'AVATAR'),
-                (3, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'AVATAR'),
-                (4, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'AVATAR'),
-                (5, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 'AVATAR');
-
-                -- Posts
-                INSERT INTO Post (user_id, content, url, visibility) VALUES
-                (1, 'System update: SQLite 17-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
-                (2, 'Excited to publish our new open source benchmarking suite for FastAPI and SQLite! #python #opensource', 'https://github.com/project', 'PUBLIC'),
-                (3, 'High alpine sunrise capture from 12,000 feet elevation in the Rocky Mountains. #photography #nature', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', 'PUBLIC'),
-                (4, 'FastAPI dependency injection makes testing multi-table relational flows effortless. #python #webdev', NULL, 'PUBLIC');
-
-                -- Comments
-                INSERT INTO Comment (post_id, user_id, reply_to, content) VALUES
-                (1, 2, NULL, 'Excellent work Rajarshi! The relational schema integrity is pristine.'),
-                (1, 4, 1, 'Agreed! The foreign key cascades work flawlessly.'),
-                (2, 3, NULL, 'Tested the benchmark on local node, great throughput numbers.');
-
-                -- Reactions
-                INSERT INTO Reaction (post_id, user_id, reaction_type, comment_id) VALUES
-                (1, 2, 'LIKE', NULL),
-                (1, 3, 'LOVE', NULL),
-                (1, 4, 'FIRE', NULL),
-                (2, 1, 'LIKE', NULL),
-                (3, 1, 'LOVE', NULL);
-
-                -- Community Groups & Members
-                INSERT INTO Community_Group (group_name, description, privacy_setting) VALUES
-                ('Database Architecture Circle', 'Deep dive into relational schemas, indexing, query optimization, and storage engines', 'PUBLIC'),
-                ('Python Systems & Performance', 'High throughput microservices, asynchronous Python, and API design', 'PUBLIC'),
-                ('Landscape Photography Collective', 'Camera optics, field workflows, and high dynamic range composition', 'PUBLIC');
-
-                INSERT INTO Group_Members (group_id, user_id, role) VALUES
-                (1, 1, 'ADMIN'),
-                (1, 2, 'MEMBER'),
-                (1, 4, 'MEMBER'),
-                (2, 2, 'ADMIN'),
-                (2, 1, 'MEMBER'),
-                (3, 3, 'ADMIN'),
-                (3, 1, 'MEMBER');
-
-                -- Hashtags & Post_Hashtag
-                INSERT INTO Hashtag (tag, category) VALUES
-                ('database', 'Systems'),
-                ('architecture', 'Engineering'),
-                ('systems', 'Infrastructure'),
-                ('python', 'Programming'),
-                ('opensource', 'Software'),
-                ('photography', 'Art'),
-                ('nature', 'Travel'),
-                ('webdev', 'Development');
-
-                INSERT INTO Post_Hashtag (post_id, hashtag_id) VALUES
-                (1, 1), (1, 2), (1, 3),
-                (2, 4), (2, 5),
-                (3, 6), (3, 7),
-                (4, 4), (4, 8);
-
-                -- Messages
-                INSERT INTO Message (sender_id, receiver_id, content, read_status) VALUES
-                (1, 2, 'Hello Alice, the new query telemetry tables are fully synchronized.', 'READ'),
-                (2, 1, 'Confirmed, latency logs are showing sub-2ms response times.', 'READ'),
-                (3, 1, 'Shared the high-resolution RAW captures in the photography archive.', 'UNREAD');
-
-                -- Notifications
-                INSERT INTO Notification (recipient_id, content, ref_id, ref_type) VALUES
-                (1, 'Alice liked your database architecture update.', 1, 'POST'),
-                (1, 'Charlie commented on your post.', 1, 'COMMENT'),
-                (2, 'Rajarshi verified your system benchmark.', 2, 'POST');
-
-                -- Friend Recommendations
-                INSERT INTO Friend_Recommendation (user_id, recommended_user_id, score) VALUES
-                (1, 2, 0.98),
-                (1, 4, 0.94),
-                (1, 3, 0.82),
-                (2, 4, 0.91);
-
-                -- Event Analysis
-                INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata) VALUES
-                (1, 'LOGIN', 'WORKSTATION', '{"user": "rajarshi", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
-                (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 17, "integrity": "OK"}'),
-                (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}'),
-                (3, 'REACT_POST', 'MOBILE', '{"post_id": 1, "reaction": "LOVE"}');
-
-                -- User_Follow (Social Follows)
-                INSERT INTO User_Follow (follower_id, following_id) VALUES
-                (2, 3),
-                (2, 4),
-                (3, 2),
-                (4, 2),
-                (4, 3);
-            """)
+    """Initialize all MySQL database tables and seed defaults if empty."""
+    schema_file = os.path.join(os.path.dirname(__file__), "schema_mysql.sql")
+    if os.path.exists(schema_file):
+        with get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
+                with open(schema_file, "r", encoding="utf-8") as f:
+                    statements = f.read().split(";")
+                    for stmt in statements:
+                        cleaned = stmt.strip()
+                        lines = [l for l in cleaned.splitlines() if not l.strip().startswith("--")]
+                        stmt_no_comments = "\n".join(lines).strip()
+                        if stmt_no_comments:
+                            cursor.execute(stmt_no_comments)
+                cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
             conn.commit()
-        else:
-            # Sync User_Credentials for existing users if any missing
-            cursor.execute("""
-                INSERT OR IGNORE INTO User_Credentials (user_id, username, password_hash, account_role)
-                SELECT u.user_id, u.username, u.password, COALESCE(au.admin_level, 'USER')
-                FROM Users u
-                LEFT JOIN Admin_User au ON au.user_id = u.user_id
-            """)
-            
-            # Migrate shobita -> rajarshi if present and rajarshi doesn't exist
-            cursor.execute("SELECT user_id FROM Users WHERE username = 'rajarshi'")
-            rajarshi_user = cursor.fetchone()
 
-            cursor.execute("SELECT user_id FROM Users WHERE username = 'shobita'")
-            old_admin = cursor.fetchone()
-            if old_admin:
-                if not rajarshi_user:
-                    cursor.execute("""
-                        UPDATE Users 
-                        SET username = 'rajarshi', email = 'rajarshi@socialsphere.io', password = 'dbms108'
-                        WHERE user_id = ?
-                    """, (old_admin["user_id"],))
-                    cursor.execute("""
-                        UPDATE User_Credentials 
-                        SET username = 'rajarshi', password_hash = 'dbms108', account_role = 'SUPER_ADMIN'
-                        WHERE user_id = ?
-                    """, (old_admin["user_id"],))
-                else:
-                    # rajarshi already exists as super admin; clean up obsolete shobita user
-                    old_id = old_admin["user_id"]
-                    cursor.execute("DELETE FROM Profile_Pic WHERE user_id = ?", (old_id,))
-                    cursor.execute("DELETE FROM Regular_User WHERE user_id = ?", (old_id,))
-                    cursor.execute("DELETE FROM Admin_User WHERE user_id = ?", (old_id,))
-                    cursor.execute("DELETE FROM User_Credentials WHERE user_id = ?", (old_id,))
-                    cursor.execute("DELETE FROM Users WHERE user_id = ?", (old_id,))
-
-            # Ensure rajarshi super admin exists with dbms108
-            cursor.execute("SELECT user_id FROM Users WHERE username = 'rajarshi'")
-            rajarshi = cursor.fetchone()
-            if not rajarshi:
-                cursor.execute("SELECT user_id FROM Users WHERE email = 'rajarshi@socialsphere.io'")
-                email_match = cursor.fetchone()
-                if email_match:
-                    cursor.execute("UPDATE Users SET username = 'rajarshi', password = 'dbms108' WHERE user_id = ?", (email_match["user_id"],))
-                    uid = email_match["user_id"]
-                else:
-                    cursor.execute("""
-                        INSERT INTO Users (username, email, password, bio, account_status, dob)
-                        VALUES ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20')
-                    """)
-                    uid = cursor.lastrowid
-                cursor.execute("INSERT OR REPLACE INTO Admin_User (user_id, admin_level) VALUES (?, 'SUPER_ADMIN')", (uid,))
-                cursor.execute("INSERT OR REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR')", (uid,))
-                cursor.execute("INSERT OR REPLACE INTO Regular_User (user_id, interests, location) VALUES (?, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland')", (uid,))
-                cursor.execute("INSERT OR REPLACE INTO User_Credentials (user_id, username, password_hash, account_role) VALUES (?, 'rajarshi', 'dbms108', 'SUPER_ADMIN')", (uid,))
-            else:
-                cursor.execute("UPDATE Users SET password = 'dbms108' WHERE username = 'rajarshi'")
-                cursor.execute("UPDATE User_Credentials SET password_hash = 'dbms108' WHERE username = 'rajarshi'")
-            
-            # Seed follow rows if User_Follow is empty
-            cursor.execute("SELECT COUNT(*) AS fcount FROM User_Follow")
-            if cursor.fetchone()["fcount"] == 0:
-                cursor.executescript("""
-                    INSERT OR IGNORE INTO User_Follow (follower_id, following_id) VALUES
-                    (2, 3), (2, 4), (3, 2), (4, 2), (4, 3);
+    # Seed sample data if fresh
+    user_count = query_one("SELECT COUNT(*) AS count FROM Users")
+    if not user_count or user_count["count"] == 0:
+        with get_db() as conn:
+            with conn.cursor() as cursor:
+                # Users
+                cursor.execute("""
+                    INSERT INTO Users (username, email, password, bio, account_status, dob) VALUES
+                    ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20'),
+                    ('kandarp', 'kandarp@socialsphere.io', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
+                    ('Shobita', 'shobita@socialsphere.io', 'password123', 'Landscape photographer & creative tech writer', 'ACTIVE', '1992-08-25'),
+                    ('Aditi', 'aditi@socialsphere.io', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
+                    ('admin_user', 'admin@socialapp.com', 'password123', 'Platform Operations Lead', 'ACTIVE', '1988-01-15');
                 """)
 
+                # User_Credentials table
+                cursor.execute("""
+                    INSERT INTO User_Credentials (user_id, username, password_hash, account_role) VALUES
+                    (1, 'rajarshi', 'dbms108', 'SUPER_ADMIN'),
+                    (2, 'kandarp', 'password123', 'USER'),
+                    (3, 'Shobita', 'password123', 'USER'),
+                    (4, 'Aditi', 'password123', 'USER'),
+                    (5, 'admin_user', 'password123', 'OPS_ADMIN');
+                """)
+
+                # Regular & Admin Users
+                cursor.execute("""
+                    INSERT INTO Admin_User (user_id, admin_level) VALUES
+                    (1, 'SUPER_ADMIN'),
+                    (5, 'OPS_ADMIN');
+                """)
+                cursor.execute("""
+                    INSERT INTO Regular_User (user_id, interests, location) VALUES
+                    (1, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland'),
+                    (2, 'FastAPI, Python, Machine Learning', 'San Francisco, CA'),
+                    (3, 'Photography, Mountain Expeditions, Optics', 'Denver, CO'),
+                    (4, 'Web Architecture, PostgreSQL, MySQL, React', 'Seattle, WA'),
+                    (5, 'Infrastructure, Security, Telemetry', 'Boston, MA');
+                """)
+
+                # Profile Pics
+                cursor.execute("""
+                    INSERT INTO Profile_Pic (user_id, image_url, pic_type) VALUES
+                    (1, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR'),
+                    (2, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'AVATAR'),
+                    (3, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'AVATAR'),
+                    (4, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'AVATAR'),
+                    (5, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 'AVATAR');
+                """)
+
+                # Posts
+                cursor.execute("""
+                    INSERT INTO Post (user_id, content, url, visibility) VALUES
+                    (1, 'System update: MySQL 8 17-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
+                    (2, 'Excited to publish our new open source benchmarking suite for FastAPI and MySQL! #python #opensource', 'https://github.com/project', 'PUBLIC'),
+                    (3, 'High alpine sunrise capture from 12,000 feet elevation in the Rocky Mountains. #photography #nature', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', 'PUBLIC'),
+                    (4, 'FastAPI dependency injection makes testing multi-table relational flows effortless. #python #webdev', NULL, 'PUBLIC');
+                """)
+
+                # Comments
+                cursor.execute("""
+                    INSERT INTO Comment (post_id, user_id, reply_to, content) VALUES
+                    (1, 2, NULL, 'Excellent work Rajarshi! The relational schema integrity is pristine.'),
+                    (1, 4, 1, 'Agreed! The foreign key cascades work flawlessly.'),
+                    (2, 3, NULL, 'Tested the benchmark on local node, great throughput numbers.');
+                """)
+
+                # Reactions
+                cursor.execute("""
+                    INSERT INTO Reaction (post_id, user_id, reaction_type, comment_id) VALUES
+                    (1, 2, 'LIKE', NULL),
+                    (1, 3, 'LOVE', NULL),
+                    (1, 4, 'FIRE', NULL),
+                    (2, 1, 'LIKE', NULL),
+                    (3, 1, 'LOVE', NULL);
+                """)
+
+                # Community Groups & Members
+                cursor.execute("""
+                    INSERT INTO Community_Group (group_name, description, privacy_setting) VALUES
+                    ('Database Architecture Circle', 'Deep dive into relational schemas, indexing, query optimization, and storage engines', 'PUBLIC'),
+                    ('Python Systems & Performance', 'High throughput microservices, asynchronous Python, and API design', 'PUBLIC'),
+                    ('Landscape Photography Collective', 'Camera optics, field workflows, and high dynamic range composition', 'PUBLIC');
+                """)
+
+                cursor.execute("""
+                    INSERT INTO Group_Members (group_id, user_id, role) VALUES
+                    (1, 1, 'ADMIN'),
+                    (1, 2, 'MEMBER'),
+                    (1, 4, 'MEMBER'),
+                    (2, 2, 'ADMIN'),
+                    (2, 1, 'MEMBER'),
+                    (3, 3, 'ADMIN'),
+                    (3, 1, 'MEMBER');
+                """)
+
+                # Hashtags & Post_Hashtag
+                cursor.execute("""
+                    INSERT INTO Hashtag (tag, category) VALUES
+                    ('database', 'Systems'),
+                    ('architecture', 'Engineering'),
+                    ('systems', 'Infrastructure'),
+                    ('python', 'Programming'),
+                    ('opensource', 'Software'),
+                    ('photography', 'Art'),
+                    ('nature', 'Travel'),
+                    ('webdev', 'Development');
+                """)
+
+                cursor.execute("""
+                    INSERT INTO Post_Hashtag (post_id, hashtag_id) VALUES
+                    (1, 1), (1, 2), (1, 3),
+                    (2, 4), (2, 5),
+                    (3, 6), (3, 7),
+                    (4, 4), (4, 8);
+                """)
+
+                # Messages
+                cursor.execute("""
+                    INSERT INTO Message (sender_id, receiver_id, content, read_status) VALUES
+                    (1, 2, 'Hello Alice, the new query telemetry tables are fully synchronized.', 'READ'),
+                    (2, 1, 'Confirmed, latency logs are showing sub-2ms response times.', 'READ'),
+                    (3, 1, 'Shared the high-resolution RAW captures in the photography archive.', 'UNREAD');
+                """)
+
+                # Notifications
+                cursor.execute("""
+                    INSERT INTO Notification (recipient_id, content, ref_id, ref_type) VALUES
+                    (1, 'Alice liked your database architecture update.', 1, 'POST'),
+                    (1, 'Charlie commented on your post.', 1, 'COMMENT'),
+                    (2, 'Rajarshi verified your system benchmark.', 2, 'POST');
+                """)
+
+                # Friend Recommendations
+                cursor.execute("""
+                    INSERT INTO Friend_Recommendation (user_id, recommended_user_id, score) VALUES
+                    (1, 2, 0.98),
+                    (1, 4, 0.94),
+                    (1, 3, 0.82),
+                    (2, 4, 0.91);
+                """)
+
+                # Event Analysis
+                cursor.execute("""
+                    INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata) VALUES
+                    (1, 'LOGIN', 'WORKSTATION', '{"user": "rajarshi", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
+                    (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 17, "integrity": "OK"}'),
+                    (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}'),
+                    (3, 'REACT_POST', 'MOBILE', '{"post_id": 1, "reaction": "LOVE"}');
+                """)
+
+                # User_Follow (Social Follows)
+                cursor.execute("""
+                    INSERT INTO User_Follow (follower_id, following_id) VALUES
+                    (2, 3),
+                    (2, 4),
+                    (3, 2),
+                    (4, 2),
+                    (4, 3);
+                """)
+            conn.commit()
+    else:
+        # Sync User_Credentials for existing users if any missing
+        with get_db() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT IGNORE INTO User_Credentials (user_id, username, password_hash, account_role)
+                    SELECT u.user_id, u.username, u.password, COALESCE(au.admin_level, 'USER')
+                    FROM Users u
+                    LEFT JOIN Admin_User au ON au.user_id = u.user_id
+                """)
+                
+                # Ensure rajarshi super admin exists with dbms108
+                cursor.execute("SELECT user_id FROM Users WHERE username = 'rajarshi'")
+                rajarshi = cursor.fetchone()
+                if not rajarshi:
+                    cursor.execute("SELECT user_id FROM Users WHERE email = 'rajarshi@socialsphere.io'")
+                    email_match = cursor.fetchone()
+                    if email_match:
+                        cursor.execute("UPDATE Users SET username = 'rajarshi', password = 'dbms108' WHERE user_id = %s", (email_match["user_id"],))
+                        uid = email_match["user_id"]
+                    else:
+                        cursor.execute("""
+                            INSERT INTO Users (username, email, password, bio, account_status, dob)
+                            VALUES ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20')
+                        """)
+                        uid = cursor.lastrowid
+                    cursor.execute("REPLACE INTO Admin_User (user_id, admin_level) VALUES (%s, 'SUPER_ADMIN')", (uid,))
+                    cursor.execute("REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (%s, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR')", (uid,))
+                    cursor.execute("REPLACE INTO Regular_User (user_id, interests, location) VALUES (%s, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland')", (uid,))
+                    cursor.execute("REPLACE INTO User_Credentials (user_id, username, password_hash, account_role) VALUES (%s, 'rajarshi', 'dbms108', 'SUPER_ADMIN')", (uid,))
+                else:
+                    cursor.execute("UPDATE Users SET password = 'dbms108' WHERE username = 'rajarshi'")
+                    cursor.execute("UPDATE User_Credentials SET password_hash = 'dbms108' WHERE username = 'rajarshi'")
+                
+                # Seed follow rows if User_Follow is empty
+                cursor.execute("SELECT COUNT(*) AS fcount FROM User_Follow")
+                fcount = cursor.fetchone()["fcount"]
+                if fcount == 0:
+                    cursor.execute("""
+                        INSERT IGNORE INTO User_Follow (follower_id, following_id) VALUES
+                        (2, 3), (2, 4), (3, 2), (4, 2), (4, 3);
+                    """)
             conn.commit()

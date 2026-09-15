@@ -47,7 +47,7 @@ def list_posts(tag: Optional[str] = Query(None, description="Filter posts by has
                 LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
                 JOIN Post_Hashtag ph ON ph.post_id = p.post_id
                 JOIN Hashtag h ON h.hashtag_id = ph.hashtag_id
-                WHERE LOWER(h.tag) = LOWER(?)
+                WHERE h.tag = ?
                 ORDER BY p.post_id DESC
             """
             posts = query_all(posts_sql, (tag.lstrip("#"),))
@@ -140,7 +140,7 @@ def create_post(payload: CreatePostRequest):
         tags = set(re.findall(r'#([a-zA-Z0-9_]+)', payload.content))
         for tag in tags:
             tag_clean = tag.lower()
-            existing_tag = query_one("SELECT hashtag_id FROM Hashtag WHERE LOWER(tag) = LOWER(?)", (tag_clean,))
+            existing_tag = query_one("SELECT hashtag_id FROM Hashtag WHERE tag = ?", (tag_clean,))
             if existing_tag:
                 hashtag_id = existing_tag["hashtag_id"]
             else:
@@ -150,7 +150,7 @@ def create_post(payload: CreatePostRequest):
                 """, (tag_clean,))
 
             execute_write("""
-                INSERT OR IGNORE INTO Post_Hashtag (post_id, hashtag_id)
+                INSERT IGNORE INTO Post_Hashtag (post_id, hashtag_id)
                 VALUES (?, ?)
             """, (post_id, hashtag_id))
 

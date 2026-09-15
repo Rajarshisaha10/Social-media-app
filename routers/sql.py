@@ -1,9 +1,9 @@
 import time
 import logging
-import sqlite3
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
+import pymysql
 from db import get_db, query_all
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ FROM Post p
 JOIN Users u ON u.user_id = p.user_id
 LEFT JOIN Reaction r ON r.post_id = p.post_id
 LEFT JOIN Comment c ON c.post_id = p.post_id
-GROUP BY p.post_id
+GROUP BY p.post_id, u.username, p.content, p.created_date
 ORDER BY reaction_count DESC, p.created_date DESC;"""
     },
     {
@@ -79,11 +79,11 @@ ORDER BY reaction_count DESC, p.created_date DESC;"""
     cg.group_name,
     cg.privacy_setting,
     COUNT(gm.user_id) AS total_members,
-    GROUP_CONCAT(u.username, ', ') AS member_usernames
+    GROUP_CONCAT(u.username SEPARATOR ', ') AS member_usernames
 FROM Community_Group cg
 LEFT JOIN Group_Members gm ON gm.group_id = cg.group_id
 LEFT JOIN Users u ON u.user_id = gm.user_id
-GROUP BY cg.group_id;"""
+GROUP BY cg.group_id, cg.group_name, cg.privacy_setting;"""
     },
     {
         "id": "trending-hashtags",
@@ -96,7 +96,7 @@ GROUP BY cg.group_id;"""
     COUNT(ph.post_id) AS post_count
 FROM Hashtag h
 LEFT JOIN Post_Hashtag ph ON ph.hashtag_id = h.hashtag_id
-GROUP BY h.hashtag_id
+GROUP BY h.hashtag_id, h.tag, h.category
 ORDER BY post_count DESC;"""
     },
     {
@@ -139,7 +139,7 @@ LIMIT 50;"""
     u1.username AS user,
     u2.username AS recommended_user,
     fr.score,
-    ROUND(fr.score * 100, 1) || '%' AS compatibility_pct,
+    CONCAT(ROUND(fr.score * 100, 1), '%') AS compatibility_pct,
     fr.generated_at
 FROM Friend_Recommendation fr
 JOIN Users u1 ON u1.user_id = fr.user_id
@@ -187,54 +187,67 @@ def get_preset_queries():
 
 @router.get("/schema")
 def get_database_schema():
-    """Return database schema information for all tables."""
+    """Return MySQL database schema information for all tables."""
     try:
         with get_db() as conn:
-            cursor = conn.cursor()
-            # Fetch all user tables
-            cursor.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name NOT LIKE 'sqlite_%'
-                ORDER BY name ASC
-            """)
-            tables = [row["name"] for row in cursor.fetchall()]
+            with conn.cursor() as cursor:
+                # Fetch all tables in current MySQL database
+                cursor.execute("""
+                    SELECT TABLE_NAME AS tbl_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = DATABASE() 
+                      AND table_type = 'BASE TABLE'
+                    ORDER BY TABLE_NAME ASC
+                """)
+                tables = [row["tbl_name"] for row in cursor.fetchall()]
 
-            schema_info = []
-            for table_name in tables:
-                cursor.execute(f"PRAGMA table_info({table_name})")
-                cols = cursor.fetchall()
-                
-                cursor.execute(f"SELECT COUNT(*) AS count FROM {table_name}")
-                row_count = cursor.fetchone()["count"]
+                schema_info = []
+                for table_name in tables:
+                    cursor.execute("""
+                        SELECT 
+                            ORDINAL_POSITION AS cid,
+                            COLUMN_NAME AS col_name,
+                            COLUMN_TYPE AS col_type,
+                            (IS_NULLABLE = 'NO') AS notnull_flag,
+                            COLUMN_DEFAULT AS dflt_value,
+                            (COLUMN_KEY = 'PRI') AS pk_flag
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE() AND table_name = %s
+                        ORDER BY ORDINAL_POSITION ASC
+                    """, (table_name,))
+                    cols = cursor.fetchall()
+                    
+                    cursor.execute(f"SELECT COUNT(*) AS count FROM `{table_name}`")
+                    row_count = cursor.fetchone()["count"]
 
-                schema_info.append({
-                    "table_name": table_name,
-                    "row_count": row_count,
-                    "columns": [
-                        {
-                            "cid": col["cid"],
-                            "name": col["name"],
-                            "type": col["type"],
-                            "notnull": bool(col["notnull"]),
-                            "dflt_value": col["dflt_value"],
-                            "pk": bool(col["pk"])
-                        }
-                        for col in cols
-                    ]
-                })
+                    schema_info.append({
+                        "table_name": table_name,
+                        "row_count": row_count,
+                        "columns": [
+                            {
+                                "cid": col["cid"],
+                                "name": col["col_name"],
+                                "type": col["col_type"],
+                                "notnull": bool(col["notnull_flag"]),
+                                "dflt_value": col["dflt_value"],
+                                "pk": bool(col["pk_flag"])
+                            }
+                            for col in cols
+                        ]
+                    })
 
-            return {
-                "success": True,
-                "table_count": len(schema_info),
-                "tables": schema_info
-            }
+                return {
+                    "success": True,
+                    "table_count": len(schema_info),
+                    "tables": schema_info
+                }
     except Exception as e:
         logger.error(f"Error fetching schema: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/execute")
 def execute_sql_query(payload: QueryRequest):
-    """Execute raw SQL query against SQLite database."""
+    """Execute raw SQL query against MySQL database."""
     query_str = payload.query.strip()
     if not query_str:
         raise HTTPException(status_code=400, detail="Query string cannot be empty")
@@ -243,46 +256,46 @@ def execute_sql_query(payload: QueryRequest):
 
     try:
         with get_db() as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute(query_str)
-            
-            # If query is a SELECT or PRAGMA or returns rows
-            if cursor.description:
-                columns = [col[0] for col in cursor.description]
-                raw_rows = cursor.fetchall()
-                rows = [dict(row) for row in raw_rows]
-                conn.commit()
-                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-                return {
-                    "success": True,
-                    "query_type": "SELECT",
-                    "columns": columns,
-                    "rows": rows,
-                    "row_count": len(rows),
-                    "execution_time_ms": elapsed_ms,
-                    "message": f"Query returned {len(rows)} row(s) in {elapsed_ms}ms"
-                }
-            else:
-                # INSERT, UPDATE, DELETE, etc.
-                conn.commit()
-                affected = cursor.rowcount
-                last_id = cursor.lastrowid
-                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-                return {
-                    "success": True,
-                    "query_type": "MUTATION",
-                    "columns": ["affected_rows", "last_insert_id"],
-                    "rows": [{"affected_rows": affected, "last_insert_id": last_id}],
-                    "row_count": 1,
-                    "execution_time_ms": elapsed_ms,
-                    "message": f"Statement executed successfully. Affected rows: {affected} in {elapsed_ms}ms"
-                }
-    except sqlite3.Error as sqle:
+            with conn.cursor() as cursor:
+                cursor.execute(query_str)
+                
+                # If query is a SELECT or SHOW or EXPLAIN that produces a result set
+                if cursor.description:
+                    columns = [col[0] for col in cursor.description]
+                    raw_rows = cursor.fetchall()
+                    # PyMySQL DictCursor returns list of dicts directly
+                    rows = list(raw_rows) if raw_rows else []
+                    conn.commit()
+                    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                    return {
+                        "success": True,
+                        "query_type": "SELECT",
+                        "columns": columns,
+                        "rows": rows,
+                        "row_count": len(rows),
+                        "execution_time_ms": elapsed_ms,
+                        "message": f"Query returned {len(rows)} row(s) in {elapsed_ms}ms"
+                    }
+                else:
+                    # INSERT, UPDATE, DELETE, etc.
+                    conn.commit()
+                    affected = cursor.rowcount
+                    last_id = cursor.lastrowid
+                    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                    return {
+                        "success": True,
+                        "query_type": "MUTATION",
+                        "columns": ["affected_rows", "last_insert_id"],
+                        "rows": [{"affected_rows": affected, "last_insert_id": last_id}],
+                        "row_count": 1,
+                        "execution_time_ms": elapsed_ms,
+                        "message": f"Statement executed successfully. Affected rows: {affected} in {elapsed_ms}ms"
+                    }
+    except pymysql.MySQLError as mysqle:
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
         return {
             "success": False,
-            "error": str(sqle),
+            "error": str(mysqle),
             "execution_time_ms": elapsed_ms,
             "columns": [],
             "rows": [],

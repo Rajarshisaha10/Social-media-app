@@ -116,3 +116,5 @@ This repository is pre-configured for seamless deployment to **[Render](https://
 | `POST` | `/api/sql/execute` | Execute raw SQL query |
 | `GET` | `/api/sql/schema` | Complete SQLite table metadata |
 | `GET` | `/api/sql/presets` | Curated sample SQL queries |
+
+

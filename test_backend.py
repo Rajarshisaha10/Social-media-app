@@ -8,10 +8,10 @@ from routers.sql import PRESET_QUERIES
 print("Initializing DB...")
 init_db()
 
-tables = query_all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-print(f"Total tables in SQLite: {len(tables)}")
+tables = query_all("SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'")
+print(f"Total tables in MySQL: {len(tables)}")
 for t in tables:
-    count = query_one(f"SELECT COUNT(*) AS c FROM {t['name']}")['c']
+    count = query_one(f"SELECT COUNT(*) AS c FROM `{t['name']}`")['c']
     print(f" - {t['name']}: {count} rows")
 
 print("\nTesting SQL Presets:")

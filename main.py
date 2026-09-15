@@ -21,14 +21,14 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-initialize SQLite database tables on startup
+    # Auto-initialize MySQL database tables on startup
     init_db()
     yield
 
 app = FastAPI(
     title="SocialSphere — Social & SQL Studio API",
-    description="Fullstack FastAPI backend with SQLite database, 16 relational tables, user credentials store, PWA caching, live SQL Studio, and mobile dashboard",
-    version="1.2.0",
+    description="Fullstack FastAPI backend with MySQL database, 17 relational tables, connection pooling, user credentials store, PWA caching, live SQL Studio, and mobile dashboard",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -56,7 +56,7 @@ def read_info():
     return {
         "name": "Social Media Analytics API",
         "status": "online",
-        "database": "SQLite",
+        "database": "MySQL",
         "pwa": "enabled",
         "docs_url": "/docs",
         "sql_studio_url": "/sql"
@@ -68,7 +68,7 @@ def test_db_connection():
         rows = query_all("SELECT 1 AS connected")
         return {
             "success": True,
-            "message": "SQLite connection successful",
+            "message": "MySQL connection successful",
             "data": rows
         }
     except Exception as error:
@@ -76,7 +76,7 @@ def test_db_connection():
             status_code=500,
             detail={
                 "success": False,
-                "message": "SQLite connection failed",
+                "message": "MySQL connection failed",
                 "error": str(error)
             }
         )

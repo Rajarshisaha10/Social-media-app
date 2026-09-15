@@ -1,0 +1,234 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Tag, X, RefreshCw } from 'lucide-react';
+import StoriesTray from './StoriesTray';
+import FeedSqlBox from './FeedSqlBox';
+import PostCard from './PostCard';
+import RightSidebar from './RightSidebar';
+import { api } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
+
+export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
+  const { user } = useAuth();
+  const [posts, setPosts] = useState([]);
+  const [hashtags, setHashtags] = useState([]);
+  const [activeTag, setActiveTag] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [communities, setCommunities] = useState([]);
+
+  // Fetch posts with optional hashtag filter
+  const fetchPosts = useCallback(async (tag = null) => {
+    try {
+      const data = await api.getPosts({ tag, viewerId: user?.user_id });
+      if (data?.posts) {
+        setPosts(data.posts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch posts:', err);
+    }
+  }, [user?.user_id]);
+
+  // Initial load
+  useEffect(() => {
+    let mounted = true;
+    async function loadData() {
+      setLoading(true);
+      try {
+        const [postsRes, tagsRes, recsRes, groupsRes] = await Promise.allSettled([
+          api.getPosts({ viewerId: user?.user_id }),
+          api.getHashtags(),
+          user?.user_id ? api.getRecommendations(user.user_id) : Promise.resolve(null),
+          api.getGroups(user?.user_id),
+        ]);
+
+        if (!mounted) return;
+
+        if (postsRes.status === 'fulfilled' && postsRes.value?.posts) {
+          setPosts(postsRes.value.posts);
+        }
+        if (tagsRes.status === 'fulfilled' && tagsRes.value?.hashtags) {
+          setHashtags(tagsRes.value.hashtags);
+        }
+        if (recsRes.status === 'fulfilled' && recsRes.value?.recommendations) {
+          setSuggestedUsers(recsRes.value.recommendations);
+        }
+        if (groupsRes.status === 'fulfilled' && groupsRes.value?.groups) {
+          setCommunities(groupsRes.value.groups);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => { mounted = false; };
+  }, [user?.user_id]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchPosts(activeTag);
+    setRefreshing(false);
+  };
+
+  const handleTagFilter = (tag) => {
+    const nextTag = activeTag === tag ? null : tag;
+    setActiveTag(nextTag);
+    fetchPosts(nextTag);
+  };
+
+  // 0ms Optimistic Post Creation
+  const handleCreatePost = async ({ content, imageUrl }) => {
+    const tempPost = {
+      post_id: `temp-${Date.now()}`,
+      user_id: user.user_id,
+      username: user.username,
+      profile_pic: user.profile_pic,
+      content,
+      image_url: imageUrl,
+      created_at: new Date().toISOString(),
+      likes_count: 0,
+      reactions: [],
+      comments: [],
+    };
+
+    // Instant insertion at top
+    setPosts((prev) => [tempPost, ...prev]);
+
+    try {
+      const res = await api.createPost({
+        userId: user.user_id,
+        content,
+        imageUrl,
+      });
+
+      // Update with server generated id if available
+      if (res?.post) {
+        setPosts((prev) => prev.map((p) => (p.post_id === tempPost.post_id ? res.post : p)));
+      }
+    } catch (err) {
+      console.error('Failed to create post:', err);
+      setPosts((prev) => prev.filter((p) => p.post_id !== tempPost.post_id));
+      throw err;
+    }
+  };
+
+  return (
+    <div className="feed-layout">
+      <div className="feed-column">
+        {/* Stories Tray */}
+        <StoriesTray
+          users={suggestedUsers.length > 0 ? suggestedUsers : (posts.map(p => ({ user_id: p.user_id, username: p.username, profile_pic: p.profile_pic })))}
+          onSelectStory={onSelectStory}
+        />
+
+        {/* SQL Queries Section */}
+        <FeedSqlBox onOpenFullStudio={() => onNavigateTab('sql')} />
+
+        {/* Topic / Hashtag Discovery Bar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.6px' }}>
+              <Tag size={13} />
+              <span>TRENDING TOPICS</span>
+            </div>
+            <button
+              type="button"
+              className="btn-text-sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}
+            >
+              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="hashtag-filter-bar">
+            {hashtags.slice(0, 8).map((h) => {
+              const tag = h.tag_name || h.hashtag;
+              const isActive = activeTag === tag;
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`hashtag-pill ${isActive ? 'active' : ''}`}
+                  onClick={() => handleTagFilter(tag)}
+                >
+                  #{tag} {h.post_count ? `(${h.post_count})` : ''}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeTag && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                background: 'var(--blue-light)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '12.5px',
+                color: 'var(--blue-primary)',
+              }}
+            >
+              <span>Filtering by <strong>#{activeTag}</strong></span>
+              <button
+                type="button"
+                onClick={() => handleTagFilter(null)}
+                style={{ display: 'flex', alignItems: 'center', gap: '2px', color: 'var(--blue-primary)', fontWeight: 600 }}
+              >
+                <X size={14} />
+                <span>Clear filter</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Posts Feed Stream */}
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="skeleton"
+                style={{ height: '360px', width: '100%', borderRadius: 'var(--radius-lg)' }}
+              />
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
+          <div
+            className="aside-card"
+            style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}
+          >
+            <h3>No posts found</h3>
+            <p style={{ marginTop: '6px', fontSize: '13px' }}>
+              {activeTag ? `No posts found tagged with #${activeTag}.` : 'Be the first to share something with the community!'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {posts.map((post) => (
+              <PostCard
+                key={post.post_id}
+                post={post}
+                onTagClick={handleTagFilter}
+                onUserClick={onUserClick}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar */}
+      <RightSidebar
+        suggestedUsers={suggestedUsers}
+        communities={communities}
+        onNavigateTab={onNavigateTab}
+        onUserClick={onUserClick}
+      />
+    </div>
+  );
+}

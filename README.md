@@ -1,18 +1,23 @@
-# ⚡ SocialSphere - Fullstack Social Media & SQL Studio Platform
+# ⚡ SocialSphere - Fullstack React & FastAPI Platform with SQL Studio
 
-A modern social media web platform and database exploration suite powered by **Python FastAPI** and **SQLite** with **15 relational database tables**, real-time direct messaging, community groups, algorithmic recommendations, live telemetry audit logs, and an interactive **/sql Studio**.
+A blazing-fast, modern social media web platform and database exploration suite powered by a **React + Vite** frontend, **Python FastAPI** backend, and **SQLite** with **17 relational database tables**, real-time direct messaging, community channels, algorithmic friend recommendations, live telemetry audit logs, and an interactive **/sql Studio**.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Features & Performance Upgrades
 
-1. **📱 Mobile-First Responsive Design**:
-   - Modern dark-mode glassmorphic aesthetic with fluid layouts.
-   - Fixed bottom navigation bar on mobile phones (`Feed`, `Chat`, `Groups`, `/sql`, `Stats`, `Members`).
+1. **⚡ Lightning Fast React + Vite Architecture**:
+   - Zero-latency in-memory tab switching (Feed, Messages, Communities, Connections, Users, /sql Studio, Analytics).
+   - **0ms Optimistic UI Updates**: Immediate reaction counters (Like, Love, Fire), instant follow/unfollow toggle, instant direct messaging delivery, and instant post creation.
+   - Smooth skeleton placeholders and micro-animations eliminating layout thrashing and white flashes.
+
+2. **📱 Mobile-First Responsive Design**:
+   - Sleek warm cream & rich blue glassmorphic aesthetic with fluid layouts.
+   - Fixed bottom navigation bar on mobile phones (`Home`, `Communities`, `Create Post`, `/sql`, `Explore`).
    - Touch-friendly action sheets, avatars, reaction bars, and modals.
 
-2. **🗄️ Full 15-Table Relational Schema Integration**:
-   - `Users`, `Profile_Pic`, `Regular_User`, `Admin_User` (User Profiles & Directory)
+3. **🗄️ Full 17-Table Relational Schema Integration**:
+   - `Users`, `Profile_Pic`, `Regular_User`, `Admin_User`, `User_Credentials`, `User_Follow` (User Profiles & Directory)
    - `Post`, `Comment`, `Reaction` (Interactive Feed with Like/Love/Fire reactions & nested comments)
    - `Community_Group`, `Group_Members` (Communities directory with join/leave and creator admin roles)
    - `Hashtag`, `Post_Hashtag` (Automatic `#tag` parsing, discovery bar, and filtered feeds)
@@ -21,11 +26,11 @@ A modern social media web platform and database exploration suite powered by **P
    - `Friend_Recommendation` (Compatibility scoring & match cards)
    - `Event_Analysis` (Audit trail & telemetry stream tracking logins, posts, reactions, etc.)
 
-3. **💻 Interactive `/sql` Studio Page**:
-   - Direct route accessible at `/sql` and in the navigation.
+4. **💻 Interactive `/sql` Studio Page**:
+   - Direct route accessible at `/sql` and in navigation (Super Admin access).
    - Real-time SQL execution engine against SQLite with millisecond timing (`⏱️ ms`).
-   - Schema Inspector displaying all 15 tables, column types, primary keys, and row counts.
-   - 8+ curated preset queries for instant data exploration.
+   - Schema Inspector displaying all relational tables, column types, primary keys, and row counts.
+   - 10+ curated preset queries for instant data exploration.
    - CSV and JSON export buttons for query result sets.
    - Keyboard shortcut: `Ctrl + Enter` / `Cmd + Enter` to execute.
 
@@ -33,12 +38,22 @@ A modern social media web platform and database exploration suite powered by **P
 
 ## 🚀 Quick Start (Local Development)
 
-### 1. Install Dependencies
+### 1. Install Backend Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the Application
+### 2. (Optional) Run React Dev Server with HMR
+If you want to modify the React frontend with instant hot module replacement:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Runs at `http://localhost:5173` with automatic API proxying to `http://127.0.0.1:5000`.
+
+### 3. Run the Production Application
+The compiled production bundle is pre-built and served directly by FastAPI:
 ```bash
 python main.py
 ```
@@ -47,10 +62,11 @@ Or with Uvicorn:
 uvicorn main:app --host 127.0.0.1 --port 5000 --reload
 ```
 
-### 3. Open in Browser
-- **Web App**: [http://localhost:5000](http://localhost:5000)
+### 4. Open in Browser
+- **Web App**: [http://localhost:5000](http://localhost:5000) (or [http://localhost:5173](http://localhost:5173) in Vite dev mode)
 - **SQL Studio**: [http://localhost:5000/sql](http://localhost:5000/sql)
 - **Interactive Swagger Docs**: [http://localhost:5000/docs](http://localhost:5000/docs)
+
 
 ---
 

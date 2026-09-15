@@ -81,46 +81,63 @@ def test_db_connection():
             }
         )
 
-# Mount static directory for frontend UI
+# Mount frontend and static directories
+frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+frontend_assets = os.path.join(frontend_dist, "assets")
 static_dir = os.path.join(os.path.dirname(__file__), "static")
+
+if os.path.exists(frontend_assets):
+    app.mount("/assets", StaticFiles(directory=frontend_assets), name="assets")
+
 if not os.path.exists(static_dir):
     os.makedirs(static_dir, exist_ok=True)
-
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+def get_spa_index():
+    dist_index = os.path.join(frontend_dist, "index.html")
+    if os.path.exists(dist_index):
+        return dist_index
+    legacy_index = os.path.join(static_dir, "index.html")
+    if os.path.exists(legacy_index):
+        return legacy_index
+    return None
 
 # PWA Service Worker & Manifest Routes
 @app.get("/manifest.json")
 def serve_manifest():
-    manifest_file = os.path.join(static_dir, "manifest.json")
-    if os.path.exists(manifest_file):
-        return FileResponse(manifest_file, media_type="application/manifest+json")
+    for base in [frontend_dist, static_dir]:
+        manifest_file = os.path.join(base, "manifest.json")
+        if os.path.exists(manifest_file):
+            return FileResponse(manifest_file, media_type="application/manifest+json")
     raise HTTPException(status_code=404, detail="Manifest not found")
 
 @app.get("/sw.js")
 def serve_service_worker():
-    sw_file = os.path.join(static_dir, "sw.js")
-    if os.path.exists(sw_file):
-        return FileResponse(
-            sw_file,
-            media_type="application/javascript",
-            headers={"Service-Worker-Allowed": "/"}
-        )
+    for base in [frontend_dist, static_dir]:
+        sw_file = os.path.join(base, "sw.js")
+        if os.path.exists(sw_file):
+            return FileResponse(
+                sw_file,
+                media_type="application/javascript",
+                headers={"Service-Worker-Allowed": "/"}
+            )
     raise HTTPException(status_code=404, detail="Service worker not found")
 
 @app.get("/")
 def serve_ui():
-    index_file = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_file):
+    index_file = get_spa_index()
+    if index_file:
         return FileResponse(index_file)
     return {"message": "Social Media Platform API is running. Visit /docs for API documentation."}
 
 @app.get("/sql")
 def serve_sql_ui():
-    """Route specifically for /sql page, serving the main web app with SQL Studio activated."""
-    index_file = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_file):
+    """Route specifically for /sql page, serving the SPA with SQL Studio activated."""
+    index_file = get_spa_index()
+    if index_file:
         return FileResponse(index_file)
     return {"message": "SQL Studio page available. Please check static files."}
+
 
 if __name__ == "__main__":
     init_db()

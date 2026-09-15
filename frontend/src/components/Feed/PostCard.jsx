@@ -1,0 +1,272 @@
+import React, { useState } from 'react';
+import { Heart, Flame, MessageCircle, Send } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api/client';
+
+export default function PostCard({ post, onTagClick, onUserClick }) {
+  const { user } = useAuth();
+
+  // Optimistic reactions state
+  const [reactions, setReactions] = useState(() => {
+    const counts = { LIKE: 0, LOVE: 0, FIRE: 0 };
+    if (post.reactions && Array.isArray(post.reactions)) {
+      post.reactions.forEach((r) => {
+        const type = (r.reaction_type || '').toUpperCase();
+        if (counts[type] !== undefined) counts[type]++;
+      });
+    } else if (post.likes_count !== undefined) {
+      counts.LIKE = post.likes_count || 0;
+    }
+    return counts;
+  });
+
+  const [userReactions, setUserReactions] = useState(() => {
+    const set = new Set();
+    if (post.reactions && Array.isArray(post.reactions) && user?.user_id) {
+      post.reactions.forEach((r) => {
+        if (r.user_id === user.user_id) {
+          set.add(r.reaction_type?.toUpperCase());
+        }
+      });
+    }
+    return set;
+  });
+
+  // Comments state
+  const [comments, setComments] = useState(post.comments || []);
+  const [commentText, setCommentText] = useState('');
+  const [showAllComments, setShowAllComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // 0ms Optimistic Reaction Toggle
+  const handleToggleReaction = async (type) => {
+    if (!user?.user_id) return;
+    const isReacted = userReactions.has(type);
+
+    // Instant local state update
+    const nextUserReactions = new Set(userReactions);
+    const nextCounts = { ...reactions };
+
+    if (isReacted) {
+      nextUserReactions.delete(type);
+      nextCounts[type] = Math.max(0, (nextCounts[type] || 0) - 1);
+    } else {
+      nextUserReactions.add(type);
+      nextCounts[type] = (nextCounts[type] || 0) + 1;
+    }
+
+    setUserReactions(nextUserReactions);
+    setReactions(nextCounts);
+
+    // Call API in background
+    try {
+      await api.reactToPost({
+        postId: post.post_id,
+        userId: user.user_id,
+        reactionType: type,
+      });
+    } catch (err) {
+      // Rollback on network failure
+      console.error('Failed to update reaction:', err);
+      setUserReactions(userReactions);
+      setReactions(reactions);
+    }
+  };
+
+  // 0ms Optimistic Comment Submission
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim() || !user?.user_id) return;
+
+    const newComment = {
+      comment_id: `temp-${Date.now()}`,
+      post_id: post.post_id,
+      user_id: user.user_id,
+      username: user.username,
+      content: commentText.trim(),
+      created_at: new Date().toISOString(),
+    };
+
+    setComments((prev) => [...prev, newComment]);
+    setCommentText('');
+    setSubmittingComment(true);
+
+    try {
+      await api.addComment({
+        postId: post.post_id,
+        userId: user.user_id,
+        content: newComment.content,
+      });
+    } catch (err) {
+      console.error('Failed to post comment:', err);
+      // Remove temporary comment on failure
+      setComments((prev) => prev.filter((c) => c.comment_id !== newComment.comment_id));
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  // Format content with clickable hashtags
+  const renderFormattedContent = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('#')) {
+        const tag = part.slice(1);
+        return (
+          <span
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTagClick?.(tag);
+            }}
+            style={{
+              color: 'var(--blue-primary)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginRight: '2px',
+            }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  const displayedComments = showAllComments ? comments : comments.slice(-3);
+
+  return (
+    <article className="post-card animate-fade-in">
+      <header className="post-header">
+        <div
+          className="post-author-group"
+          onClick={() => onUserClick?.(post.user_id)}
+        >
+          <img
+            className="post-author-avatar"
+            src={post.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+            alt={post.username}
+            onError={(e) => {
+              e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde';
+            }}
+          />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="post-author-uname">{post.username || 'User'}</span>
+              {post.username?.toLowerCase() === 'rajarshi' && (
+                <span className="admin-pill-tag">SUPER ADMIN</span>
+              )}
+            </div>
+            <span className="post-timestamp">
+              {post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Just now'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {post.content && (
+        <div className="post-content-text">
+          {renderFormattedContent(post.content)}
+        </div>
+      )}
+
+      {post.image_url && (
+        <div className="post-media-box">
+          <img
+            className="post-media-img"
+            src={post.image_url}
+            alt="Post content"
+            loading="lazy"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
+      {/* Reactions Bar */}
+      <div className="post-reactions-bar">
+        <button
+          type="button"
+          className={`reaction-btn ${userReactions.has('LIKE') ? 'reacted-like' : ''}`}
+          onClick={() => handleToggleReaction('LIKE')}
+          title="Like"
+        >
+          <Heart size={16} fill={userReactions.has('LIKE') ? 'currentColor' : 'none'} />
+          <span>{reactions.LIKE}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`reaction-btn ${userReactions.has('FIRE') ? 'reacted-fire' : ''}`}
+          onClick={() => handleToggleReaction('FIRE')}
+          title="Fire"
+        >
+          <Flame size={16} fill={userReactions.has('FIRE') ? 'currentColor' : 'none'} />
+          <span>{reactions.FIRE}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`reaction-btn ${userReactions.has('LOVE') ? 'reacted-love' : ''}`}
+          onClick={() => handleToggleReaction('LOVE')}
+          title="Love"
+        >
+          <Heart size={16} fill={userReactions.has('LOVE') ? 'currentColor' : 'none'} color="#db2777" />
+          <span>{reactions.LOVE}</span>
+        </button>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>
+          <MessageCircle size={15} />
+          <span>{comments.length}</span>
+        </div>
+      </div>
+
+      {/* Comments Section */}
+      <div className="post-comments-section">
+        {comments.length > 3 && !showAllComments && (
+          <button
+            type="button"
+            className="btn-text-sm"
+            onClick={() => setShowAllComments(true)}
+            style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}
+          >
+            View all {comments.length} comments
+          </button>
+        )}
+
+        {displayedComments.map((c) => (
+          <div key={c.comment_id} className="comment-item">
+            <span
+              className="comment-uname"
+              onClick={() => onUserClick?.(c.user_id)}
+              style={{ cursor: 'pointer' }}
+            >
+              {c.username}:
+            </span>
+            <span>{c.content}</span>
+          </div>
+        ))}
+
+        <form onSubmit={handleAddComment} className="add-comment-row">
+          <input
+            type="text"
+            className="comment-input"
+            placeholder="Add a comment..."
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="btn-post-comment"
+            disabled={!commentText.trim() || submittingComment}
+          >
+            <Send size={14} />
+          </button>
+        </form>
+      </div>
+    </article>
+  );
+}

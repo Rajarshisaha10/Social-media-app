@@ -4,7 +4,8 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 import pymysql
-from db import get_db, query_all
+import sqlite3
+from db import get_db, query_all, get_engine
 
 logger = logging.getLogger(__name__)
 
@@ -187,50 +188,87 @@ def get_preset_queries():
 
 @router.get("/schema")
 def get_database_schema():
-    """Return MySQL database schema information for all tables."""
+    """Return database schema information for all tables."""
     try:
-        with get_db() as conn:
-            with conn.cursor() as cursor:
-                # Fetch all tables in current MySQL database
-                cursor.execute("""
-                    SELECT TABLE_NAME AS tbl_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = DATABASE() 
-                      AND table_type = 'BASE TABLE'
-                    ORDER BY TABLE_NAME ASC
-                """)
-                tables = [row["tbl_name"] for row in cursor.fetchall()]
+        engine = get_engine()
+        if engine == "mysql":
+            with get_db() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT TABLE_NAME AS tbl_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = DATABASE() 
+                          AND table_type = 'BASE TABLE'
+                        ORDER BY TABLE_NAME ASC
+                    """)
+                    tables = [row["tbl_name"] for row in cursor.fetchall()]
+
+                    schema_info = []
+                    for table_name in tables:
+                        cursor.execute("""
+                            SELECT 
+                                ORDINAL_POSITION AS cid,
+                                COLUMN_NAME AS col_name,
+                                COLUMN_TYPE AS col_type,
+                                (IS_NULLABLE = 'NO') AS notnull_flag,
+                                COLUMN_DEFAULT AS dflt_value,
+                                (COLUMN_KEY = 'PRI') AS pk_flag
+                            FROM information_schema.columns
+                            WHERE table_schema = DATABASE() AND table_name = %s
+                            ORDER BY ORDINAL_POSITION ASC
+                        """, (table_name,))
+                        cols = cursor.fetchall()
+                        
+                        cursor.execute(f"SELECT COUNT(*) AS count FROM `{table_name}`")
+                        row_count = cursor.fetchone()["count"]
+
+                        schema_info.append({
+                            "table_name": table_name,
+                            "row_count": row_count,
+                            "columns": [
+                                {
+                                    "cid": col["cid"],
+                                    "name": col["col_name"],
+                                    "type": col["col_type"],
+                                    "notnull": bool(col["notnull_flag"]),
+                                    "dflt_value": col["dflt_value"],
+                                    "pk": bool(col["pk_flag"])
+                                }
+                                for col in cols
+                            ]
+                        })
+
+                    return {
+                        "success": True,
+                        "table_count": len(schema_info),
+                        "tables": schema_info
+                    }
+        else:
+            # SQLite schema
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC")
+                tables = [row[0] for row in cursor.fetchall()]
 
                 schema_info = []
                 for table_name in tables:
-                    cursor.execute("""
-                        SELECT 
-                            ORDINAL_POSITION AS cid,
-                            COLUMN_NAME AS col_name,
-                            COLUMN_TYPE AS col_type,
-                            (IS_NULLABLE = 'NO') AS notnull_flag,
-                            COLUMN_DEFAULT AS dflt_value,
-                            (COLUMN_KEY = 'PRI') AS pk_flag
-                        FROM information_schema.columns
-                        WHERE table_schema = DATABASE() AND table_name = %s
-                        ORDER BY ORDINAL_POSITION ASC
-                    """, (table_name,))
+                    cursor.execute(f"PRAGMA table_info(`{table_name}`)")
                     cols = cursor.fetchall()
-                    
+
                     cursor.execute(f"SELECT COUNT(*) AS count FROM `{table_name}`")
-                    row_count = cursor.fetchone()["count"]
+                    row_count = cursor.fetchone()[0]
 
                     schema_info.append({
                         "table_name": table_name,
                         "row_count": row_count,
                         "columns": [
                             {
-                                "cid": col["cid"],
-                                "name": col["col_name"],
-                                "type": col["col_type"],
-                                "notnull": bool(col["notnull_flag"]),
-                                "dflt_value": col["dflt_value"],
-                                "pk": bool(col["pk_flag"])
+                                "cid": col[0],
+                                "name": col[1],
+                                "type": col[2],
+                                "notnull": bool(col[3]),
+                                "dflt_value": col[4],
+                                "pk": bool(col[5])
                             }
                             for col in cols
                         ]
@@ -247,55 +285,58 @@ def get_database_schema():
 
 @router.post("/execute")
 def execute_sql_query(payload: QueryRequest):
-    """Execute raw SQL query against MySQL database."""
+    """Execute raw SQL query against database."""
     query_str = payload.query.strip()
     if not query_str:
         raise HTTPException(status_code=400, detail="Query string cannot be empty")
 
     start_time = time.perf_counter()
+    engine = get_engine()
 
     try:
         with get_db() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query_str)
-                
-                # If query is a SELECT or SHOW or EXPLAIN that produces a result set
-                if cursor.description:
-                    columns = [col[0] for col in cursor.description]
-                    raw_rows = cursor.fetchall()
-                    # PyMySQL DictCursor returns list of dicts directly
+            cursor = conn.cursor()
+            cursor.execute(query_str)
+            
+            # If query is a SELECT or SHOW or PRAGMA that produces a result set
+            if cursor.description:
+                columns = [col[0] for col in cursor.description]
+                raw_rows = cursor.fetchall()
+                if engine == "mysql":
                     rows = list(raw_rows) if raw_rows else []
-                    conn.commit()
-                    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-                    return {
-                        "success": True,
-                        "query_type": "SELECT",
-                        "columns": columns,
-                        "rows": rows,
-                        "row_count": len(rows),
-                        "execution_time_ms": elapsed_ms,
-                        "message": f"Query returned {len(rows)} row(s) in {elapsed_ms}ms"
-                    }
                 else:
-                    # INSERT, UPDATE, DELETE, etc.
-                    conn.commit()
-                    affected = cursor.rowcount
-                    last_id = cursor.lastrowid
-                    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-                    return {
-                        "success": True,
-                        "query_type": "MUTATION",
-                        "columns": ["affected_rows", "last_insert_id"],
-                        "rows": [{"affected_rows": affected, "last_insert_id": last_id}],
-                        "row_count": 1,
-                        "execution_time_ms": elapsed_ms,
-                        "message": f"Statement executed successfully. Affected rows: {affected} in {elapsed_ms}ms"
-                    }
-    except pymysql.MySQLError as mysqle:
+                    rows = [dict(r) for r in raw_rows] if raw_rows else []
+                conn.commit()
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                return {
+                    "success": True,
+                    "query_type": "SELECT",
+                    "columns": columns,
+                    "rows": rows,
+                    "row_count": len(rows),
+                    "execution_time_ms": elapsed_ms,
+                    "message": f"Query returned {len(rows)} row(s) in {elapsed_ms}ms"
+                }
+            else:
+                # INSERT, UPDATE, DELETE, etc.
+                conn.commit()
+                affected = cursor.rowcount
+                last_id = cursor.lastrowid
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                return {
+                    "success": True,
+                    "query_type": "MUTATION",
+                    "columns": ["affected_rows", "last_insert_id"],
+                    "rows": [{"affected_rows": affected, "last_insert_id": last_id}],
+                    "row_count": 1,
+                    "execution_time_ms": elapsed_ms,
+                    "message": f"Statement executed successfully. Affected rows: {affected} in {elapsed_ms}ms"
+                }
+    except (pymysql.MySQLError, sqlite3.Error) as dbe:
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
         return {
             "success": False,
-            "error": str(mysqle),
+            "error": str(dbe),
             "execution_time_ms": elapsed_ms,
             "columns": [],
             "rows": [],

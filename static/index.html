@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SocialSphere — Instagram-Style Platform & SQL Studio</title>
-    <meta name="description" content="Instagram-styled social media platform with 17 relational tables, user credentials store, PWA offline caching, and live SQL Studio.">
+    <title>SocialSphere — Instagram Web Clone & SQL Studio</title>
+    <meta name="description" content="Instagram-styled social media platform with 17 relational tables, PWA offline caching, and live SQL Studio.">
     
-    <!-- PWA Settings & Mobile Web App Manifest -->
+    <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="mobile-web-app-capable" content="yes">
@@ -16,19 +16,20 @@
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
 
+    <!-- Fonts & Styles -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-    <!-- Offline Notification Banner -->
+    <!-- Offline Banner -->
     <div id="offlineIndicatorBanner" class="offline-banner" style="display: none;">
         <span>Offline Mode &middot; Showing cached platform data</span>
     </div>
 
-    <!-- PWA App Install Banner for Mobile / Desktop -->
+    <!-- PWA Install Toast -->
     <div id="pwaInstallBanner" class="pwa-install-toast" style="display: none;">
         <div class="pwa-toast-content">
             <img class="pwa-toast-icon" src="/static/icon-192.png" alt="App Icon">
@@ -43,12 +44,12 @@
         </div>
     </div>
 
-    <!-- ================= MANDATORY AUTHENTICATION GATE & LOGIN SCREEN ================= -->
+    <!-- ================= AUTHENTICATION GATE ================= -->
     <div id="authGateOverlay" class="auth-gate-overlay" style="display: flex;">
         <div class="auth-gate-card">
             <div class="auth-gate-logo">
                 <h1>SocialSphere</h1>
-                <p>Sign in with your credentials to access the platform.</p>
+                <p>Sign in to your account</p>
             </div>
 
             <div class="auth-tabs-row">
@@ -56,7 +57,7 @@
                 <button type="button" id="tabBtnRegister" class="auth-tab-btn">Create Account</button>
             </div>
 
-            <!-- LOGIN FORM -->
+            <!-- Login Form -->
             <form id="loginForm" class="auth-form">
                 <div class="auth-input-group">
                     <label for="loginUsername">Username</label>
@@ -72,7 +73,7 @@
                 </button>
             </form>
 
-            <!-- REGISTRATION FORM -->
+            <!-- Registration Form -->
             <form id="registerForm" class="auth-form" style="display: none;">
                 <div class="auth-input-group">
                     <label for="regUsername">Username *</label>
@@ -80,7 +81,7 @@
                 </div>
                 <div class="auth-input-group">
                     <label for="regEmail">Valid Email Address *</label>
-                    <input type="email" id="regEmail" class="auth-input" placeholder="e.g. user@example.com" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" title="Please enter a valid email address with domain (e.g. user@example.com)" autocomplete="email" required>
+                    <input type="email" id="regEmail" class="auth-input" placeholder="e.g. user@example.com" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" title="Please enter a valid email address" autocomplete="email" required>
                 </div>
                 <div class="auth-input-group">
                     <label for="regPassword">Password *</label>
@@ -104,30 +105,24 @@
                 </button>
             </form>
 
-            <div class="or-divider" style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
-                <div style="flex: 1; height: 1px; background: var(--ig-border);"></div>
-                <span style="font-size: 11px; color: var(--ig-text-muted); font-weight: 700;">DEMO ACCOUNTS</span>
-                <div style="flex: 1; height: 1px; background: var(--ig-border);"></div>
+            <div class="or-divider">
+                <div class="divider-line"></div>
+                <span class="or-text">DEMO ACCOUNTS</span>
+                <div class="divider-line"></div>
             </div>
 
-            <div class="quick-sample-users" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
-                <button type="button" class="btn-demo-chip" data-user="alice_w" data-pass="password123">
-                    <strong>alice_w</strong> (User)
-                </button>
-                <button type="button" class="btn-demo-chip" data-user="bob_m" data-pass="password123">
-                    <strong>bob_m</strong> (User)
-                </button>
-                <button type="button" class="btn-demo-chip" data-user="charlie_dev" data-pass="password123">
-                    <strong>charlie_dev</strong> (User)
-                </button>
+            <div class="quick-sample-users">
+                <button type="button" class="btn-demo-chip" data-user="alice_w" data-pass="password123"><strong>alice_w</strong></button>
+                <button type="button" class="btn-demo-chip" data-user="bob_m" data-pass="password123"><strong>bob_m</strong></button>
+                <button type="button" class="btn-demo-chip" data-user="charlie_dev" data-pass="password123"><strong>charlie_dev</strong></button>
             </div>
         </div>
     </div>
 
-    <!-- ================= MAIN INSTAGRAM APPLICATION LAYOUT ================= -->
+    <!-- ================= MAIN APP LAYOUT ================= -->
     <div id="appLayoutSection" class="insta-app-layout" style="display: none;">
 
-        <!-- Left Desktop Navigation Sidebar (Instagram Style) -->
+        <!-- Left Desktop Navigation Sidebar -->
         <aside class="insta-sidebar">
             <div class="sidebar-top">
                 <a href="/" class="insta-brand-logo" id="logoBtn">
@@ -161,7 +156,7 @@
                         <span class="nav-text">Explore Users</span>
                     </button>
 
-                    <!-- Super Admin Restricted Nav Links -->
+                    <!-- Super Admin Only -->
                     <button class="insta-nav-link admin-restricted" data-tab="sql-tab" id="sidebarSqlNavBtn">
                         <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
                         <span class="nav-text">/sql Studio</span>
@@ -179,10 +174,9 @@
                 </nav>
             </div>
 
-            <!-- Sidebar User Profile Footer -->
             <div class="sidebar-user-footer">
                 <div class="user-footer-card">
-                    <img id="sidebarUserAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
+                    <img id="sidebarUserAvatar" class="avatar-circle-sm" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
                     <div class="user-footer-meta">
                         <div class="meta-row-top">
                             <span id="sidebarUserName" class="meta-uname">username</span>
@@ -228,21 +222,19 @@
                         <!-- Main Posts Column -->
                         <div class="feed-posts-column">
 
-                            <!-- Instagram Stories Tray -->
+                            <!-- Stories Tray -->
                             <div class="stories-tray-card">
-                                <div class="stories-scroll-row" id="storiesTrayList">
-                                    <!-- Populated dynamically with users -->
-                                </div>
+                                <div class="stories-scroll-row" id="storiesTrayList"></div>
                             </div>
 
-                            <!-- Create Post Box (Instagram style) -->
+                            <!-- Create Post Box -->
                             <div class="create-post-card" id="createPostBoxSection">
                                 <div class="create-card-header">
-                                    <img id="currentUserAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
+                                    <img id="currentUserAvatar" class="avatar-circle-sm" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
                                     <span id="currentUserName" class="create-user-title">username</span>
                                     <span id="feedAdminBadge" class="admin-badge-pill" style="margin-left: auto; display: none;">SUPER ADMIN</span>
                                 </div>
-                                <textarea id="postContent" class="create-textarea" placeholder="What's on your mind? Use #hashtags to categorize..."></textarea>
+                                <textarea id="postContent" class="create-textarea" placeholder="What's on your mind? Use #hashtags..."></textarea>
                                 
                                 <div id="createPostPreviewBox" class="post-preview-img-box" style="display: none;">
                                     <img id="createPostPreviewImg" src="" alt="Preview">
@@ -250,16 +242,16 @@
                                 </div>
 
                                 <div class="create-card-footer">
-                                    <input type="url" id="postUrl" class="create-link-input" placeholder="Attach image URL (e.g. https://images.unsplash.com/...)">
+                                    <input type="url" id="postUrl" class="create-link-input" placeholder="Attach image URL...">
                                     <button id="submitPostBtn" class="btn-insta-primary">Share</button>
                                 </div>
                             </div>
 
-                            <!-- Topic Filter Pill Bar -->
+                            <!-- Topic Filters -->
                             <div class="topic-filter-bar">
                                 <span class="topic-title">EXPLORE TAGS:</span>
                                 <div id="feedHashtagsList" class="topic-pills-row"></div>
-                                <button id="clearHashtagFilter" class="btn-chip" style="display: none;">Reset Filter</button>
+                                <button id="clearHashtagFilter" class="btn-chip" style="display: none;">Reset</button>
                             </div>
 
                             <div id="activeFilterBanner" class="filter-banner" style="display: none;">
@@ -271,18 +263,16 @@
                             <div id="postsList" class="posts-feed-list"></div>
                         </div>
 
-                        <!-- Right Sidebar Suggestions (Instagram Style) -->
+                        <!-- Right Sidebar -->
                         <aside class="feed-right-sidebar">
-                            <!-- Active Account Header -->
                             <div class="sidebar-self-profile">
-                                <img id="headerUserAvatar" class="avatar-square-md" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
+                                <img id="headerUserAvatar" class="avatar-circle-md" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
                                 <div class="self-meta">
                                     <span class="self-uname" id="sidebarSelfName">username</span>
                                     <span class="self-fullname" id="sidebarSelfRole">Member</span>
                                 </div>
                             </div>
 
-                            <!-- Suggested Connections Section -->
                             <div class="sidebar-section-block">
                                 <div class="section-block-header">
                                     <span class="section-heading">Suggested for you</span>
@@ -291,7 +281,6 @@
                                 <div id="sidebarRecsList" class="sidebar-recs-items"></div>
                             </div>
 
-                            <!-- Communities Quick Box -->
                             <div class="sidebar-section-block">
                                 <div class="section-block-header">
                                     <span class="section-heading">Active Communities</span>
@@ -300,7 +289,6 @@
                                 <div id="sidebarGroupsList" class="sidebar-groups-items"></div>
                             </div>
 
-                            <!-- SQL Console Quick Widget (Restricted to Admin Only) -->
                             <div class="sidebar-sql-widget admin-restricted" id="sidebarSqlWidget">
                                 <span class="widget-eyebrow">DATABASE CONSOLE</span>
                                 <h5>Interactive SQL Studio</h5>
@@ -318,11 +306,9 @@
                     </div>
                 </section>
 
-
-                <!-- ================= MESSAGES / DIRECT TAB ================= -->
+                <!-- ================= MESSAGES TAB ================= -->
                 <section id="messages-tab" class="tab-content">
                     <div class="insta-direct-container">
-                        <!-- Direct Left Conversations List -->
                         <div class="direct-left-col" id="chatSidebar">
                             <div class="direct-header-top">
                                 <span class="direct-self-uname" id="directSelfName">username</span>
@@ -332,13 +318,12 @@
                             <div id="conversationsList" class="direct-conversations-scroll"></div>
                         </div>
 
-                        <!-- Direct Right Chat Thread -->
                         <div class="direct-right-col" id="chatMain">
                             <div class="direct-thread-header" id="chatThreadHeader">
                                 <button id="mobileBackToChatList" class="direct-back-btn" title="Back">
                                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                                 </button>
-                                <img id="chatPartnerAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Partner">
+                                <img id="chatPartnerAvatar" class="avatar-circle-sm" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Partner">
                                 <div class="direct-thread-meta">
                                     <h4 id="chatPartnerName">Select a conversation</h4>
                                     <span id="chatPartnerStatus" class="direct-active-status">Active now</span>
@@ -361,7 +346,6 @@
                     </div>
                 </section>
 
-
                 <!-- ================= COMMUNITIES TAB ================= -->
                 <section id="groups-tab" class="tab-content">
                     <div class="insta-section-header">
@@ -374,7 +358,6 @@
                     <div id="groupsGrid" class="groups-grid"></div>
                 </section>
 
-
                 <!-- ================= RECOMMENDATIONS TAB ================= -->
                 <section id="recommendations-tab" class="tab-content">
                     <div class="insta-section-header">
@@ -386,8 +369,7 @@
                     <div id="fullRecsGrid" class="cards-grid"></div>
                 </section>
 
-
-                <!-- ================= /SQL STUDIO TAB (SUPER ADMIN ONLY) ================= -->
+                <!-- ================= SQL STUDIO TAB ================= -->
                 <section id="sql-tab" class="tab-content admin-restricted">
                     <div class="insta-sql-header">
                         <div>
@@ -405,7 +387,6 @@
                         </div>
                     </div>
 
-                    <!-- Preset queries -->
                     <div class="sql-presets-tray">
                         <span class="presets-tray-title">PRESETS:</span>
                         <div id="sqlPresetButtons" class="preset-chips-scroll"></div>
@@ -446,8 +427,7 @@
                     </div>
                 </section>
 
-
-                <!-- ================= ANALYTICS TAB (SUPER ADMIN ONLY) ================= -->
+                <!-- ================= ANALYTICS TAB ================= -->
                 <section id="analytics-tab" class="tab-content admin-restricted">
                     <div class="insta-section-header">
                         <div>
@@ -471,8 +451,7 @@
                     </div>
                 </section>
 
-
-                <!-- ================= USERS / EXPLORE TAB ================= -->
+                <!-- ================= USERS TAB ================= -->
                 <section id="users-tab" class="tab-content">
                     <div class="insta-section-header">
                         <div>
@@ -485,10 +464,9 @@
 
             </main>
         </div>
-
     </div>
 
-    <!-- Mobile Bottom Navigation Bar (Instagram Style) -->
+    <!-- Mobile Bottom Nav -->
     <nav class="insta-mobile-bottom-nav" id="mobileBottomNav" style="display: none;">
         <button class="mobile-nav-btn active" data-tab="feed-tab" title="Home Feed">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -503,11 +481,11 @@
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
         </button>
         <button class="mobile-nav-btn" data-tab="users-tab" title="Explore Users">
-            <img id="mobileUserAvatar" class="avatar-square-xs" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Profile">
+            <img id="mobileUserAvatar" class="avatar-circle-xs" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Profile">
         </button>
     </nav>
 
-    <!-- Instagram Story Viewer Modal -->
+    <!-- Story Viewer Modal -->
     <div id="storyViewerModal" class="modal-overlay" style="display: none;">
         <div class="story-modal-panel">
             <div class="story-progress-bar-wrap">
@@ -515,7 +493,7 @@
             </div>
             <div class="story-header-overlay">
                 <div class="story-author-meta">
-                    <img id="storyModalAvatar" class="avatar-square-xs" src="" alt="Author">
+                    <img id="storyModalAvatar" class="avatar-circle-xs" src="" alt="Author">
                     <span id="storyModalUname" class="story-modal-author">username</span>
                     <span class="story-modal-time">3h ago</span>
                 </div>
@@ -528,7 +506,7 @@
         </div>
     </div>
 
-    <!-- User Profile Modal -->
+    <!-- Profile Modal -->
     <div id="userProfileModal" class="modal-overlay" style="display: none;">
         <div class="profile-modal-panel">
             <div class="modal-header">
@@ -537,7 +515,7 @@
             </div>
             <div class="profile-modal-body">
                 <div class="profile-modal-hero">
-                    <img id="profModalAvatar" class="avatar-square-lg" src="" alt="Avatar">
+                    <img id="profModalAvatar" class="avatar-circle-lg" src="" alt="Avatar">
                     <div class="prof-hero-details">
                         <div class="prof-uname-row">
                             <h2 id="profModalUsername">username</h2>
@@ -551,7 +529,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="profile-modal-actions" style="display: flex; gap: 10px; margin-top: 16px;">
+                <div class="profile-modal-actions">
                     <button id="profModalFollowBtn" class="btn-follow" style="flex: 1;">Follow</button>
                     <button id="profModalSendMsgBtn" class="btn-insta-secondary" style="flex: 1;">Direct Message</button>
                 </div>

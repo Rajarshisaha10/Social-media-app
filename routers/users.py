@@ -27,7 +27,7 @@ class RegisterRequest(BaseModel):
 
 @router.post("/login")
 def login_user(payload: LoginRequest):
-    """Authenticate user with username and password."""
+    """Authenticate user with username and password, updating User_Credentials and telemetry."""
     try:
         username = payload.username.strip()
         password = payload.password.strip()
@@ -56,9 +56,17 @@ def login_user(payload: LoginRequest):
         if not user:
             raise HTTPException(status_code=401, detail="User account not found. Please check your username or create an account.")
 
-        # Check password
-        if user["password"] != password and user["password"] != "password123":
+        # Check password against Users or User_Credentials
+        cred = query_one("SELECT password_hash FROM User_Credentials WHERE user_id = ?", (user["user_id"],))
+        stored_pass = cred["password_hash"] if cred else user["password"]
+
+        if stored_pass != password and user["password"] != password and user["password"] != "password123":
             raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+
+        # Update last_login in User_Credentials
+        execute_write("""
+            UPDATE User_Credentials SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?
+        """, (user["user_id"],))
 
         # Log login event in Event_Analysis table
         execute_write("""
@@ -83,7 +91,7 @@ def login_user(payload: LoginRequest):
 
 @router.post("/register")
 def register_user(payload: RegisterRequest):
-    """Register a new user account across Users, Profile_Pic, and Regular_User tables."""
+    """Register a new user account across Users, User_Credentials, Profile_Pic, and Regular_User tables."""
     try:
         username = payload.username.strip()
         password = payload.password.strip()
@@ -111,6 +119,12 @@ def register_user(payload: RegisterRequest):
             VALUES (?, ?, ?, ?, 'ACTIVE', '2000-01-01')
         """, (username, password, email, payload.bio or "SocialSphere Member"))
 
+        # Insert into User_Credentials
+        execute_write("""
+            INSERT INTO User_Credentials (user_id, username, password_hash, account_role)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, username, password, payload.admin_level or "USER"))
+
         # Insert Profile Pic
         pic_url = payload.profile_pic or "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
         execute_write("""
@@ -127,8 +141,8 @@ def register_user(payload: RegisterRequest):
         # If admin level specified
         if payload.admin_level:
             execute_write("""
-                INSERT INTO Admin_User (user_id, admin_level, privileges)
-                VALUES (?, ?, 'FULL')
+                INSERT INTO Admin_User (user_id, admin_level)
+                VALUES (?, ?)
             """, (user_id, payload.admin_level))
 
         # Log event

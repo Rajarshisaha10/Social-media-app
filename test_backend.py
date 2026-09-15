@@ -1,4 +1,5 @@
 import sys
+import time
 from fastapi.testclient import TestClient
 from main import app
 from db import init_db, query_all, query_one
@@ -36,14 +37,24 @@ try:
     assert r.status_code == 200, f"/sql failed: {r.text}"
     print(" [PASS] GET /sql (SQL UI HTML served)")
 
-    # 3. Authentication: Login & Register
+    # 3. PWA Routes
+    r = client.get("/manifest.json")
+    assert r.status_code == 200, f"Manifest failed: {r.text}"
+    print(" [PASS] GET /manifest.json (PWA Manifest served)")
+
+    r = client.get("/sw.js")
+    assert r.status_code == 200, f"Service worker failed: {r.text}"
+    print(" [PASS] GET /sw.js (PWA Service Worker served)")
+
+    # 4. Authentication: Login & Register
     r = client.post("/api/users/login", json={"username": "shobita", "password": "dbms108"})
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] POST /api/users/login (Admin shobita):", r.json()["user"]["username"])
 
+    unique_uname = f"dev_{int(time.time())}"
     r = client.post("/api/users/register", json={
-        "username": "test_dev_user",
-        "email": "testdev@socialsphere.io",
+        "username": unique_uname,
+        "email": f"{unique_uname}@socialsphere.io",
         "password": "securepass123",
         "bio": "Automated test user",
         "location": "Cloud",
@@ -52,50 +63,51 @@ try:
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] POST /api/users/register (New User):", r.json()["user"]["username"])
 
-    # 4. Posts & Hashtags
+    # 5. Posts & Hashtags
     r = client.get("/api/posts")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/posts - Count:", r.json()["count"])
 
-    # 5. Users
+    # 6. Users
     r = client.get("/api/users")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/users - Count:", r.json()["count"])
 
-    # 6. Groups
+    # 7. Groups
     r = client.get("/api/groups?user_id=1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/groups - Count:", r.json()["count"])
 
-    # 7. Messages
+    # 8. Messages
     r = client.get("/api/messages/conversations/1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/messages/conversations/1 - Count:", r.json()["count"])
 
-    # 8. Notifications
+    # 9. Notifications
     r = client.get("/api/notifications/1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/notifications/1 - Count:", r.json()["count"])
 
-    # 9. Analytics Overview & Events
+    # 10. Analytics Overview & Events
     r = client.get("/api/analytics/overview")
     assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] GET /api/analytics/overview:", r.json()["analytics"])
+    print(" [PASS] GET /api/analytics/overview (Total 16 Tables):", r.json()["analytics"]["totalCreds"])
 
     r = client.get("/api/analytics/events")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/analytics/events - Count:", r.json()["count"])
 
-    # 10. SQL Studio Execution & Schema
+    # 11. SQL Studio Execution & Schema
     r = client.get("/api/sql/schema")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/sql/schema - Tables:", r.json()["table_count"])
 
-    r = client.post("/api/sql/execute", json={"query": "SELECT u.username, COUNT(p.post_id) AS post_count FROM Users u LEFT JOIN Post p ON p.user_id = u.user_id GROUP BY u.user_id"})
+    r = client.post("/api/sql/execute", json={"query": "SELECT u.username, uc.account_role FROM Users u JOIN User_Credentials uc ON uc.user_id = u.user_id"})
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] POST /api/sql/execute - Query returned:", r.json()["message"])
 
-    print("\nALL BACKEND & API TESTS COMPLETED SUCCESSFULLY! 🎉")
+    print("\nALL BACKEND, PWA & API TESTS COMPLETED SUCCESSFULLY! 🎉")
 except Exception as e:
-    print("Test execution error:", e)
+    import traceback
+    traceback.print_exc()
     sys.exit(1)

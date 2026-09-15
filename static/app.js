@@ -1,6 +1,7 @@
 /**
- * SocialSphere — Instagram Web Application Logic (Modern Auth & Social Edition)
- * Features: Proper Authentication (Login/Register/Logout), Stories Viewer, User Profile Popup,
+ * SocialSphere — Instagram Web & Mobile PWA Application Logic
+ * Features: PWA Service Worker Caching, Offline Hydration, "Add to Home Screen" Install Prompt,
+ * Dedicated User Credentials & Auth Store, Stories Viewer, User Profile Popup,
  * Dynamic Feed with Instant Likes & Comments, Live Direct Messaging, SQL Studio, and Analytics.
  */
 
@@ -11,6 +12,7 @@ let usersCache = [];
 let activeChatPartnerId = null;
 let currentTagFilter = null;
 let lastSqlResults = null;
+let deferredPwaPrompt = null;
 
 // DOM Element Selectors
 const userSelect = document.getElementById("userSelect");
@@ -25,6 +27,14 @@ const mobileUserAvatar = document.getElementById("mobileUserAvatar");
 const feedAdminBadge = document.getElementById("feedAdminBadge");
 const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
 const navAuthLabel = document.getElementById("navAuthLabel");
+
+// PWA Elements
+const pwaInstallBanner = document.getElementById("pwaInstallBanner");
+const pwaInstallActionBtn = document.getElementById("pwaInstallActionBtn");
+const pwaDismissBtn = document.getElementById("pwaDismissBtn");
+const sidebarInstallAppBtn = document.getElementById("sidebarInstallAppBtn");
+const mobileInstallBtn = document.getElementById("mobileInstallBtn");
+const offlineIndicatorBanner = document.getElementById("offlineIndicatorBanner");
 
 const storiesTrayList = document.getElementById("storiesTrayList");
 const postsList = document.getElementById("postsList");
@@ -140,6 +150,7 @@ const ICONS = {
 
 // Initial App Bootstrapping
 document.addEventListener("DOMContentLoaded", async () => {
+    initPwaServiceWorker();
     setupTabNavigation();
     setupEventListeners();
     setupAuthListeners();
@@ -164,6 +175,85 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     await checkNotifications();
 });
+
+// PWA Service Worker Registration & Install Prompt
+function initPwaServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(reg => console.log('[PWA] Service Worker registered with scope:', reg.scope))
+                .catch(err => console.log('[PWA] Service Worker registration failed:', err));
+        });
+    }
+
+    // Online / Offline Detection
+    window.addEventListener('online', () => {
+        if (offlineIndicatorBanner) offlineIndicatorBanner.style.display = 'none';
+        refreshFeed();
+    });
+    window.addEventListener('offline', () => {
+        if (offlineIndicatorBanner) offlineIndicatorBanner.style.display = 'block';
+    });
+
+    if (!navigator.onLine && offlineIndicatorBanner) {
+        offlineIndicatorBanner.style.display = 'block';
+    }
+
+    // Capture beforeinstallprompt event for "Add to Home Screen"
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPwaPrompt = e;
+
+        // Show install button in sidebar & mobile header
+        if (sidebarInstallAppBtn) sidebarInstallAppBtn.style.display = 'flex';
+        if (mobileInstallBtn) mobileInstallBtn.style.display = 'inline-block';
+
+        // Check if user previously dismissed install prompt
+        const dismissed = localStorage.getItem('socialsphere_pwa_dismissed');
+        if (!dismissed && pwaInstallBanner) {
+            pwaInstallBanner.style.display = 'flex';
+        }
+    });
+
+    if (pwaInstallActionBtn) {
+        pwaInstallActionBtn.addEventListener('click', triggerPwaInstall);
+    }
+    if (sidebarInstallAppBtn) {
+        sidebarInstallAppBtn.addEventListener('click', triggerPwaInstall);
+    }
+    if (mobileInstallBtn) {
+        mobileInstallBtn.addEventListener('click', triggerPwaInstall);
+    }
+
+    if (pwaDismissBtn) {
+        pwaDismissBtn.addEventListener('click', () => {
+            if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
+            localStorage.setItem('socialsphere_pwa_dismissed', 'true');
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] SocialSphere installed to Home Screen successfully!');
+        if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
+        if (sidebarInstallAppBtn) sidebarInstallAppBtn.style.display = 'none';
+        if (mobileInstallBtn) mobileInstallBtn.style.display = 'none';
+        deferredPwaPrompt = null;
+    });
+}
+
+async function triggerPwaInstall() {
+    if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        const { outcome } = await deferredPwaPrompt.userChoice;
+        console.log(`[PWA] Install prompt outcome: ${outcome}`);
+        if (outcome === 'accepted') {
+            if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
+        }
+        deferredPwaPrompt = null;
+    } else {
+        alert("To install SocialSphere on your phone:\n- On Safari (iOS): Tap the Share button, then 'Add to Home Screen'.\n- On Chrome (Android): Tap the menu (⋮), then 'Install App' or 'Add to Home screen'.");
+    }
+}
 
 // Tab Navigation
 function setupTabNavigation() {
@@ -1424,6 +1514,7 @@ async function loadAnalyticsData() {
             const a = data.analytics;
             const metrics = [
                 { label: "Total Users", count: a.totalUsers, code: "USR" },
+                { label: "User Credentials", count: a.totalCreds || a.totalUsers, code: "CRD" },
                 { label: "Regular Users", count: a.totalRegular, code: "REG" },
                 { label: "Admins", count: a.totalAdmin, code: "ADM" },
                 { label: "Feed Posts", count: a.totalPosts, code: "PST" },

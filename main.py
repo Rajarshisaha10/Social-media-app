@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -26,9 +26,9 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="Social Media Analytics & SQL Platform API",
-    description="Fullstack FastAPI backend with SQLite database, 15 relational tables, live SQL Studio, and mobile-first dashboard",
-    version="1.0.0",
+    title="SocialSphere — Social & SQL Studio API",
+    description="Fullstack FastAPI backend with SQLite database, 16 relational tables, user credentials store, PWA caching, live SQL Studio, and mobile dashboard",
+    version="1.2.0",
     lifespan=lifespan
 )
 
@@ -57,6 +57,7 @@ def read_info():
         "name": "Social Media Analytics API",
         "status": "online",
         "database": "SQLite",
+        "pwa": "enabled",
         "docs_url": "/docs",
         "sql_studio_url": "/sql"
     }
@@ -87,6 +88,25 @@ if not os.path.exists(static_dir):
 
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+# PWA Service Worker & Manifest Routes
+@app.get("/manifest.json")
+def serve_manifest():
+    manifest_file = os.path.join(static_dir, "manifest.json")
+    if os.path.exists(manifest_file):
+        return FileResponse(manifest_file, media_type="application/manifest+json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
+@app.get("/sw.js")
+def serve_service_worker():
+    sw_file = os.path.join(static_dir, "sw.js")
+    if os.path.exists(sw_file):
+        return FileResponse(
+            sw_file,
+            media_type="application/javascript",
+            headers={"Service-Worker-Allowed": "/"}
+        )
+    raise HTTPException(status_code=404, detail="Service worker not found")
+
 @app.get("/")
 def serve_ui():
     index_file = os.path.join(static_dir, "index.html")
@@ -109,5 +129,6 @@ if __name__ == "__main__":
     print(f"\n🚀 Server starting...")
     print(f"👉 Open in browser: http://localhost:{port} or http://127.0.0.1:{port}")
     print(f"👉 SQL Studio: http://localhost:{port}/sql")
-    print(f"👉 Swagger API Docs: http://localhost:{port}/docs\n")
+    print(f"👉 Swagger API Docs: http://localhost:{port}/docs")
+    print(f"👉 PWA Manifest: http://localhost:{port}/manifest.json\n")
     uvicorn.run("main:app", host=host, port=port, reload=True)

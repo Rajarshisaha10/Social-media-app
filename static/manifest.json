@@ -1,0 +1,48 @@
+{
+  "name": "SocialSphere — Social & SQL Studio",
+  "short_name": "SocialSphere",
+  "description": "Instagram-style social media platform with direct messaging, stories tray, and live SQLite database studio.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["social", "productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Home Feed",
+      "url": "/?tab=feed",
+      "description": "View social feed and stories"
+    },
+    {
+      "name": "Messages",
+      "url": "/?tab=messages",
+      "description": "Open direct chat messages"
+    },
+    {
+      "name": "SQL Studio",
+      "url": "/sql",
+      "description": "Execute database queries"
+    }
+  ]
+}

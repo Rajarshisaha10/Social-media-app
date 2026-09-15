@@ -11,9 +11,10 @@ router = APIRouter(
 
 @router.get("/overview")
 def get_analytics_overview():
-    """GET overall platform analytics across all 15 entity tables."""
+    """GET overall platform analytics across all 16 entity tables."""
     try:
         users = query_one("SELECT COUNT(*) AS totalUsers FROM Users")
+        creds = query_one("SELECT COUNT(*) AS totalCreds FROM User_Credentials")
         posts = query_one("SELECT COUNT(*) AS totalPosts FROM Post")
         comments = query_one("SELECT COUNT(*) AS totalComments FROM Comment")
         reactions = query_one("SELECT COUNT(*) AS totalReactions FROM Reaction")
@@ -33,6 +34,7 @@ def get_analytics_overview():
             "success": True,
             "analytics": {
                 "totalUsers": users.get("totalUsers", 0) if users else 0,
+                "totalCreds": creds.get("totalCreds", 0) if creds else 0,
                 "totalPosts": posts.get("totalPosts", 0) if posts else 0,
                 "totalComments": comments.get("totalComments", 0) if comments else 0,
                 "totalReactions": reactions.get("totalReactions", 0) if reactions else 0,

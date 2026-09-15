@@ -38,6 +38,21 @@ LEFT JOIN Admin_User au ON au.user_id = u.user_id
 ORDER BY u.user_id ASC;"""
     },
     {
+        "id": "user-credentials-store",
+        "title": "User Credentials & Password Database",
+        "category": "Security & Auth",
+        "sql": """SELECT 
+    uc.credential_id,
+    uc.user_id,
+    uc.username,
+    uc.password_hash,
+    uc.account_role,
+    uc.last_login,
+    uc.created_at
+FROM User_Credentials uc
+ORDER BY uc.credential_id ASC;"""
+    },
+    {
         "id": "posts-engagement",
         "title": "Posts with Reaction & Comment Counts",
         "category": "Feed & Engagement",
@@ -210,15 +225,12 @@ def execute_sql_query(payload: QueryRequest):
     if not query_str:
         raise HTTPException(status_code=400, detail="Query string cannot be empty")
 
-    # Disallow dangerous SQLite operations if any
-    clean_query = query_str.rstrip(";")
     start_time = time.perf_counter()
 
     try:
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Execute multiple statements if provided or single
             cursor.execute(query_str)
             
             # If query is a SELECT or PRAGMA or returns rows

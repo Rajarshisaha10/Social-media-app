@@ -61,7 +61,20 @@ def init_db():
                 dob            TEXT
             );
 
-            -- 2. Profile_Pic table
+            -- 2. User_Credentials table (Dedicated Authentication & Password Store)
+            CREATE TABLE IF NOT EXISTS User_Credentials (
+                credential_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id       INTEGER NOT NULL UNIQUE,
+                username      TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                account_role  TEXT DEFAULT 'USER',
+                last_login    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_cred_user
+                    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+            );
+
+            -- 3. Profile_Pic table
             CREATE TABLE IF NOT EXISTS Profile_Pic (
                 profile_pic_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id        INTEGER NOT NULL,
@@ -71,7 +84,7 @@ def init_db():
                     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 3. Regular_User table
+            -- 4. Regular_User table
             CREATE TABLE IF NOT EXISTS Regular_User (
                 user_id   INTEGER PRIMARY KEY,
                 interests TEXT,
@@ -80,7 +93,7 @@ def init_db():
                     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 4. Admin_User table
+            -- 5. Admin_User table
             CREATE TABLE IF NOT EXISTS Admin_User (
                 user_id     INTEGER PRIMARY KEY,
                 admin_level TEXT NOT NULL,
@@ -88,7 +101,7 @@ def init_db():
                     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 5. Post table
+            -- 6. Post table
             CREATE TABLE IF NOT EXISTS Post (
                 post_id      INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id      INTEGER NOT NULL,
@@ -100,7 +113,7 @@ def init_db():
                     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 6. Comment table
+            -- 7. Comment table
             CREATE TABLE IF NOT EXISTS Comment (
                 comment_id   INTEGER PRIMARY KEY AUTOINCREMENT,
                 post_id      INTEGER NOT NULL,
@@ -116,7 +129,7 @@ def init_db():
                     FOREIGN KEY (reply_to) REFERENCES Comment(comment_id) ON DELETE CASCADE
             );
 
-            -- 7. Reaction table
+            -- 8. Reaction table
             CREATE TABLE IF NOT EXISTS Reaction (
                 reaction_id   INTEGER PRIMARY KEY AUTOINCREMENT,
                 post_id       INTEGER NOT NULL,
@@ -132,7 +145,7 @@ def init_db():
                     FOREIGN KEY (comment_id) REFERENCES Comment(comment_id) ON DELETE CASCADE
             );
 
-            -- 8. Community_Group table
+            -- 9. Community_Group table
             CREATE TABLE IF NOT EXISTS Community_Group (
                 group_id        INTEGER PRIMARY KEY AUTOINCREMENT,
                 group_name      TEXT NOT NULL,
@@ -141,7 +154,7 @@ def init_db():
                 privacy_setting TEXT DEFAULT 'PUBLIC'
             );
 
-            -- 9. Group_Members table
+            -- 10. Group_Members table
             CREATE TABLE IF NOT EXISTS Group_Members (
                 group_id  INTEGER NOT NULL,
                 user_id   INTEGER NOT NULL,
@@ -155,14 +168,14 @@ def init_db():
                     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 10. Hashtag table
+            -- 11. Hashtag table
             CREATE TABLE IF NOT EXISTS Hashtag (
                 hashtag_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tag        TEXT NOT NULL UNIQUE,
                 category   TEXT
             );
 
-            -- 11. Post_Hashtag table
+            -- 12. Post_Hashtag table
             CREATE TABLE IF NOT EXISTS Post_Hashtag (
                 post_id    INTEGER NOT NULL,
                 hashtag_id INTEGER NOT NULL,
@@ -174,7 +187,7 @@ def init_db():
                     FOREIGN KEY (hashtag_id) REFERENCES Hashtag(hashtag_id) ON DELETE CASCADE
             );
 
-            -- 12. Notification table
+            -- 13. Notification table
             CREATE TABLE IF NOT EXISTS Notification (
                 notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 recipient_id    INTEGER NOT NULL,
@@ -186,7 +199,7 @@ def init_db():
                     FOREIGN KEY (recipient_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 13. Friend_Recommendation table
+            -- 14. Friend_Recommendation table
             CREATE TABLE IF NOT EXISTS Friend_Recommendation (
                 user_id             INTEGER NOT NULL,
                 recommended_user_id INTEGER NOT NULL,
@@ -202,7 +215,7 @@ def init_db():
                     CHECK (user_id <> recommended_user_id)
             );
 
-            -- 14. Message table
+            -- 15. Message table
             CREATE TABLE IF NOT EXISTS Message (
                 message_id  INTEGER PRIMARY KEY AUTOINCREMENT,
                 sender_id   INTEGER NOT NULL,
@@ -216,7 +229,7 @@ def init_db():
                     FOREIGN KEY (receiver_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
 
-            -- 15. Event_Analysis table
+            -- 16. Event_Analysis table
             CREATE TABLE IF NOT EXISTS Event_Analysis (
                 event_id    INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id     INTEGER NOT NULL,
@@ -242,6 +255,14 @@ def init_db():
                 ('charlie_dev', 'charlie@example.com', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
                 ('admin_user', 'admin@socialapp.com', 'password123', 'Platform Operations Lead', 'ACTIVE', '1988-01-15');
 
+                -- User_Credentials table
+                INSERT INTO User_Credentials (user_id, username, password_hash, account_role) VALUES
+                (1, 'shobita', 'dbms108', 'SUPER_ADMIN'),
+                (2, 'alice_w', 'password123', 'USER'),
+                (3, 'bob_m', 'password123', 'USER'),
+                (4, 'charlie_dev', 'password123', 'USER'),
+                (5, 'admin_user', 'password123', 'OPS_ADMIN');
+
                 -- Regular & Admin Users
                 INSERT INTO Admin_User (user_id, admin_level) VALUES
                 (1, 'SUPER_ADMIN'),
@@ -264,7 +285,7 @@ def init_db():
 
                 -- Posts
                 INSERT INTO Post (user_id, content, url, visibility) VALUES
-                (1, 'System update: SQLite 15-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
+                (1, 'System update: SQLite 16-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
                 (2, 'Excited to publish our new open source benchmarking suite for FastAPI and SQLite! #python #opensource', 'https://github.com/project', 'PUBLIC'),
                 (3, 'High alpine sunrise capture from 12,000 feet elevation in the Rocky Mountains. #photography #nature', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', 'PUBLIC'),
                 (4, 'FastAPI dependency injection makes testing multi-table relational flows effortless. #python #webdev', NULL, 'PUBLIC');
@@ -337,13 +358,20 @@ def init_db():
                 -- Event Analysis
                 INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata) VALUES
                 (1, 'LOGIN', 'WORKSTATION', '{"user": "shobita", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
-                (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 15, "integrity": "OK"}'),
+                (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 16, "integrity": "OK"}'),
                 (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}'),
                 (3, 'REACT_POST', 'MOBILE', '{"post_id": 1, "reaction": "LOVE"}');
             """)
             conn.commit()
         else:
-            # Ensure admin user 'shobita' exists if database already was seeded
+            # Sync User_Credentials for existing users if any missing
+            cursor.execute("""
+                INSERT OR IGNORE INTO User_Credentials (user_id, username, password_hash, account_role)
+                SELECT u.user_id, u.username, u.password, COALESCE(au.admin_level, 'USER')
+                FROM Users u
+                LEFT JOIN Admin_User au ON au.user_id = u.user_id
+            """)
+            # Ensure shobita exists with dbms108
             cursor.execute("SELECT user_id FROM Users WHERE username = 'shobita'")
             shobita = cursor.fetchone()
             if not shobita:
@@ -355,8 +383,8 @@ def init_db():
                 cursor.execute("INSERT OR REPLACE INTO Admin_User (user_id, admin_level) VALUES (?, 'SUPER_ADMIN')", (uid,))
                 cursor.execute("INSERT OR REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 'AVATAR')", (uid,))
                 cursor.execute("INSERT OR REPLACE INTO Regular_User (user_id, interests, location) VALUES (?, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland')", (uid,))
-                conn.commit()
+                cursor.execute("INSERT OR REPLACE INTO User_Credentials (user_id, username, password_hash, account_role) VALUES (?, 'shobita', 'dbms108', 'SUPER_ADMIN')", (uid,))
             else:
-                # Ensure password is set to 'dbms108'
                 cursor.execute("UPDATE Users SET password = 'dbms108' WHERE username = 'shobita'")
-                conn.commit()
+                cursor.execute("UPDATE User_Credentials SET password_hash = 'dbms108' WHERE username = 'shobita'")
+            conn.commit()

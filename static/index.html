@@ -4,13 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SocialSphere — Instagram-Style Platform & SQL Studio</title>
-    <meta name="description" content="Instagram-styled social media platform with 15 relational tables, stories tray, direct messaging, and live SQL Studio.">
+    <meta name="description" content="Instagram-styled social media platform with 16 relational tables, user credentials store, PWA offline caching, and live SQL Studio.">
+    
+    <!-- PWA Settings & Mobile Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SocialSphere">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+
+    <!-- Offline Notification Banner -->
+    <div id="offlineIndicatorBanner" class="offline-banner" style="display: none;">
+        <span>Offline Mode &middot; Showing cached platform data</span>
+    </div>
+
+    <!-- PWA App Install Banner for Mobile / Desktop -->
+    <div id="pwaInstallBanner" class="pwa-install-toast" style="display: none;">
+        <div class="pwa-toast-content">
+            <img class="pwa-toast-icon" src="/static/icon-192.png" alt="App Icon">
+            <div>
+                <strong>Install SocialSphere App</strong>
+                <p>Add to your home screen for an instant mobile app experience.</p>
+            </div>
+        </div>
+        <div class="pwa-toast-actions">
+            <button id="pwaInstallActionBtn" class="btn-insta-primary" style="padding: 6px 12px; font-size: 12px;">Install</button>
+            <button id="pwaDismissBtn" class="btn-text-sm" style="color: var(--ig-text-muted);">Not Now</button>
+        </div>
+    </div>
 
     <div class="insta-app-layout">
 
@@ -63,6 +94,11 @@
                         <span class="nav-text">Create Post</span>
                     </button>
 
+                    <button class="insta-nav-link" id="sidebarInstallAppBtn" style="display: none;">
+                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span class="nav-text" style="color: var(--ig-blue); font-weight: 700;">Install Mobile App</span>
+                    </button>
+
                     <button class="insta-nav-link" data-tab="login-tab">
                         <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
                         <span class="nav-text" id="navAuthLabel">Sign In / Register</span>
@@ -97,6 +133,9 @@
                     <span class="insta-brand-name">SocialSphere</span>
                 </div>
                 <div class="mobile-header-actions">
+                    <button id="mobileInstallBtn" class="btn-insta-primary" style="display: none; padding: 4px 8px; font-size: 11px;">
+                        Install App
+                    </button>
                     <button id="mobileNotifBtn" class="mobile-icon-btn" title="Notifications">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                         <span id="notifBadge" class="badge-dot-mobile" style="display: none;"></span>
@@ -193,7 +232,7 @@
                             <div class="sidebar-sql-widget">
                                 <span class="widget-eyebrow">DATABASE CONSOLE</span>
                                 <h5>Interactive SQL Studio</h5>
-                                <p>Direct query engine for all 15 relational tables.</p>
+                                <p>Direct query engine for all 16 relational tables.</p>
                                 <button id="launchSqlBtn" class="btn-insta-secondary">Open SQL Studio</button>
                             </div>
 
@@ -201,7 +240,7 @@
                                 <a href="/docs" target="_blank">Swagger API</a> &middot;
                                 <a href="javascript:void(0)" onclick="switchTab('analytics-tab')">Telemetry</a> &middot;
                                 <a href="javascript:void(0)" onclick="switchTab('login-tab')">Accounts</a>
-                                <p class="insta-copyright">&copy; 2026 SOCIALSPHERE &middot; INSTAGRAM EDITION</p>
+                                <p class="insta-copyright">&copy; 2026 SOCIALSPHERE &middot; INSTAGRAM PWA EDITION</p>
                             </div>
                         </aside>
 
@@ -370,7 +409,7 @@
                         <div>
                             <div class="sql-badge-tag">SQL QUERY CONSOLE</div>
                             <h2>Relational Database Studio</h2>
-                            <p class="section-subtext">Execute live SQL queries across all 15 relational tables in SQLite.</p>
+                            <p class="section-subtext">Execute live SQL queries across all 16 relational tables in SQLite.</p>
                         </div>
                         <div class="sql-actions-wrap">
                             <button id="exportCsvBtn" class="btn-insta-outline" title="Export CSV">Export CSV</button>
@@ -415,7 +454,7 @@
                         <aside class="sql-schema-column">
                             <div class="schema-box-header">
                                 <h3>DATABASE TABLES</h3>
-                                <span id="schemaTableCount" class="schema-count-badge">15</span>
+                                <span id="schemaTableCount" class="schema-count-badge">16</span>
                             </div>
                             <p class="schema-subtitle">Click table name to generate SELECT query.</p>
                             <div id="schemaTablesList" class="schema-accordion-list"></div>
@@ -429,7 +468,7 @@
                     <div class="insta-section-header">
                         <div>
                             <h2>Platform Metrics & Telemetry</h2>
-                            <p class="section-subtext">Record counters across all 15 relational tables and audit event logs.</p>
+                            <p class="section-subtext">Record counters across all 16 relational tables and audit event logs.</p>
                         </div>
                         <button id="refreshAnalyticsBtn" class="btn-insta-outline">Refresh</button>
                     </div>

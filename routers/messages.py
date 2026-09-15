@@ -62,7 +62,12 @@ def get_user_conversations(user_id: int = Path(..., description="Active User ID"
             if partner_info:
                 conversations.append({
                     "partner": partner_info,
-                    "last_message": last_msg,
+                    "partner_id": partner_info["user_id"],
+                    "partner_username": partner_info["username"],
+                    "profile_pic": partner_info["profile_pic"],
+                    "last_message": last_msg["content"] if last_msg else None,
+                    "last_msg_details": last_msg,
+                    "last_timestamp": str(last_msg["sent_at"]) if last_msg and last_msg["sent_at"] else None,
                     "unread_count": unread_count["unread"] if unread_count else 0
                 })
 
@@ -89,6 +94,7 @@ def get_message_thread(
                 m.receiver_id,
                 m.content,
                 m.sent_at,
+                m.sent_at AS created_at,
                 m.read_status,
                 s.username AS sender_name,
                 sp.image_url AS sender_avatar
@@ -100,6 +106,13 @@ def get_message_thread(
             ORDER BY m.message_id ASC
         """
         messages = query_all(sql, (user_1, user_2, user_2, user_1))
+
+        # Convert sent_at and created_at to strings if needed for JSON serialization
+        for msg in messages:
+            if msg.get("sent_at"):
+                msg["sent_at"] = str(msg["sent_at"])
+            if msg.get("created_at"):
+                msg["created_at"] = str(msg["created_at"])
 
         # Mark unread messages sent by user_2 to user_1 as READ
         execute_write("""

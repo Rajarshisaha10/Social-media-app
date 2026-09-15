@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, MessageSquare, RefreshCw } from 'lucide-react';
+import { Send, ArrowLeft, MessageSquare, RefreshCw, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 
@@ -11,19 +11,27 @@ export default function MessagesTab({ initialPartnerId = null }) {
   const [text, setText] = useState('');
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingConvs, setLoadingConvs] = useState(true);
+  const [allUsers, setAllUsers] = useState([]);
+  const [showNewChat, setShowNewChat] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Load conversations list
   const loadConversations = async () => {
     if (!user?.user_id) return;
     try {
+      setLoadingConvs(true);
       const data = await api.getConversations(user.user_id);
       if (data?.conversations) {
         setConversations(data.conversations);
-        // If initial partner given or default first
-        if (initialPartnerId && !activePartner) {
-          const matched = data.conversations.find((c) => c.partner_id === initialPartnerId);
-          if (matched) selectConversation(matched);
+        
+        // If initial partner given or select first conversation by default on desktop
+        if (initialPartnerId) {
+          const matched = data.conversations.find((c) => (c.partner_id || c.partner?.user_id) === initialPartnerId);
+          if (matched) {
+            selectConversation(matched);
+          }
+        } else if (!activePartner && data.conversations.length > 0 && window.innerWidth > 768) {
+          selectConversation(data.conversations[0]);
         }
       }
     } catch (err) {
@@ -33,16 +41,42 @@ export default function MessagesTab({ initialPartnerId = null }) {
     }
   };
 
+  // Load available users for starting a new chat
+  const loadUsers = async () => {
+    try {
+      const data = await api.getUsers(user?.user_id);
+      if (data?.users) {
+        setAllUsers(data.users.filter((u) => u.user_id !== user?.user_id));
+      }
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    }
+  };
+
   useEffect(() => {
-    loadConversations();
+    if (user?.user_id) {
+      loadConversations();
+      loadUsers();
+    }
   }, [user?.user_id]);
 
   // Load thread when active partner changes
   const selectConversation = async (partner) => {
-    setActivePartner(partner);
+    const partnerId = partner.partner_id || partner.partner?.user_id || partner.user_id;
+    const partnerUsername = partner.partner_username || partner.partner?.username || partner.username;
+    const profilePic = partner.profile_pic || partner.partner?.profile_pic || partner.avatar_url;
+
+    const normalizedPartner = {
+      partner_id: partnerId,
+      partner_username: partnerUsername,
+      profile_pic: profilePic,
+    };
+
+    setActivePartner(normalizedPartner);
+    setShowNewChat(false);
     setLoadingThread(true);
     try {
-      const data = await api.getChatThread(user.user_id, partner.partner_id);
+      const data = await api.getChatThread(user.user_id, partnerId);
       if (data?.messages) {
         setMessages(data.messages);
       }
@@ -69,26 +103,43 @@ export default function MessagesTab({ initialPartnerId = null }) {
       receiver_id: activePartner.partner_id,
       content: text.trim(),
       created_at: new Date().toISOString(),
+      sent_at: new Date().toISOString(),
     };
 
     // Instant append
     setMessages((prev) => [...prev, outgoingMsg]);
+    const sentText = text.trim();
     setText('');
 
     // Update conversation snippet optimistically
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.partner_id === activePartner.partner_id
-          ? { ...c, last_message: outgoingMsg.content, last_timestamp: outgoingMsg.created_at }
-          : c
-      )
-    );
+    setConversations((prev) => {
+      const exists = prev.some((c) => (c.partner_id || c.partner?.user_id) === activePartner.partner_id);
+      if (exists) {
+        return prev.map((c) =>
+          (c.partner_id || c.partner?.user_id) === activePartner.partner_id
+            ? { ...c, last_message: sentText, last_timestamp: outgoingMsg.sent_at }
+            : c
+        );
+      } else {
+        return [
+          {
+            partner_id: activePartner.partner_id,
+            partner_username: activePartner.partner_username,
+            profile_pic: activePartner.profile_pic,
+            last_message: sentText,
+            last_timestamp: outgoingMsg.sent_at,
+            unread_count: 0,
+          },
+          ...prev,
+        ];
+      }
+    });
 
     try {
       await api.sendMessage({
         senderId: user.user_id,
         receiverId: activePartner.partner_id,
-        content: outgoingMsg.content,
+        content: sentText,
       });
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -101,16 +152,65 @@ export default function MessagesTab({ initialPartnerId = null }) {
       <div className="conversations-sidebar">
         <div className="conversations-header">
           <span>Direct Messages</span>
-          <button
-            type="button"
-            className="btn-text-sm"
-            onClick={loadConversations}
-            title="Refresh"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <RefreshCw size={15} />
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn-text-sm"
+              onClick={() => setShowNewChat(!showNewChat)}
+              title="New Chat"
+              style={{ color: showNewChat ? 'var(--blue-primary)' : 'var(--text-secondary)' }}
+            >
+              <UserPlus size={16} />
+            </button>
+            <button
+              type="button"
+              className="btn-text-sm"
+              onClick={loadConversations}
+              title="Refresh"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
         </div>
+
+        {/* New Chat User Selector */}
+        {showNewChat && (
+          <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+              Start conversation with:
+            </div>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {allUsers.map((u) => (
+                <button
+                  key={u.user_id}
+                  type="button"
+                  onClick={() => selectConversation(u)}
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '4px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <img
+                    src={u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                    alt={u.username}
+                    style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <span>{u.username}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="conversations-list">
           {loadingConvs ? (
@@ -123,36 +223,65 @@ export default function MessagesTab({ initialPartnerId = null }) {
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
               <MessageSquare size={32} style={{ margin: '0 auto 8px', display: 'block' }} />
               <p style={{ fontSize: '13px' }}>No active conversations yet.</p>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setShowNewChat(true)}
+                style={{ marginTop: '12px', fontSize: '12px', padding: '6px 14px' }}
+              >
+                Start a Chat
+              </button>
             </div>
           ) : (
-            conversations.map((c) => (
-              <button
-                key={c.partner_id}
-                type="button"
-                className={`conversation-item ${activePartner?.partner_id === c.partner_id ? 'active' : ''}`}
-                onClick={() => selectConversation(c)}
-              >
-                <img
-                  src={c.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
-                  alt={c.partner_username}
-                  style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
-                />
-                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                  <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{c.partner_username}</div>
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: 'var(--text-muted)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {c.last_message || 'Tap to chat'}
+            conversations.map((c) => {
+              const partnerId = c.partner_id || c.partner?.user_id;
+              const partnerUsername = c.partner_username || c.partner?.username;
+              const profilePic = c.profile_pic || c.partner?.profile_pic;
+              const lastMsgText = typeof c.last_message === 'string' ? c.last_message : (c.last_message?.content || 'Tap to chat');
+
+              return (
+                <button
+                  key={partnerId}
+                  type="button"
+                  className={`conversation-item ${activePartner?.partner_id === partnerId ? 'active' : ''}`}
+                  onClick={() => selectConversation(c)}
+                >
+                  <img
+                    src={profilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                    alt={partnerUsername}
+                    style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: '13.5px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{partnerUsername}</span>
+                      {c.unread_count > 0 && (
+                        <span style={{
+                          background: 'var(--blue-primary)',
+                          color: '#fff',
+                          borderRadius: '10px',
+                          padding: '1px 6px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                        }}>
+                          {c.unread_count}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {lastMsgText}
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </div>
@@ -166,7 +295,7 @@ export default function MessagesTab({ initialPartnerId = null }) {
                 type="button"
                 className="btn-text-sm"
                 onClick={() => setActivePartner(null)}
-                style={{ display: 'none' }} // Visible on mobile via CSS
+                style={{ display: 'none' }} // Handled via responsive CSS
               >
                 <ArrowLeft size={18} />
               </button>
@@ -204,6 +333,7 @@ export default function MessagesTab({ initialPartnerId = null }) {
               ) : (
                 messages.map((m) => {
                   const isMine = m.sender_id === user?.user_id;
+                  const timeStr = m.created_at || m.sent_at;
                   return (
                     <div
                       key={m.message_id}
@@ -213,7 +343,7 @@ export default function MessagesTab({ initialPartnerId = null }) {
                         {m.content}
                       </div>
                       <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', padding: '0 4px' }}>
-                        {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        {timeStr ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
                   );
@@ -246,7 +376,7 @@ export default function MessagesTab({ initialPartnerId = null }) {
             <MessageSquare size={48} style={{ margin: '0 auto 12px', color: 'var(--blue-primary)' }} />
             <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Your Conversations</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px' }}>
-              Select a chat or open a member's profile to start a direct message.
+              Select a chat from the left or click "New Chat" to message any member.
             </p>
           </div>
         )}

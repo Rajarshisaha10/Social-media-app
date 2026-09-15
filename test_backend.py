@@ -36,32 +36,48 @@ try:
     assert r.status_code == 200, f"/sql failed: {r.text}"
     print(" [PASS] GET /sql (SQL UI HTML served)")
 
-    # 3. Posts & Hashtags
+    # 3. Authentication: Login & Register
+    r = client.post("/api/users/login", json={"username": "shobita", "password": "dbms108"})
+    assert r.status_code == 200 and r.json()["success"]
+    print(" [PASS] POST /api/users/login (Admin shobita):", r.json()["user"]["username"])
+
+    r = client.post("/api/users/register", json={
+        "username": "test_dev_user",
+        "email": "testdev@socialsphere.io",
+        "password": "securepass123",
+        "bio": "Automated test user",
+        "location": "Cloud",
+        "interests": "SQL, Python"
+    })
+    assert r.status_code == 200 and r.json()["success"]
+    print(" [PASS] POST /api/users/register (New User):", r.json()["user"]["username"])
+
+    # 4. Posts & Hashtags
     r = client.get("/api/posts")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/posts - Count:", r.json()["count"])
 
-    # 4. Users
+    # 5. Users
     r = client.get("/api/users")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/users - Count:", r.json()["count"])
 
-    # 5. Groups
+    # 6. Groups
     r = client.get("/api/groups?user_id=1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/groups - Count:", r.json()["count"])
 
-    # 6. Messages
+    # 7. Messages
     r = client.get("/api/messages/conversations/1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/messages/conversations/1 - Count:", r.json()["count"])
 
-    # 7. Notifications
+    # 8. Notifications
     r = client.get("/api/notifications/1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/notifications/1 - Count:", r.json()["count"])
 
-    # 8. Analytics Overview & Events
+    # 9. Analytics Overview & Events
     r = client.get("/api/analytics/overview")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/analytics/overview:", r.json()["analytics"])
@@ -70,7 +86,7 @@ try:
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/analytics/events - Count:", r.json()["count"])
 
-    # 9. SQL Studio Execution & Schema
+    # 10. SQL Studio Execution & Schema
     r = client.get("/api/sql/schema")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/sql/schema - Tables:", r.json()["table_count"])

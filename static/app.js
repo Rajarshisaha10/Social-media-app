@@ -1,6 +1,7 @@
 /**
- * SocialSphere — Instagram Web Application Logic
- * Features: Stories Tray, Feed with SVG Actions & Comments, Live Direct Chat, SQL Studio, Analytics, Telemetry, and Auth
+ * SocialSphere — Instagram Web Application Logic (Modern Auth & Social Edition)
+ * Features: Proper Authentication (Login/Register/Logout), Stories Viewer, User Profile Popup,
+ * Dynamic Feed with Instant Likes & Comments, Live Direct Messaging, SQL Studio, and Analytics.
  */
 
 // Global Application State
@@ -22,24 +23,43 @@ const currentUserAvatar = document.getElementById("currentUserAvatar");
 const currentUserName = document.getElementById("currentUserName");
 const mobileUserAvatar = document.getElementById("mobileUserAvatar");
 const feedAdminBadge = document.getElementById("feedAdminBadge");
+const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+const navAuthLabel = document.getElementById("navAuthLabel");
 
 const storiesTrayList = document.getElementById("storiesTrayList");
 const postsList = document.getElementById("postsList");
 const postContent = document.getElementById("postContent");
 const postUrl = document.getElementById("postUrl");
+const createPostPreviewBox = document.getElementById("createPostPreviewBox");
+const createPostPreviewImg = document.getElementById("createPostPreviewImg");
+const removePreviewImgBtn = document.getElementById("removePreviewImgBtn");
 const submitPostBtn = document.getElementById("submitPostBtn");
+
 const feedHashtagsList = document.getElementById("feedHashtagsList");
 const clearHashtagFilter = document.getElementById("clearHashtagFilter");
 const activeFilterBanner = document.getElementById("activeFilterBanner");
 const filterTagName = document.getElementById("filterTagName");
 const removeFilterBtn = document.getElementById("removeFilterBtn");
 
-// Login Elements
+// Auth Elements
+const tabBtnLogin = document.getElementById("tabBtnLogin");
+const tabBtnRegister = document.getElementById("tabBtnRegister");
 const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
 const loginUsername = document.getElementById("loginUsername");
 const loginPassword = document.getElementById("loginPassword");
 const submitLoginBtn = document.getElementById("submitLoginBtn");
+const loginErrorMsg = document.getElementById("loginErrorMsg");
 const quickFillAdminBtn = document.getElementById("quickFillAdminBtn");
+
+const regUsername = document.getElementById("regUsername");
+const regEmail = document.getElementById("regEmail");
+const regPassword = document.getElementById("regPassword");
+const regBio = document.getElementById("regBio");
+const regLocation = document.getElementById("regLocation");
+const regInterests = document.getElementById("regInterests");
+const submitRegisterBtn = document.getElementById("submitRegisterBtn");
+const registerErrorMsg = document.getElementById("registerErrorMsg");
 
 // Sidebar & Tabs Selectors
 const sidebarRecsList = document.getElementById("sidebarRecsList");
@@ -92,7 +112,24 @@ const groupNameInput = document.getElementById("groupNameInput");
 const groupDescInput = document.getElementById("groupDescInput");
 const groupPrivacySelect = document.getElementById("groupPrivacySelect");
 
-// SVGs for Instagram Actions (Clean, Zero Emojis)
+// Story & Profile Modals
+const storyViewerModal = document.getElementById("storyViewerModal");
+const storyModalAvatar = document.getElementById("storyModalAvatar");
+const storyModalUname = document.getElementById("storyModalUname");
+const storyModalImg = document.getElementById("storyModalImg");
+const storyModalTextOverlay = document.getElementById("storyModalTextOverlay");
+const closeStoryModalBtn = document.getElementById("closeStoryModalBtn");
+
+const userProfileModal = document.getElementById("userProfileModal");
+const profModalAvatar = document.getElementById("profModalAvatar");
+const profModalUsername = document.getElementById("profModalUsername");
+const profModalBadge = document.getElementById("profModalBadge");
+const profModalBio = document.getElementById("profModalBio");
+const profModalPostsCount = document.getElementById("profModalPostsCount");
+const profModalSendMsgBtn = document.getElementById("profModalSendMsgBtn");
+const closeProfileModalBtn = document.getElementById("closeProfileModalBtn");
+
+// SVG Action Icons
 const ICONS = {
     heartOutline: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
     heartFilled: `<svg viewBox="0 0 24 24" width="24" height="24" fill="#ed4956" stroke="#ed4956" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
@@ -101,7 +138,7 @@ const ICONS = {
     bookmark: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`
 };
 
-// Initial Bootstrapping
+// Initial App Bootstrapping
 document.addEventListener("DOMContentLoaded", async () => {
     setupTabNavigation();
     setupEventListeners();
@@ -128,7 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await checkNotifications();
 });
 
-// Tab Navigation System
+// Tab Navigation
 function setupTabNavigation() {
     const allNavButtons = document.querySelectorAll(".insta-nav-link[data-tab], .mobile-nav-btn[data-tab]");
     allNavButtons.forEach(btn => {
@@ -215,9 +252,27 @@ function setupEventListeners() {
         });
     }
 
-    if (submitPostBtn) {
-        submitPostBtn.addEventListener("click", handleCreatePost);
+    // Image URL preview for post creation
+    if (postUrl) {
+        postUrl.addEventListener("input", () => {
+            const url = postUrl.value.trim();
+            if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+                createPostPreviewImg.src = url;
+                createPostPreviewBox.style.display = "block";
+            } else {
+                createPostPreviewBox.style.display = "none";
+            }
+        });
     }
+
+    if (removePreviewImgBtn) {
+        removePreviewImgBtn.addEventListener("click", () => {
+            postUrl.value = "";
+            createPostPreviewBox.style.display = "none";
+        });
+    }
+
+    if (submitPostBtn) submitPostBtn.addEventListener("click", handleCreatePost);
 
     if (clearHashtagFilter) clearHashtagFilter.addEventListener("click", () => clearTagFilter());
     if (removeFilterBtn) removeFilterBtn.addEventListener("click", () => clearTagFilter());
@@ -244,20 +299,51 @@ function setupEventListeners() {
         });
     }
 
+    // Modal listeners
     if (mobileNotifBtn) mobileNotifBtn.addEventListener("click", openNotificationsModal);
     if (closeNotifModalBtn) closeNotifModalBtn.addEventListener("click", () => notificationsModal.style.display = "none");
+    if (closeStoryModalBtn) closeStoryModalBtn.addEventListener("click", () => storyViewerModal.style.display = "none");
+    if (closeProfileModalBtn) closeProfileModalBtn.addEventListener("click", () => userProfileModal.style.display = "none");
+
     if (openCreateGroupModalBtn) openCreateGroupModalBtn.addEventListener("click", () => createGroupModal.style.display = "flex");
     if (closeGroupModalBtn) closeGroupModalBtn.addEventListener("click", () => createGroupModal.style.display = "none");
     if (createGroupForm) createGroupForm.addEventListener("submit", handleCreateCommunityGroup);
 
+    // Logout
+    if (sidebarLogoutBtn) sidebarLogoutBtn.addEventListener("click", handleLogout);
+
     window.addEventListener("click", (e) => {
         if (e.target === notificationsModal) notificationsModal.style.display = "none";
         if (e.target === createGroupModal) createGroupModal.style.display = "none";
+        if (e.target === storyViewerModal) storyViewerModal.style.display = "none";
+        if (e.target === userProfileModal) userProfileModal.style.display = "none";
     });
 }
 
-// Authentication Handlers
+// 1. Authentication System
 function setupAuthListeners() {
+    // Switch between Login and Register tabs
+    if (tabBtnLogin && tabBtnRegister) {
+        tabBtnLogin.addEventListener("click", () => {
+            tabBtnLogin.classList.add("active");
+            tabBtnRegister.classList.remove("active");
+            loginForm.style.display = "flex";
+            registerForm.style.display = "none";
+            loginErrorMsg.style.display = "none";
+            registerErrorMsg.style.display = "none";
+        });
+
+        tabBtnRegister.addEventListener("click", () => {
+            tabBtnRegister.classList.add("active");
+            tabBtnLogin.classList.remove("active");
+            loginForm.style.display = "none";
+            registerForm.style.display = "flex";
+            loginErrorMsg.style.display = "none";
+            registerErrorMsg.style.display = "none";
+        });
+    }
+
+    // Login Form Submit
     if (loginForm) {
         loginForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -267,6 +353,22 @@ function setupAuthListeners() {
         });
     }
 
+    // Register Form Submit
+    if (registerForm) {
+        registerForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const uname = regUsername.value.trim();
+            const email = regEmail.value.trim();
+            const pass = regPassword.value.trim();
+            const bio = regBio.value.trim();
+            const loc = regLocation.value.trim();
+            const interests = regInterests.value.trim();
+
+            await performRegister({ username: uname, email, password: pass, bio, location: loc, interests });
+        });
+    }
+
+    // Quick Fill Admin button
     if (quickFillAdminBtn) {
         quickFillAdminBtn.addEventListener("click", async () => {
             loginUsername.value = "shobita";
@@ -275,6 +377,7 @@ function setupAuthListeners() {
         });
     }
 
+    // Demo user chips
     document.querySelectorAll(".btn-demo-chip[data-user]").forEach(btn => {
         btn.addEventListener("click", async () => {
             const u = btn.getAttribute("data-user");
@@ -287,9 +390,10 @@ function setupAuthListeners() {
 }
 
 async function performLogin(username, password) {
+    if (loginErrorMsg) loginErrorMsg.style.display = "none";
     if (submitLoginBtn) {
         submitLoginBtn.disabled = true;
-        submitLoginBtn.innerHTML = `<span>Signing in...</span>`;
+        submitLoginBtn.innerHTML = `<span>Authenticating...</span>`;
     }
 
     try {
@@ -311,10 +415,18 @@ async function performLogin(username, password) {
             switchTab("feed-tab");
             await checkNotifications();
         } else {
-            alert(data.detail || "Invalid login credentials.");
+            if (loginErrorMsg) {
+                loginErrorMsg.textContent = data.detail || "Invalid login credentials.";
+                loginErrorMsg.style.display = "block";
+            } else {
+                alert(data.detail || "Invalid login credentials.");
+            }
         }
     } catch (err) {
-        alert("Authentication failed: " + err.message);
+        if (loginErrorMsg) {
+            loginErrorMsg.textContent = "Network error: " + err.message;
+            loginErrorMsg.style.display = "block";
+        }
     } finally {
         if (submitLoginBtn) {
             submitLoginBtn.disabled = false;
@@ -323,7 +435,69 @@ async function performLogin(username, password) {
     }
 }
 
-// 1. Users & Profiles
+async function performRegister(payload) {
+    if (registerErrorMsg) registerErrorMsg.style.display = "none";
+    if (submitRegisterBtn) {
+        submitRegisterBtn.disabled = true;
+        submitRegisterBtn.innerHTML = `<span>Creating Account...</span>`;
+    }
+
+    try {
+        const res = await fetch("/api/users/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success && data.user) {
+            activeUserId = data.user.user_id;
+            activeUserObj = data.user;
+            localStorage.setItem("socialsphere_active_user_id", activeUserId);
+            
+            await loadUsers();
+            updateActiveUserDisplay();
+            switchTab("feed-tab");
+            await checkNotifications();
+        } else {
+            if (registerErrorMsg) {
+                registerErrorMsg.textContent = data.detail || "Registration failed.";
+                registerErrorMsg.style.display = "block";
+            } else {
+                alert(data.detail || "Registration failed.");
+            }
+        }
+    } catch (err) {
+        if (registerErrorMsg) {
+            registerErrorMsg.textContent = "Network error: " + err.message;
+            registerErrorMsg.style.display = "block";
+        }
+    } finally {
+        if (submitRegisterBtn) {
+            submitRegisterBtn.disabled = false;
+            submitRegisterBtn.innerHTML = `<span>Create Account</span>`;
+        }
+    }
+}
+
+async function handleLogout() {
+    try {
+        await fetch("/api/users/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: activeUserId })
+        });
+    } catch (e) {
+        // Continue logout locally
+    }
+
+    localStorage.removeItem("socialsphere_active_user_id");
+    activeUserId = 1;
+    switchTab("login-tab");
+}
+
+// 2. Users Management
 async function loadUsers() {
     try {
         const res = await fetch("/api/users");
@@ -370,21 +544,23 @@ function updateActiveUserDisplay() {
             feedAdminBadge.style.display = isAdmin ? "inline-block" : "none";
             feedAdminBadge.textContent = activeUser.admin_level || "USER";
         }
+        if (navAuthLabel) {
+            navAuthLabel.textContent = `User: ${activeUser.username}`;
+        }
     }
 }
 
-// 2. Stories Tray (Instagram Style)
+// 3. Instagram Stories Tray
 function renderStoriesTray() {
     if (!storiesTrayList) return;
     
-    // Put current active user first with "Your Story"
     const current = usersCache.find(u => u.user_id === activeUserId);
     const others = usersCache.filter(u => u.user_id !== activeUserId);
 
     let html = "";
     if (current) {
         html += `
-            <div class="story-item" onclick="switchTab('feed-tab')">
+            <div class="story-item" onclick="openStoryModal(${current.user_id})">
                 <div class="story-ring-wrap">
                     <img class="story-avatar-img" src="${current.profile_pic || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2'}" alt="${current.username}">
                 </div>
@@ -395,7 +571,7 @@ function renderStoriesTray() {
 
     others.forEach(u => {
         html += `
-            <div class="story-item" onclick="startDirectChat(${u.user_id})">
+            <div class="story-item" onclick="openStoryModal(${u.user_id})">
                 <div class="story-ring-wrap">
                     <img class="story-avatar-img" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
                 </div>
@@ -407,7 +583,45 @@ function renderStoriesTray() {
     storiesTrayList.innerHTML = html;
 }
 
-// 3. Instagram Feed & Hashtags
+function openStoryModal(userId) {
+    const user = usersCache.find(u => u.user_id === userId);
+    if (!user || !storyViewerModal) return;
+
+    storyModalAvatar.src = user.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
+    storyModalUname.textContent = user.username;
+    
+    // Sample story images
+    const sampleStories = [
+        "https://images.unsplash.com/photo-1517694712202-14dd9538aa97",
+        "https://images.unsplash.com/photo-1555066931-4365d14bab8c",
+        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5",
+        "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8"
+    ];
+    storyModalImg.src = sampleStories[userId % sampleStories.length];
+    storyModalTextOverlay.textContent = user.bio || `Active member of SocialSphere & developer collective.`;
+
+    storyViewerModal.style.display = "flex";
+}
+
+function openProfileModal(userId) {
+    const user = usersCache.find(u => u.user_id === userId);
+    if (!user || !userProfileModal) return;
+
+    profModalAvatar.src = user.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
+    profModalUsername.textContent = user.username;
+    profModalBadge.textContent = user.admin_level || "REGULAR USER";
+    profModalBadge.className = `admin-badge-pill ${user.admin_level ? 'admin' : ''}`;
+    profModalBio.textContent = `${user.bio || 'Platform member'} · Location: ${user.location || 'Global'} · Interests: ${user.interests || 'Tech'}`;
+    
+    profModalSendMsgBtn.onclick = () => {
+        userProfileModal.style.display = "none";
+        startDirectChat(userId);
+    };
+
+    userProfileModal.style.display = "flex";
+}
+
+// 4. Feed & Posts
 async function refreshFeed() {
     if (!postsList) return;
     postsList.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--ig-text-secondary); font-size: 13px;">Loading feed posts...</div>`;
@@ -495,7 +709,7 @@ function renderInstagramPostCard(post) {
         <article class="post-card" data-post-id="${post.post_id}">
             <!-- Header: Author Row -->
             <div class="post-header-row">
-                <div class="post-author-info">
+                <div class="post-author-info" onclick="openProfileModal(${post.user_id})">
                     <img class="avatar-square-sm" src="${avatar}" alt="${post.username}">
                     <div>
                         <div class="post-author-name">${post.username}</div>
@@ -512,7 +726,7 @@ function renderInstagramPostCard(post) {
                 </div>
             ` : ''}
 
-            <!-- Text Content (If text-only or caption) -->
+            <!-- Text Content -->
             ${!hasMedia && post.content ? `
                 <div class="post-text-body">${escapeHTML(post.content)}</div>
             ` : ''}
@@ -541,7 +755,7 @@ function renderInstagramPostCard(post) {
                 
                 ${(hasMedia && post.content) ? `
                     <div class="post-caption-row">
-                        <span class="post-caption-uname">${post.username}</span>
+                        <span class="post-caption-uname" onclick="openProfileModal(${post.user_id})">${post.username}</span>
                         <span>${escapeHTML(post.content)}</span>
                     </div>
                 ` : ''}
@@ -564,7 +778,7 @@ function renderInstagramPostCard(post) {
                 <div class="comments-list-stream" id="commentsStream-${post.post_id}">
                     ${comments.slice(-3).map(c => `
                         <div class="comment-row">
-                            <span class="comment-uname">${c.username}</span>
+                            <span class="comment-uname" onclick="openProfileModal(${c.user_id})">${c.username}</span>
                             <span class="comment-text-content">${escapeHTML(c.content || '')}</span>
                         </div>
                     `).join("")}
@@ -678,6 +892,7 @@ async function handleCreatePost() {
         if (res.ok) {
             postContent.value = "";
             postUrl.value = "";
+            createPostPreviewBox.style.display = "none";
             await refreshFeed();
             await loadTrendingHashtags();
         } else {
@@ -691,7 +906,7 @@ async function handleCreatePost() {
     }
 }
 
-// 4. Sidebar Suggestions & Communities
+// 5. Sidebar Suggestions & Communities
 async function loadSidebarWidgets() {
     try {
         const res = await fetch(`/api/recommendations/${activeUserId}`);
@@ -702,7 +917,7 @@ async function loadSidebarWidgets() {
             } else {
                 sidebarRecsList.innerHTML = data.recommendations.slice(0, 4).map(rec => `
                     <div class="rec-mini-item">
-                        <div class="rec-mini-user">
+                        <div class="rec-mini-user" onclick="openProfileModal(${rec.RecommendedUserID})">
                             <img class="avatar-square-sm" src="${rec.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="Pic">
                             <div>
                                 <strong style="font-size: 12px; display: block;">${rec.Username}</strong>
@@ -737,7 +952,7 @@ async function loadSidebarWidgets() {
     }
 }
 
-// 5. Instagram Direct Messages
+// 6. Direct Messaging
 async function loadConversations() {
     if (!conversationsList) return;
     try {
@@ -881,7 +1096,7 @@ function startDirectChat(targetUserId) {
     openChatThread(targetUserId);
 }
 
-// 6. Community Groups
+// 7. Community Groups
 async function loadCommunityGroups() {
     if (!groupsGrid) return;
     groupsGrid.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-secondary); font-size: 13px;">Loading communities...</div>`;
@@ -965,7 +1180,7 @@ async function handleCreateCommunityGroup(e) {
     }
 }
 
-// 7. Suggested Connections
+// 8. Suggested Connections
 async function loadRecommendations() {
     if (!fullRecsGrid) return;
     fullRecsGrid.innerHTML = `<div style="text-align: center; padding: 2.5rem; color: var(--ig-text-secondary); font-size: 13px;">Computing suggested connections...</div>`;
@@ -981,8 +1196,8 @@ async function loadRecommendations() {
 
             fullRecsGrid.innerHTML = data.recommendations.map(rec => `
                 <div class="profile-card">
-                    <img class="profile-avatar-lg" src="${rec.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${rec.Username}">
-                    <h3 class="profile-name">${rec.Username}</h3>
+                    <img class="profile-avatar-lg" src="${rec.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${rec.Username}" onclick="openProfileModal(${rec.RecommendedUserID})">
+                    <h3 class="profile-name" onclick="openProfileModal(${rec.RecommendedUserID})">${rec.Username}</h3>
                     <span class="score-pill-sm">
                         ${Math.round(rec.Score * 100)}% Match
                     </span>
@@ -1002,7 +1217,7 @@ async function loadRecommendations() {
     }
 }
 
-// 8. Relational /SQL Studio
+// 9. Relational /SQL Studio
 async function initSqlStudio() {
     await loadSqlPresets();
     await loadSqlSchema();
@@ -1199,7 +1414,7 @@ function downloadBlob(content, filename, contentType) {
     URL.revokeObjectURL(url);
 }
 
-// 9. Analytics & Telemetry
+// 10. Analytics & Telemetry
 async function loadAnalyticsData() {
     if (!analyticsGrid) return;
     try {
@@ -1275,13 +1490,13 @@ async function loadAnalyticsData() {
     }
 }
 
-// 10. Platform Directory
+// 11. Platform Directory
 function renderUsersDirectory() {
     if (!usersGrid) return;
     usersGrid.innerHTML = usersCache.map(u => `
         <div class="profile-card">
-            <img class="profile-avatar-lg" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
-            <h3 class="profile-name">${u.username}</h3>
+            <img class="profile-avatar-lg" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}" onclick="openProfileModal(${u.user_id})">
+            <h3 class="profile-name" onclick="openProfileModal(${u.user_id})">${u.username}</h3>
             <span class="role-badge ${u.admin_level ? 'admin' : 'regular'}">
                 ${u.admin_level || 'REGULAR USER'}
             </span>
@@ -1298,7 +1513,7 @@ function renderUsersDirectory() {
     `).join("");
 }
 
-// 11. Notifications
+// 12. Notifications
 async function checkNotifications() {
     try {
         const res = await fetch(`/api/notifications/${activeUserId}`);

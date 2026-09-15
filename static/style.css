@@ -1,6 +1,6 @@
 /* ==========================================================================
-   SocialSphere — Instagram-Inspired Theme (Sharp / Low-Curve Edition)
-   Aesthetic: Instagram Web Layout & Typography with Crisp Minimal Curves (0-3px)
+   SocialSphere — Instagram-Inspired Theme (Modern 5-10px Curves Edition)
+   Aesthetic: Instagram Web Layout & Modern Soft-Edge Radius (5px - 10px)
    ========================================================================== */
 
 :root {
@@ -11,7 +11,7 @@
     --ig-surface-elevated: #ffffff;
     --ig-surface-hover: #f0f0f0;
     
-    /* Crisp Architectural Borders */
+    /* Clean Borders */
     --ig-border: #dbdbdb;
     --ig-border-subtle: #efefef;
     --ig-border-dark: #262626;
@@ -34,10 +34,12 @@
     --ig-text-muted: #8e8e8e;
     --ig-text-white: #ffffff;
 
-    /* Low Curves / Sharp Architecture */
-    --radius-none: 0px;
-    --radius-sm: 2px;
-    --radius-md: 4px;
+    /* Modern 5px - 10px Curves */
+    --radius-xs: 5px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-full: 9999px;
 
     /* Sidebar & Navigation Dimensions */
     --sidebar-width: 245px;
@@ -49,7 +51,6 @@
 
     /* Typography */
     --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-brand: 'Grandista', -apple-system, 'Brush Script MT', cursive, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -90,12 +91,14 @@ button {
     border: none;
     background: none;
     outline: none;
+    border-radius: var(--radius-sm);
 }
 
 input, textarea, select {
     font-family: inherit;
     font-size: 13px;
     outline: none;
+    border-radius: var(--radius-sm);
 }
 
 /* Scrollbars */
@@ -153,7 +156,7 @@ input, textarea, select {
 
 .insta-brand-name {
     font-family: var(--font-main);
-    font-size: 1.5rem;
+    font-size: 1.55rem;
     font-weight: 800;
     letter-spacing: -0.5px;
     color: var(--ig-text-primary);
@@ -170,7 +173,7 @@ input, textarea, select {
     align-items: center;
     gap: 16px;
     padding: 10px 14px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     color: var(--ig-text-primary);
     font-size: 14px;
     font-weight: 500;
@@ -208,8 +211,8 @@ input, textarea, select {
     color: #ffffff;
     font-size: 10px;
     font-weight: 700;
-    padding: 1px 6px;
-    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
 }
 
 /* Sidebar Bottom User Profile Card */
@@ -221,9 +224,9 @@ input, textarea, select {
 .user-footer-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     padding: 8px 10px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border-subtle);
 }
@@ -241,7 +244,16 @@ input, textarea, select {
     width: 44px;
     height: 44px;
     object-fit: cover;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--ig-border);
+    flex-shrink: 0;
+}
+
+.avatar-square-lg {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
     border: 1px solid var(--ig-border);
     flex-shrink: 0;
 }
@@ -250,7 +262,7 @@ input, textarea, select {
     width: 24px;
     height: 24px;
     object-fit: cover;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
     border: 1px solid var(--ig-border);
     flex-shrink: 0;
 }
@@ -258,6 +270,7 @@ input, textarea, select {
 .user-footer-meta {
     display: flex;
     flex-direction: column;
+    flex: 1;
     overflow: hidden;
 }
 
@@ -283,8 +296,8 @@ input, textarea, select {
     background: var(--ig-gold-subtle);
     color: #b45309;
     border: 1px solid #f59e0b;
-    padding: 1px 4px;
-    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
     letter-spacing: 0.5px;
 }
 
@@ -294,6 +307,21 @@ input, textarea, select {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.btn-logout-icon {
+    color: var(--ig-text-muted);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.btn-logout-icon:hover {
+    color: var(--ig-red);
+    background-color: var(--ig-red-subtle);
 }
 
 /* ==========================================================================
@@ -340,7 +368,7 @@ input, textarea, select {
     width: 8px;
     height: 8px;
     background: var(--ig-red);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
 }
 
 .insta-feed-container {
@@ -382,12 +410,12 @@ input, textarea, select {
 }
 
 /* ==========================================================================
-   INSTAGRAM STORIES TRAY (Sharp / Low-Curve)
+   INSTAGRAM STORIES TRAY (5-10px Curves)
    ========================================================================== */
 .stories-tray-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     padding: 14px 12px;
     overflow: hidden;
 }
@@ -415,12 +443,17 @@ input, textarea, select {
 }
 
 .story-ring-wrap {
-    padding: 2px;
+    padding: 2.5px;
     background: var(--ig-story-gradient);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.15s ease;
+}
+
+.story-item:hover .story-ring-wrap {
+    transform: scale(1.05);
 }
 
 .story-avatar-img {
@@ -447,15 +480,15 @@ input, textarea, select {
 .create-post-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
-    padding: 14px;
+    border-radius: var(--radius-lg);
+    padding: 16px;
 }
 
 .create-card-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .create-user-title {
@@ -465,11 +498,11 @@ input, textarea, select {
 
 .create-textarea {
     width: 100%;
-    min-height: 70px;
-    padding: 8px 10px;
+    min-height: 75px;
+    padding: 10px 12px;
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     color: var(--ig-text-primary);
     font-size: 13px;
     resize: vertical;
@@ -482,6 +515,40 @@ input, textarea, select {
     background: var(--ig-surface);
 }
 
+.post-preview-img-box {
+    position: relative;
+    width: 100%;
+    max-height: 240px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid var(--ig-border);
+    background: #000;
+}
+
+.post-preview-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.btn-remove-preview {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+}
+
 .create-card-footer {
     display: flex;
     align-items: center;
@@ -490,7 +557,7 @@ input, textarea, select {
 
 .create-link-input {
     flex: 1;
-    padding: 7px 10px;
+    padding: 8px 12px;
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border);
     border-radius: var(--radius-sm);
@@ -509,9 +576,9 @@ input, textarea, select {
     color: #ffffff;
     font-size: 13px;
     font-weight: 700;
-    padding: 7px 16px;
+    padding: 8px 16px;
     border-radius: var(--radius-sm);
-    transition: background-color 0.15s;
+    transition: background-color 0.15s, transform 0.1s;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -520,6 +587,10 @@ input, textarea, select {
 
 .btn-insta-primary:hover {
     background: var(--ig-blue-hover);
+}
+
+.btn-insta-primary:active {
+    transform: scale(0.98);
 }
 
 .btn-insta-primary:disabled {
@@ -533,7 +604,7 @@ input, textarea, select {
     border: 1px solid var(--ig-border);
     font-size: 12px;
     font-weight: 600;
-    padding: 6px 12px;
+    padding: 7px 14px;
     border-radius: var(--radius-sm);
     transition: background-color 0.15s;
 }
@@ -547,7 +618,7 @@ input, textarea, select {
     color: var(--ig-text-primary);
     font-size: 12px;
     font-weight: 600;
-    padding: 6px 12px;
+    padding: 7px 14px;
     border-radius: var(--radius-sm);
     background: var(--ig-surface);
     transition: all 0.15s;
@@ -581,8 +652,8 @@ input, textarea, select {
     font-size: 11px;
     font-weight: 700;
     color: var(--ig-text-secondary);
-    padding: 3px 8px;
-    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
 }
 
@@ -598,7 +669,7 @@ input, textarea, select {
     gap: 8px;
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 8px 12px;
     overflow: hidden;
 }
@@ -628,8 +699,8 @@ input, textarea, select {
     font-size: 11px;
     font-weight: 600;
     color: var(--ig-text-primary);
-    padding: 3px 8px;
-    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s;
@@ -647,14 +718,14 @@ input, textarea, select {
     justify-content: space-between;
     background: var(--ig-blue-subtle);
     border: 1px solid var(--ig-blue);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 8px 12px;
     font-size: 12px;
     color: var(--ig-blue-hover);
 }
 
 /* ==========================================================================
-   INSTAGRAM FEED POST CARD
+   INSTAGRAM FEED POST CARD (5-10px Curves)
    ========================================================================== */
 .posts-feed-list {
     display: flex;
@@ -665,7 +736,7 @@ input, textarea, select {
 .post-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
@@ -680,6 +751,7 @@ input, textarea, select {
     display: flex;
     align-items: center;
     gap: 10px;
+    cursor: pointer;
 }
 
 .post-author-name {
@@ -699,8 +771,8 @@ input, textarea, select {
     font-weight: 700;
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border);
-    padding: 1px 4px;
-    border-radius: var(--radius-sm);
+    padding: 2px 5px;
+    border-radius: var(--radius-xs);
     color: var(--ig-text-secondary);
 }
 
@@ -731,7 +803,7 @@ input, textarea, select {
     word-break: break-word;
 }
 
-/* Post Actions Toolbar (Heart, Comment, Share, Bookmark) */
+/* Post Actions Toolbar */
 .post-actions-bar {
     display: flex;
     align-items: center;
@@ -750,7 +822,8 @@ input, textarea, select {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.1s ease;
+    transition: transform 0.15s ease;
+    padding: 2px;
 }
 
 .action-icon-btn:hover {
@@ -758,7 +831,7 @@ input, textarea, select {
 }
 
 .action-icon-btn:active {
-    transform: scale(1.15);
+    transform: scale(1.2);
 }
 
 .action-icon-btn.liked {
@@ -768,9 +841,16 @@ input, textarea, select {
 .action-icon-btn.liked svg {
     fill: var(--ig-red);
     stroke: var(--ig-red);
+    animation: heartPop 0.25s ease;
 }
 
-/* Post Likes & Engagement Metadata */
+@keyframes heartPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+/* Post Likes & Engagement Details */
 .post-meta-details {
     padding: 0 14px 8px 14px;
     display: flex;
@@ -792,6 +872,7 @@ input, textarea, select {
 .post-caption-uname {
     font-weight: 700;
     margin-right: 6px;
+    cursor: pointer;
 }
 
 .post-hashtags-wrap {
@@ -845,6 +926,7 @@ input, textarea, select {
 .comment-uname {
     font-weight: 700;
     flex-shrink: 0;
+    cursor: pointer;
 }
 
 .comment-text-content {
@@ -891,7 +973,7 @@ input, textarea, select {
 }
 
 /* ==========================================================================
-   FEED RIGHT SIDEBAR (Instagram Style)
+   FEED RIGHT SIDEBAR
    ========================================================================== */
 .feed-right-sidebar {
     display: flex;
@@ -932,7 +1014,7 @@ input, textarea, select {
     color: var(--ig-blue);
     font-weight: 700;
     font-size: 12px;
-    padding: 4px 6px;
+    padding: 5px 8px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     max-width: 110px;
@@ -983,14 +1065,14 @@ input, textarea, select {
     background: var(--ig-green-subtle);
     color: var(--ig-green);
     border: 1px solid var(--ig-green);
-    padding: 1px 5px;
-    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
 }
 
 .sidebar-sql-widget {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 14px;
     display: flex;
     flex-direction: column;
@@ -1042,7 +1124,7 @@ input, textarea, select {
     min-height: 520px;
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
@@ -1214,7 +1296,7 @@ input, textarea, select {
     padding: 10px 14px;
     font-size: 13px;
     line-height: 1.4;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     word-break: break-word;
 }
 
@@ -1272,7 +1354,7 @@ input, textarea, select {
 }
 
 /* ==========================================================================
-   LOGIN PORTAL (Instagram Web Aesthetic)
+   AUTHENTICATION & LOGIN/REGISTER TAB
    ========================================================================== */
 .insta-login-box {
     max-width: 440px;
@@ -1282,7 +1364,7 @@ input, textarea, select {
 .login-card-inner {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     padding: 36px 32px;
     text-align: center;
 }
@@ -1297,13 +1379,38 @@ input, textarea, select {
 .login-tagline {
     font-size: 13px;
     color: var(--ig-text-secondary);
-    margin-bottom: 20px;
+    margin-bottom: 18px;
+}
+
+.auth-toggle-tabs {
+    display: flex;
+    background: var(--ig-surface-secondary);
+    border: 1px solid var(--ig-border);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    margin-bottom: 18px;
+}
+
+.auth-toggle-btn {
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ig-text-secondary);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s;
+}
+
+.auth-toggle-btn.active {
+    background: var(--ig-surface);
+    color: var(--ig-text-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .admin-notice-box {
     background: var(--ig-gold-subtle);
     border: 1px solid #f59e0b;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 12px;
     margin-bottom: 20px;
     text-align: left;
@@ -1329,7 +1436,7 @@ input, textarea, select {
     font-size: 11px;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
     cursor: pointer;
 }
 
@@ -1351,10 +1458,20 @@ input, textarea, select {
     margin-top: 4px;
 }
 
+.auth-error-banner {
+    background: var(--ig-red-subtle);
+    color: #991b1b;
+    border: 1px solid #f87171;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    text-align: left;
+}
+
 .insta-login-form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .insta-input-wrap {
@@ -1455,15 +1572,15 @@ input, textarea, select {
 }
 
 .sql-run-btn {
-    height: 34px;
+    height: 36px;
 }
 
 .shortcut-kbd {
     font-family: var(--font-mono);
     font-size: 10px;
     background: rgba(255, 255, 255, 0.25);
-    padding: 2px 4px;
-    border-radius: var(--radius-sm);
+    padding: 2px 5px;
+    border-radius: var(--radius-xs);
 }
 
 .sql-presets-tray {
@@ -1472,7 +1589,7 @@ input, textarea, select {
     gap: 8px;
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 8px 12px;
     margin-bottom: 16px;
     overflow: hidden;
@@ -1501,8 +1618,8 @@ input, textarea, select {
     font-size: 11px;
     font-weight: 600;
     color: var(--ig-text-primary);
-    padding: 4px 10px;
-    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s;
@@ -1530,7 +1647,7 @@ input, textarea, select {
 .sql-editor-container {
     background: #1e1e1e;
     border: 1px solid #333333;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
@@ -1555,8 +1672,8 @@ input, textarea, select {
     font-weight: 800;
     background: #14532d;
     color: #86efac;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    padding: 2px 7px;
+    border-radius: var(--radius-xs);
 }
 
 .sql-editor-textarea {
@@ -1576,7 +1693,7 @@ input, textarea, select {
 .sql-results-container {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
@@ -1608,7 +1725,7 @@ input, textarea, select {
     background: var(--ig-blue-subtle);
     color: var(--ig-blue);
     padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
 }
 
 .sql-table-wrapper {
@@ -1667,7 +1784,7 @@ input, textarea, select {
 .sql-schema-column {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 14px;
 }
 
@@ -1691,7 +1808,7 @@ input, textarea, select {
     background: var(--ig-blue-subtle);
     color: var(--ig-blue);
     padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
 }
 
 .schema-subtitle {
@@ -1776,7 +1893,7 @@ input, textarea, select {
 .profile-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     padding: 20px;
     text-align: center;
     display: flex;
@@ -1789,7 +1906,7 @@ input, textarea, select {
     width: 64px;
     height: 64px;
     object-fit: cover;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     border: 1px solid var(--ig-border);
 }
 
@@ -1802,8 +1919,8 @@ input, textarea, select {
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    padding: 2px 7px;
+    border-radius: var(--radius-xs);
 }
 
 .role-badge.admin {
@@ -1845,7 +1962,7 @@ input, textarea, select {
 .community-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     padding: 18px;
     display: flex;
     flex-direction: column;
@@ -1870,8 +1987,8 @@ input, textarea, select {
     font-weight: 800;
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border);
-    padding: 2px 5px;
-    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
     color: var(--ig-text-secondary);
 }
 
@@ -1897,10 +2014,10 @@ input, textarea, select {
 }
 
 .avatar-overlap {
-    width: 22px;
-    height: 22px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--ig-surface);
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-xs);
+    border: 1.5px solid var(--ig-surface);
     margin-left: -6px;
     object-fit: cover;
 }
@@ -1911,7 +2028,7 @@ input, textarea, select {
 
 .btn-join-toggle {
     width: 100%;
-    padding: 7px;
+    padding: 8px;
     font-size: 12px;
     font-weight: 700;
     border-radius: var(--radius-sm);
@@ -1951,7 +2068,7 @@ input, textarea, select {
 .stat-metric-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: 14px 16px;
     display: flex;
     justify-content: space-between;
@@ -1979,14 +2096,14 @@ input, textarea, select {
     font-weight: 800;
     color: var(--ig-blue);
     background: var(--ig-blue-subtle);
-    padding: 4px 6px;
-    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    border-radius: var(--radius-xs);
 }
 
 .telemetry-log-card {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
@@ -2015,7 +2132,7 @@ input, textarea, select {
     color: var(--ig-green);
     background: var(--ig-green-subtle);
     padding: 3px 8px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
 }
 
 .telemetry-table-wrapper {
@@ -2051,12 +2168,12 @@ input, textarea, select {
     font-weight: 700;
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border);
-    padding: 2px 5px;
-    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
 }
 
 /* ==========================================================================
-   MODALS (Notifications & Create Group)
+   MODALS (Story Viewer, User Profile, Notifications, Create Group)
    ========================================================================== */
 .modal-overlay {
     position: fixed;
@@ -2064,7 +2181,7 @@ input, textarea, select {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.65);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2075,11 +2192,174 @@ input, textarea, select {
 .modal-panel {
     background: var(--ig-surface);
     border: 1px solid var(--ig-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     width: 100%;
     max-width: 460px;
     overflow: hidden;
     animation: modalIn 0.15s ease;
+}
+
+/* Story Viewer Modal */
+.story-modal-panel {
+    background: #000000;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 400px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    animation: modalIn 0.2s ease;
+}
+
+.story-progress-bar-wrap {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    right: 12px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius-full);
+    z-index: 10;
+    overflow: hidden;
+}
+
+.story-progress-bar-fill {
+    height: 100%;
+    background: #ffffff;
+    width: 0%;
+    animation: storyProgress 5s linear forwards;
+}
+
+@keyframes storyProgress {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+
+.story-header-overlay {
+    position: absolute;
+    top: 20px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+}
+
+.story-author-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ffffff;
+}
+
+.story-modal-author {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.story-modal-time {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.story-close-btn {
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.story-media-view {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #111111;
+}
+
+.story-media-view img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.story-text-overlay {
+    position: absolute;
+    bottom: 24px;
+    left: 16px;
+    right: 16px;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* User Profile Modal */
+.profile-modal-panel {
+    background: var(--ig-surface);
+    border: 1px solid var(--ig-border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 480px;
+    overflow: hidden;
+    animation: modalIn 0.15s ease;
+}
+
+.profile-modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.profile-modal-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.prof-hero-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.prof-uname-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prof-uname-row h2 {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.prof-bio-text {
+    font-size: 12px;
+    color: var(--ig-text-secondary);
+    line-height: 1.4;
+}
+
+.prof-stats-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.profile-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
 }
 
 @keyframes modalIn {
@@ -2153,7 +2433,7 @@ input, textarea, select {
 }
 
 .form-input, .form-textarea, .form-select {
-    padding: 8px 12px;
+    padding: 9px 12px;
     background: var(--ig-surface-secondary);
     border: 1px solid var(--ig-border);
     border-radius: var(--radius-sm);
@@ -2219,7 +2499,7 @@ input, textarea, select {
         width: var(--sidebar-collapsed-width);
         padding: 20px 8px;
     }
-    .nav-text, .insta-brand-name, .user-footer-meta {
+    .nav-text, .insta-brand-name, .user-footer-meta, .btn-logout-icon {
         display: none;
     }
     .insta-brand-logo {

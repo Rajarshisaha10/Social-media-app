@@ -83,6 +83,8 @@ def login_user(payload: LoginRequest):
         # Return user info (excluding raw password)
         user_info = dict(user)
         user_info.pop("password", None)
+        cred_row = query_one("SELECT last_login FROM User_Credentials WHERE user_id = ?", (user["user_id"],))
+        user_info["last_login"] = cred_row["last_login"] if cred_row and cred_row.get("last_login") else None
 
         return {
             "success": True,

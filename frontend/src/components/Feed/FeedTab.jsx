@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tag, X, RefreshCw } from 'lucide-react';
 import StoriesTray from './StoriesTray';
-import FeedSqlBox from './FeedSqlBox';
+import CreatePostBox from './CreatePostBox';
 import PostCard from './PostCard';
 import RightSidebar from './RightSidebar';
 import { api } from '../../api/client';
@@ -122,8 +122,8 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
           onSelectStory={onSelectStory}
         />
 
-        {/* SQL Queries Section */}
-        <FeedSqlBox onOpenFullStudio={() => onNavigateTab('sql')} />
+        {/* Create Post Section */}
+        <CreatePostBox onPostCreated={handleCreatePost} />
 
         {/* Topic / Hashtag Discovery Bar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

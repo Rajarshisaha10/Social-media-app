@@ -71,8 +71,8 @@ export function MobileHeader({ onOpenNotifications, onOpenMessages }) {
   );
 }
 
-export function MobileBottomNav({ activeTab, setActiveTab, onOpenCreatePost }) {
-  const { isSuperAdmin, user } = useAuth();
+export function MobileBottomNav({ activeTab, setActiveTab }) {
+  const { user } = useAuth();
 
   return (
     <nav className="mobile-bottom-nav">
@@ -93,30 +93,20 @@ export function MobileBottomNav({ activeTab, setActiveTab, onOpenCreatePost }) {
       </button>
 
       <button
-        className="mobile-nav-item"
-        onClick={onOpenCreatePost}
+        className={`mobile-nav-item ${activeTab === 'sql' ? 'active' : ''}`}
+        onClick={() => setActiveTab('sql')}
         title="SQL Queries"
       >
-        <Terminal size={24} color="var(--blue-primary)" />
+        <Terminal size={22} color={activeTab === 'sql' ? 'var(--blue-primary)' : 'currentColor'} />
       </button>
 
-      {isSuperAdmin ? (
-        <button
-          className={`mobile-nav-item ${activeTab === 'sql' ? 'active' : ''}`}
-          onClick={() => setActiveTab('sql')}
-          title="SQL Studio"
-        >
-          <Database size={22} />
-        </button>
-      ) : (
-        <button
-          className={`mobile-nav-item ${activeTab === 'connections' ? 'active' : ''}`}
-          onClick={() => setActiveTab('connections')}
-          title="Connections"
-        >
-          <UsersIcon size={22} />
-        </button>
-      )}
+      <button
+        className={`mobile-nav-item ${activeTab === 'connections' ? 'active' : ''}`}
+        onClick={() => setActiveTab('connections')}
+        title="Connections"
+      >
+        <UsersIcon size={22} />
+      </button>
 
       <button
         className={`mobile-nav-item ${activeTab === 'users' ? 'active' : ''}`}

@@ -62,35 +62,20 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost }) {
             <span>Explore Users</span>
           </button>
 
-          {isSuperAdmin && (
-            <>
-              <button
-                className={`nav-link-btn ${activeTab === 'sql' ? 'active' : ''}`}
-                onClick={() => setActiveTab('sql')}
-              >
-                <Database size={20} />
-                <span>/sql Studio</span>
-                <span className="admin-pill-tag">ADMIN</span>
-              </button>
-
-              <button
-                className={`nav-link-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                onClick={() => setActiveTab('analytics')}
-              >
-                <BarChart3 size={20} />
-                <span>Analytics</span>
-                <span className="admin-pill-tag">ADMIN</span>
-              </button>
-            </>
-          )}
+          <button
+            className={`nav-link-btn ${activeTab === 'sql' ? 'active' : ''}`}
+            onClick={() => setActiveTab('sql')}
+          >
+            <Database size={20} />
+            <span>SQL Queries</span>
+          </button>
 
           <button
-            className="nav-link-btn"
-            onClick={onOpenCreatePost}
-            style={{ marginTop: '10px', color: 'var(--blue-primary)', fontWeight: 600 }}
+            className={`nav-link-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
           >
-            <Terminal size={20} />
-            <span>SQL Queries</span>
+            <BarChart3 size={20} />
+            <span>Analytics</span>
           </button>
         </nav>
       </div>
@@ -104,9 +89,12 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost }) {
           />
           <div className="meta">
             <span className="uname">{user?.username}</span>
-            <span className="urole">
-              {isSuperAdmin ? 'Super Administrator' : (user?.location || 'Member')}
-            </span>
+            <div className="urole" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+              <span>{isSuperAdmin ? 'Super Administrator' : (user?.location || 'Member')}</span>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                {user?.login_time ? `Logged in: ${user.login_time}` : (user?.last_login ? `Logged in: ${user.last_login}` : 'Active session')}
+              </span>
+            </div>
           </div>
           <button
             className="logout-icon-btn"

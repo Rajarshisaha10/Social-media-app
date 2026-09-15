@@ -91,9 +91,9 @@ export default function App() {
             <UsersTab onUserClick={(uid) => setViewingProfileId(uid)} />
           )}
 
-          {activeTab === 'sql' && isSuperAdmin && <SqlStudioTab />}
+          {activeTab === 'sql' && <SqlStudioTab />}
 
-          {activeTab === 'analytics' && isSuperAdmin && <AnalyticsTab />}
+          {activeTab === 'analytics' && <AnalyticsTab />}
         </main>
 
         {/* Mobile Bottom Navigation */}

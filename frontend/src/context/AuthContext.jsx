@@ -72,8 +72,12 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await api.login(username, password);
     if (res?.success && res.user) {
-      setUser(res.user);
-      return res.user;
+      const userWithTime = {
+        ...res.user,
+        login_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      };
+      setUser(userWithTime);
+      return userWithTime;
     }
     throw new Error(res?.message || 'Login failed');
   };
@@ -81,8 +85,12 @@ export function AuthProvider({ children }) {
   const register = async (payload) => {
     const res = await api.register(payload);
     if (res?.success && res.user) {
-      setUser(res.user);
-      return res.user;
+      const userWithTime = {
+        ...res.user,
+        login_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      };
+      setUser(userWithTime);
+      return userWithTime;
     }
     throw new Error(res?.message || 'Registration failed');
   };

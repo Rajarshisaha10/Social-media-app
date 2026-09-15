@@ -266,17 +266,17 @@ def init_db():
                 -- Users
                 INSERT INTO Users (username, email, password, bio, account_status, dob) VALUES
                 ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20'),
-                ('alice_w', 'alice@example.com', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
-                ('bob_m', 'bob@example.com', 'password123', 'Landscape photographer and outdoor writer', 'ACTIVE', '1992-08-25'),
-                ('charlie_dev', 'charlie@example.com', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
+                ('kandarp', 'kandarp@socialsphere.io', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
+                ('Shobita', 'shobita@socialsphere.io', 'password123', 'Landscape photographer & creative tech writer', 'ACTIVE', '1992-08-25'),
+                ('Aditi', 'aditi@socialsphere.io', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
                 ('admin_user', 'admin@socialapp.com', 'password123', 'Platform Operations Lead', 'ACTIVE', '1988-01-15');
 
                 -- User_Credentials table
                 INSERT INTO User_Credentials (user_id, username, password_hash, account_role) VALUES
                 (1, 'rajarshi', 'dbms108', 'SUPER_ADMIN'),
-                (2, 'alice_w', 'password123', 'USER'),
-                (3, 'bob_m', 'password123', 'USER'),
-                (4, 'charlie_dev', 'password123', 'USER'),
+                (2, 'kandarp', 'password123', 'USER'),
+                (3, 'Shobita', 'password123', 'USER'),
+                (4, 'Aditi', 'password123', 'USER'),
                 (5, 'admin_user', 'password123', 'OPS_ADMIN');
 
                 -- Regular & Admin Users

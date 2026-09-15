@@ -396,30 +396,48 @@ def init_db():
                 LEFT JOIN Admin_User au ON au.user_id = u.user_id
             """)
             
-            # Migrate shobita -> rajarshi if present
+            # Migrate shobita -> rajarshi if present and rajarshi doesn't exist
+            cursor.execute("SELECT user_id FROM Users WHERE username = 'rajarshi'")
+            rajarshi_user = cursor.fetchone()
+
             cursor.execute("SELECT user_id FROM Users WHERE username = 'shobita'")
             old_admin = cursor.fetchone()
             if old_admin:
-                cursor.execute("""
-                    UPDATE Users 
-                    SET username = 'rajarshi', email = 'rajarshi@socialsphere.io', password = 'dbms108'
-                    WHERE username = 'shobita'
-                """)
-                cursor.execute("""
-                    UPDATE User_Credentials 
-                    SET username = 'rajarshi', password_hash = 'dbms108', account_role = 'SUPER_ADMIN'
-                    WHERE username = 'shobita'
-                """)
+                if not rajarshi_user:
+                    cursor.execute("""
+                        UPDATE Users 
+                        SET username = 'rajarshi', email = 'rajarshi@socialsphere.io', password = 'dbms108'
+                        WHERE user_id = ?
+                    """, (old_admin["user_id"],))
+                    cursor.execute("""
+                        UPDATE User_Credentials 
+                        SET username = 'rajarshi', password_hash = 'dbms108', account_role = 'SUPER_ADMIN'
+                        WHERE user_id = ?
+                    """, (old_admin["user_id"],))
+                else:
+                    # rajarshi already exists as super admin; clean up obsolete shobita user
+                    old_id = old_admin["user_id"]
+                    cursor.execute("DELETE FROM Profile_Pic WHERE user_id = ?", (old_id,))
+                    cursor.execute("DELETE FROM Regular_User WHERE user_id = ?", (old_id,))
+                    cursor.execute("DELETE FROM Admin_User WHERE user_id = ?", (old_id,))
+                    cursor.execute("DELETE FROM User_Credentials WHERE user_id = ?", (old_id,))
+                    cursor.execute("DELETE FROM Users WHERE user_id = ?", (old_id,))
 
             # Ensure rajarshi super admin exists with dbms108
             cursor.execute("SELECT user_id FROM Users WHERE username = 'rajarshi'")
             rajarshi = cursor.fetchone()
             if not rajarshi:
-                cursor.execute("""
-                    INSERT INTO Users (username, email, password, bio, account_status, dob)
-                    VALUES ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20')
-                """)
-                uid = cursor.lastrowid
+                cursor.execute("SELECT user_id FROM Users WHERE email = 'rajarshi@socialsphere.io'")
+                email_match = cursor.fetchone()
+                if email_match:
+                    cursor.execute("UPDATE Users SET username = 'rajarshi', password = 'dbms108' WHERE user_id = ?", (email_match["user_id"],))
+                    uid = email_match["user_id"]
+                else:
+                    cursor.execute("""
+                        INSERT INTO Users (username, email, password, bio, account_status, dob)
+                        VALUES ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20')
+                    """)
+                    uid = cursor.lastrowid
                 cursor.execute("INSERT OR REPLACE INTO Admin_User (user_id, admin_level) VALUES (?, 'SUPER_ADMIN')", (uid,))
                 cursor.execute("INSERT OR REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR')", (uid,))
                 cursor.execute("INSERT OR REPLACE INTO Regular_User (user_id, interests, location) VALUES (?, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland')", (uid,))

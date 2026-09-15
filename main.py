@@ -12,6 +12,10 @@ from routers.analytics import router as analytics_router
 from routers.recommendations import router as recommendations_router
 from routers.posts import router as posts_router
 from routers.users import router as users_router
+from routers.groups import router as groups_router
+from routers.messages import router as messages_router
+from routers.notifications import router as notifications_router
+from routers.sql import router as sql_router
 
 load_dotenv()
 
@@ -22,8 +26,8 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="Social Media Analytics API",
-    description="Python FastAPI backend with SQLite database and modern web dashboard",
+    title="Social Media Analytics & SQL Platform API",
+    description="Fullstack FastAPI backend with SQLite database, 15 relational tables, live SQL Studio, and mobile-first dashboard",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -37,11 +41,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
+# Include API routers for all features
 app.include_router(posts_router)
 app.include_router(users_router)
 app.include_router(recommendations_router)
 app.include_router(analytics_router)
+app.include_router(groups_router)
+app.include_router(messages_router)
+app.include_router(notifications_router)
+app.include_router(sql_router)
 
 @app.get("/api/info")
 def read_info():
@@ -49,7 +57,8 @@ def read_info():
         "name": "Social Media Analytics API",
         "status": "online",
         "database": "SQLite",
-        "docs_url": "/docs"
+        "docs_url": "/docs",
+        "sql_studio_url": "/sql"
     }
 
 @app.get("/api/test-db")
@@ -83,9 +92,22 @@ def serve_ui():
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
-    return {"message": "Social Media Analytics API is running (SQLite). Visit /docs for API documentation."}
+    return {"message": "Social Media Platform API is running. Visit /docs for API documentation."}
+
+@app.get("/sql")
+def serve_sql_ui():
+    """Route specifically for /sql page, serving the main web app with SQL Studio activated."""
+    index_file = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"message": "SQL Studio page available. Please check static files."}
 
 if __name__ == "__main__":
     init_db()
     port = int(os.getenv("PORT", 5000))
-    uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)
+    host = os.getenv("HOST", "0.0.0.0")
+    print(f"\n🚀 Server starting...")
+    print(f"👉 Open in browser: http://localhost:{port} or http://127.0.0.1:{port}")
+    print(f"👉 SQL Studio: http://localhost:{port}/sql")
+    print(f"👉 Swagger API Docs: http://localhost:{port}/docs\n")
+    uvicorn.run("main:app", host=host, port=port, reload=True)

@@ -236,89 +236,127 @@ def init_db():
             cursor.executescript("""
                 -- Users
                 INSERT INTO Users (username, email, password, bio, account_status, dob) VALUES
-                ('alice_w', 'alice@example.com', 'hashed_pass_123', 'Tech enthusiast & coffee lover', 'ACTIVE', '1995-04-12'),
-                ('bob_m', 'bob@example.com', 'hashed_pass_456', 'Outdoor photographer and hiker', 'ACTIVE', '1992-08-25'),
-                ('charlie_dev', 'charlie@example.com', 'hashed_pass_789', 'Fullstack engineer & open-source contributor', 'ACTIVE', '1998-11-03'),
-                ('admin_user', 'admin@socialapp.com', 'hashed_admin_pass', 'Platform Administrator', 'ACTIVE', '1988-01-15');
+                ('shobita', 'shobita@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1990-05-20'),
+                ('alice_w', 'alice@example.com', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
+                ('bob_m', 'bob@example.com', 'password123', 'Landscape photographer and outdoor writer', 'ACTIVE', '1992-08-25'),
+                ('charlie_dev', 'charlie@example.com', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
+                ('admin_user', 'admin@socialapp.com', 'password123', 'Platform Operations Lead', 'ACTIVE', '1988-01-15');
 
                 -- Regular & Admin Users
-                INSERT INTO Regular_User (user_id, interests, location) VALUES
-                (1, 'Coding, Photography, AI', 'San Francisco, CA'),
-                (2, 'Hiking, Wildlife, Cinema', 'Denver, CO'),
-                (3, 'Web Development, Gaming, Music', 'Seattle, WA');
-
                 INSERT INTO Admin_User (user_id, admin_level) VALUES
-                (4, 'SUPER_ADMIN');
+                (1, 'SUPER_ADMIN'),
+                (5, 'OPS_ADMIN');
+
+                INSERT INTO Regular_User (user_id, interests, location) VALUES
+                (1, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland'),
+                (2, 'FastAPI, Python, Machine Learning', 'San Francisco, CA'),
+                (3, 'Photography, Mountain Expeditions, Optics', 'Denver, CO'),
+                (4, 'Web Architecture, PostgreSQL, SQLite, React', 'Seattle, WA'),
+                (5, 'Infrastructure, Security, Telemetry', 'Boston, MA');
 
                 -- Profile Pics
                 INSERT INTO Profile_Pic (user_id, image_url, pic_type) VALUES
-                (1, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'AVATAR'),
-                (2, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'AVATAR'),
-                (3, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'AVATAR');
+                (1, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 'AVATAR'),
+                (2, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'AVATAR'),
+                (3, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'AVATAR'),
+                (4, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'AVATAR'),
+                (5, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 'AVATAR');
 
                 -- Posts
                 INSERT INTO Post (user_id, content, url, visibility) VALUES
-                (1, 'Excited to announce my new open source project! Check it out.', 'https://github.com/project', 'PUBLIC'),
-                (2, 'Captured an incredible sunrise at Rocky Mountain National Park today.', 'https://photos.example.com/sunrise.jpg', 'PUBLIC'),
-                (3, 'FastAPI and SQLite make backend development remarkably fast.', NULL, 'PUBLIC');
+                (1, 'System update: SQLite 15-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
+                (2, 'Excited to publish our new open source benchmarking suite for FastAPI and SQLite! #python #opensource', 'https://github.com/project', 'PUBLIC'),
+                (3, 'High alpine sunrise capture from 12,000 feet elevation in the Rocky Mountains. #photography #nature', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', 'PUBLIC'),
+                (4, 'FastAPI dependency injection makes testing multi-table relational flows effortless. #python #webdev', NULL, 'PUBLIC');
 
                 -- Comments
                 INSERT INTO Comment (post_id, user_id, reply_to, content) VALUES
-                (1, 2, NULL, 'Looks amazing Alice! Starred the repo.'),
-                (1, 1, 1, 'Thanks Bob! Appreciate the feedback.'),
-                (2, 3, NULL, 'Stunning view, what camera settings did you use?');
+                (1, 2, NULL, 'Excellent work Shobita! The relational schema integrity is pristine.'),
+                (1, 4, 1, 'Agreed! The foreign key cascades work flawlessly.'),
+                (2, 3, NULL, 'Tested the benchmark on local node, great throughput numbers.');
 
                 -- Reactions
                 INSERT INTO Reaction (post_id, user_id, reaction_type, comment_id) VALUES
                 (1, 2, 'LIKE', NULL),
                 (1, 3, 'LOVE', NULL),
-                (2, 1, 'FIRE', NULL),
-                (1, 3, 'LIKE', 1);
+                (1, 4, 'FIRE', NULL),
+                (2, 1, 'LIKE', NULL),
+                (3, 1, 'LOVE', NULL);
 
                 -- Community Groups & Members
                 INSERT INTO Community_Group (group_name, description, privacy_setting) VALUES
-                ('Python Developers', 'A community for Python, FastAPI, and data science enthusiasts', 'PUBLIC'),
-                ('Photography Hub', 'Share your best captures and camera gear tips', 'PUBLIC');
+                ('Database Architecture Circle', 'Deep dive into relational schemas, indexing, query optimization, and storage engines', 'PUBLIC'),
+                ('Python Systems & Performance', 'High throughput microservices, asynchronous Python, and API design', 'PUBLIC'),
+                ('Landscape Photography Collective', 'Camera optics, field workflows, and high dynamic range composition', 'PUBLIC');
 
                 INSERT INTO Group_Members (group_id, user_id, role) VALUES
                 (1, 1, 'ADMIN'),
-                (1, 3, 'MEMBER'),
+                (1, 2, 'MEMBER'),
+                (1, 4, 'MEMBER'),
                 (2, 2, 'ADMIN'),
-                (2, 1, 'MEMBER');
+                (2, 1, 'MEMBER'),
+                (3, 3, 'ADMIN'),
+                (3, 1, 'MEMBER');
 
                 -- Hashtags & Post_Hashtag
                 INSERT INTO Hashtag (tag, category) VALUES
-                ('python', 'Technology'),
-                ('opensource', 'Technology'),
+                ('database', 'Systems'),
+                ('architecture', 'Engineering'),
+                ('systems', 'Infrastructure'),
+                ('python', 'Programming'),
+                ('opensource', 'Software'),
                 ('photography', 'Art'),
-                ('nature', 'Travel');
+                ('nature', 'Travel'),
+                ('webdev', 'Development');
 
                 INSERT INTO Post_Hashtag (post_id, hashtag_id) VALUES
-                (1, 1),
-                (1, 2),
-                (2, 3),
-                (2, 4);
+                (1, 1), (1, 2), (1, 3),
+                (2, 4), (2, 5),
+                (3, 6), (3, 7),
+                (4, 4), (4, 8);
 
                 -- Messages
                 INSERT INTO Message (sender_id, receiver_id, content, read_status) VALUES
-                (1, 2, 'Hey Bob, did you see the new photo updates?', 'READ'),
-                (2, 1, 'Yes! Truly breathtaking shots.', 'UNREAD');
+                (1, 2, 'Hello Alice, the new query telemetry tables are fully synchronized.', 'READ'),
+                (2, 1, 'Confirmed, latency logs are showing sub-2ms response times.', 'READ'),
+                (3, 1, 'Shared the high-resolution RAW captures in the photography archive.', 'UNREAD');
 
                 -- Notifications
                 INSERT INTO Notification (recipient_id, content, ref_id, ref_type) VALUES
-                (1, 'Bob liked your post.', 1, 'POST'),
-                (2, 'Charlie commented on your photo.', 2, 'COMMENT');
+                (1, 'Alice liked your database architecture update.', 1, 'POST'),
+                (1, 'Charlie commented on your post.', 1, 'COMMENT'),
+                (2, 'Shobita verified your system benchmark.', 2, 'POST');
 
                 -- Friend Recommendations
                 INSERT INTO Friend_Recommendation (user_id, recommended_user_id, score) VALUES
-                (1, 2, 0.95),
-                (1, 3, 0.88),
-                (2, 3, 0.74);
+                (1, 2, 0.98),
+                (1, 4, 0.94),
+                (1, 3, 0.82),
+                (2, 4, 0.91);
 
                 -- Event Analysis
                 INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata) VALUES
-                (1, 'LOGIN', 'WEB', '{"browser": "Chrome", "ip": "127.0.0.1"}'),
-                (2, 'POST_CREATE', 'MOBILE', '{"post_id": 2, "os": "iOS"}'),
-                (3, 'LIKE_POST', 'WEB', '{"post_id": 1, "browser": "Firefox"}');
+                (1, 'LOGIN', 'WORKSTATION', '{"user": "shobita", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
+                (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 15, "integrity": "OK"}'),
+                (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}'),
+                (3, 'REACT_POST', 'MOBILE', '{"post_id": 1, "reaction": "LOVE"}');
             """)
             conn.commit()
+        else:
+            # Ensure admin user 'shobita' exists if database already was seeded
+            cursor.execute("SELECT user_id FROM Users WHERE username = 'shobita'")
+            shobita = cursor.fetchone()
+            if not shobita:
+                cursor.execute("""
+                    INSERT INTO Users (username, email, password, bio, account_status, dob)
+                    VALUES ('shobita', 'shobita@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1990-05-20')
+                """)
+                uid = cursor.lastrowid
+                cursor.execute("INSERT OR REPLACE INTO Admin_User (user_id, admin_level) VALUES (?, 'SUPER_ADMIN')", (uid,))
+                cursor.execute("INSERT OR REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 'AVATAR')", (uid,))
+                cursor.execute("INSERT OR REPLACE INTO Regular_User (user_id, interests, location) VALUES (?, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland')", (uid,))
+                conn.commit()
+            else:
+                # Ensure password is set to 'dbms108'
+                cursor.execute("UPDATE Users SET password = 'dbms108' WHERE username = 'shobita'")
+                conn.commit()

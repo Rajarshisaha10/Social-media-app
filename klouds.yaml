@@ -1,0 +1,79 @@
+version: "1.0"
+project: "social-media-platform"
+
+services:
+  # --------------------------------------------------
+  # Phase 1: Frontend Client (React / Vite Static SPA)
+  # --------------------------------------------------
+  frontend:
+    type: static
+    source:
+      directory: "frontend"
+    build:
+      command: "npm ci && npm run build"
+      output_dir: "dist"
+    env:
+      - key: VITE_API_URL
+        fromService:
+          name: "backend"
+          property: "url"
+
+  # --------------------------------------------------
+  # Phase 2: REST Backend API (Python / FastAPI)
+  # --------------------------------------------------
+  backend:
+    type: web
+    source:
+      directory: "."
+    build:
+      engine: "python"
+      command: "pip install -r requirements.txt"
+    deploy:
+      port: 5000
+      command: "uvicorn main:app --host 0.0.0.0 --port 5000"
+    resources:
+      cpu_limit: "1.0"
+      mem_limit: "512m"
+    env:
+      - key: PORT
+        value: "5000"
+      # Auto-wire connection credentials from MySQL database
+      - key: DATABASE_URL
+        fromDatabase:
+          name: "mysql-db"
+          property: "connectionString"
+      - key: DB_HOST
+        fromDatabase:
+          name: "mysql-db"
+          property: "host"
+      - key: DB_PORT
+        fromDatabase:
+          name: "mysql-db"
+          property: "port"
+      - key: DB_USER
+        fromDatabase:
+          name: "mysql-db"
+          property: "user"
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: "mysql-db"
+          property: "password"
+      - key: DB_NAME
+        value: "social_media"
+
+  # --------------------------------------------------
+  # Phase 3: Relational Database (MySQL 8.0)
+  # --------------------------------------------------
+  mysql-db:
+    type: database
+    image: "mysql:8.0"
+    deploy:
+      port: 3306
+    volumes:
+      - name: "mysql_data"
+        mount_path: "/var/lib/mysql"
+    env:
+      - key: MYSQL_DATABASE
+        value: "social_media"
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true

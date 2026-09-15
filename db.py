@@ -17,6 +17,25 @@ DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "raju@123")
 DB_NAME = os.getenv("DB_NAME", "social_media")
 
+# Fallback: Parse DATABASE_URL if supplied by cloud platform
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    try:
+        from urllib.parse import urlparse, unquote
+        parsed = urlparse(DATABASE_URL)
+        if parsed.hostname:
+            DB_HOST = parsed.hostname
+        if parsed.port:
+            DB_PORT = parsed.port
+        if parsed.username:
+            DB_USER = unquote(parsed.username)
+        if parsed.password:
+            DB_PASSWORD = unquote(parsed.password)
+        if parsed.path and len(parsed.path) > 1:
+            DB_NAME = parsed.path.lstrip("/").split("?")[0]
+    except Exception as e:
+        logger.warning(f"Failed to parse DATABASE_URL: {e}")
+
 # Thread-safe MySQL Connection Pool
 _pool = None
 

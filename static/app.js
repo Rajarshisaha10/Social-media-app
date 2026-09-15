@@ -198,16 +198,16 @@ async function enterAppSession() {
     if (appLayoutSection) appLayoutSection.style.display = "flex";
     if (mobileBottomNav) mobileBottomNav.style.display = "flex";
 
-    await loadUsers();
-    await loadFollowingSet();
+    // Parallelize initial data loads for faster startup
+    await Promise.all([loadUsers(), loadFollowingSet()]);
     updateActiveUserDisplay();
     updateAdminPermissionsUI();
 
     if (window.location.pathname.endsWith("/sql") && isSuperAdmin()) {
         switchTab("sql-tab");
     } else {
-        await refreshFeed();
-        await loadSidebarWidgets();
+        // Parallelize sidebar widgets with feed refresh
+        await Promise.all([refreshFeed(), loadSidebarWidgets()]);
     }
 
     await checkNotifications();
@@ -676,9 +676,8 @@ function setupEventListeners() {
 
 // ================= FEED & POSTS =================
 async function refreshFeed() {
-    await renderStoriesTray();
-    await loadHashtags();
-    await loadPostsFeed();
+    // Parallelize all three feed data sources simultaneously
+    await Promise.all([renderStoriesTray(), loadHashtags(), loadPostsFeed()]);
 }
 
 async function renderStoriesTray() {
@@ -687,7 +686,7 @@ async function renderStoriesTray() {
     storiesTrayList.innerHTML = storiesUsers.map(u => `
         <div class="story-bubble-item" onclick="openStoryViewer(${u.user_id})">
             <div class="story-ring-gradient">
-                <img class="story-avatar-img" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
+                <img class="story-avatar-img" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&q=75'}" alt="${u.username}" loading="lazy">
             </div>
             <span class="story-uname-label">${u.username}</span>
         </div>
@@ -781,7 +780,7 @@ function renderInstagramPostCard(post) {
             <!-- Author Row -->
             <div class="post-header-row">
                 <div class="post-author-info" onclick="openProfileModal(${post.user_id})">
-                    <img class="avatar-square-sm" src="${avatar}" alt="${post.username}">
+                    <img class="avatar-square-sm" src="${avatar}" alt="${post.username}" loading="lazy">
                     <div>
                         <div class="post-author-name">${post.username}</div>
                         <span class="post-timestamp-text">${post.created_date || 'Just now'}</span>
@@ -793,7 +792,7 @@ function renderInstagramPostCard(post) {
             <!-- Media Content -->
             ${hasMedia ? `
                 <div class="post-media-box">
-                    <img src="${post.url}" alt="Post Media" loading="lazy" onerror="this.parentElement.style.display='none';">
+                    <img src="${post.url}" alt="Post Media" loading="lazy" decoding="async" onerror="this.parentElement.style.display='none';">
                 </div>
             ` : ''}
 
@@ -983,8 +982,8 @@ async function handleCreatePost() {
 
 // ================= SIDEBAR WIDGETS =================
 async function loadSidebarWidgets() {
-    await loadSuggestedConnections();
-    await loadSidebarCommunities();
+    // Parallelize sidebar widgets
+    await Promise.all([loadSuggestedConnections(), loadSidebarCommunities()]);
 }
 
 async function loadSuggestedConnections() {
@@ -998,7 +997,7 @@ async function loadSuggestedConnections() {
                 const isFollowing = followingSet.has(r.RecommendedUserID);
                 return `
                     <div class="sidebar-rec-item">
-                        <img class="avatar-square-sm" src="${r.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${r.Username}" onclick="openProfileModal(${r.RecommendedUserID})">
+                        <img class="avatar-square-sm" src="${r.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&q=75'}" alt="${r.Username}" onclick="openProfileModal(${r.RecommendedUserID})" loading="lazy">
                         <div class="rec-user-meta" onclick="openProfileModal(${r.RecommendedUserID})">
                             <span class="rec-uname">${r.Username}</span>
                             <span class="rec-match">${Math.round(r.Score * 100)}% match</span>
@@ -1053,7 +1052,7 @@ async function loadRecommendations() {
                 const isFollowing = followingSet.has(r.RecommendedUserID);
                 return `
                     <div class="profile-card">
-                        <img class="profile-avatar-lg" src="${r.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${r.Username}" onclick="openProfileModal(${r.RecommendedUserID})">
+                        <img class="profile-avatar-lg" src="${r.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&q=75'}" alt="${r.Username}" onclick="openProfileModal(${r.RecommendedUserID})" loading="lazy">
                         <h3 class="profile-name" onclick="openProfileModal(${r.RecommendedUserID})">${r.Username}</h3>
                         <span class="role-badge regular">${Math.round(r.Score * 100)}% Compatibility</span>
                         <p class="profile-bio">${escapeHTML(r.Bio || 'SocialSphere member')}</p>

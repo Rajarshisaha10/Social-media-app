@@ -240,6 +240,22 @@ def init_db():
                 CONSTRAINT fk_event_user
                     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
             );
+
+            -- 17. User_Follow table (Social Follows & Graph Connections)
+            CREATE TABLE IF NOT EXISTS User_Follow (
+                follow_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+                follower_id  INTEGER NOT NULL,
+                following_id INTEGER NOT NULL,
+                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_follow_follower
+                    FOREIGN KEY (follower_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+                CONSTRAINT fk_follow_following
+                    FOREIGN KEY (following_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+                CONSTRAINT chk_not_self_follow
+                    CHECK (follower_id <> following_id),
+                CONSTRAINT uq_follower_following
+                    UNIQUE (follower_id, following_id)
+            );
         """)
         conn.commit()
 
@@ -249,7 +265,7 @@ def init_db():
             cursor.executescript("""
                 -- Users
                 INSERT INTO Users (username, email, password, bio, account_status, dob) VALUES
-                ('shobita', 'shobita@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1990-05-20'),
+                ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20'),
                 ('alice_w', 'alice@example.com', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
                 ('bob_m', 'bob@example.com', 'password123', 'Landscape photographer and outdoor writer', 'ACTIVE', '1992-08-25'),
                 ('charlie_dev', 'charlie@example.com', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
@@ -257,7 +273,7 @@ def init_db():
 
                 -- User_Credentials table
                 INSERT INTO User_Credentials (user_id, username, password_hash, account_role) VALUES
-                (1, 'shobita', 'dbms108', 'SUPER_ADMIN'),
+                (1, 'rajarshi', 'dbms108', 'SUPER_ADMIN'),
                 (2, 'alice_w', 'password123', 'USER'),
                 (3, 'bob_m', 'password123', 'USER'),
                 (4, 'charlie_dev', 'password123', 'USER'),
@@ -277,7 +293,7 @@ def init_db():
 
                 -- Profile Pics
                 INSERT INTO Profile_Pic (user_id, image_url, pic_type) VALUES
-                (1, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 'AVATAR'),
+                (1, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR'),
                 (2, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'AVATAR'),
                 (3, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'AVATAR'),
                 (4, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'AVATAR'),
@@ -285,14 +301,14 @@ def init_db():
 
                 -- Posts
                 INSERT INTO Post (user_id, content, url, visibility) VALUES
-                (1, 'System update: SQLite 16-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
+                (1, 'System update: SQLite 17-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
                 (2, 'Excited to publish our new open source benchmarking suite for FastAPI and SQLite! #python #opensource', 'https://github.com/project', 'PUBLIC'),
                 (3, 'High alpine sunrise capture from 12,000 feet elevation in the Rocky Mountains. #photography #nature', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', 'PUBLIC'),
                 (4, 'FastAPI dependency injection makes testing multi-table relational flows effortless. #python #webdev', NULL, 'PUBLIC');
 
                 -- Comments
                 INSERT INTO Comment (post_id, user_id, reply_to, content) VALUES
-                (1, 2, NULL, 'Excellent work Shobita! The relational schema integrity is pristine.'),
+                (1, 2, NULL, 'Excellent work Rajarshi! The relational schema integrity is pristine.'),
                 (1, 4, 1, 'Agreed! The foreign key cascades work flawlessly.'),
                 (2, 3, NULL, 'Tested the benchmark on local node, great throughput numbers.');
 
@@ -346,7 +362,7 @@ def init_db():
                 INSERT INTO Notification (recipient_id, content, ref_id, ref_type) VALUES
                 (1, 'Alice liked your database architecture update.', 1, 'POST'),
                 (1, 'Charlie commented on your post.', 1, 'COMMENT'),
-                (2, 'Shobita verified your system benchmark.', 2, 'POST');
+                (2, 'Rajarshi verified your system benchmark.', 2, 'POST');
 
                 -- Friend Recommendations
                 INSERT INTO Friend_Recommendation (user_id, recommended_user_id, score) VALUES
@@ -357,10 +373,18 @@ def init_db():
 
                 -- Event Analysis
                 INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata) VALUES
-                (1, 'LOGIN', 'WORKSTATION', '{"user": "shobita", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
-                (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 16, "integrity": "OK"}'),
+                (1, 'LOGIN', 'WORKSTATION', '{"user": "rajarshi", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
+                (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 17, "integrity": "OK"}'),
                 (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}'),
                 (3, 'REACT_POST', 'MOBILE', '{"post_id": 1, "reaction": "LOVE"}');
+
+                -- User_Follow (Social Follows)
+                INSERT INTO User_Follow (follower_id, following_id) VALUES
+                (2, 3),
+                (2, 4),
+                (3, 2),
+                (4, 2),
+                (4, 3);
             """)
             conn.commit()
         else:
@@ -371,20 +395,45 @@ def init_db():
                 FROM Users u
                 LEFT JOIN Admin_User au ON au.user_id = u.user_id
             """)
-            # Ensure shobita exists with dbms108
+            
+            # Migrate shobita -> rajarshi if present
             cursor.execute("SELECT user_id FROM Users WHERE username = 'shobita'")
-            shobita = cursor.fetchone()
-            if not shobita:
+            old_admin = cursor.fetchone()
+            if old_admin:
+                cursor.execute("""
+                    UPDATE Users 
+                    SET username = 'rajarshi', email = 'rajarshi@socialsphere.io', password = 'dbms108'
+                    WHERE username = 'shobita'
+                """)
+                cursor.execute("""
+                    UPDATE User_Credentials 
+                    SET username = 'rajarshi', password_hash = 'dbms108', account_role = 'SUPER_ADMIN'
+                    WHERE username = 'shobita'
+                """)
+
+            # Ensure rajarshi super admin exists with dbms108
+            cursor.execute("SELECT user_id FROM Users WHERE username = 'rajarshi'")
+            rajarshi = cursor.fetchone()
+            if not rajarshi:
                 cursor.execute("""
                     INSERT INTO Users (username, email, password, bio, account_status, dob)
-                    VALUES ('shobita', 'shobita@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1990-05-20')
+                    VALUES ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20')
                 """)
                 uid = cursor.lastrowid
                 cursor.execute("INSERT OR REPLACE INTO Admin_User (user_id, admin_level) VALUES (?, 'SUPER_ADMIN')", (uid,))
-                cursor.execute("INSERT OR REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2', 'AVATAR')", (uid,))
+                cursor.execute("INSERT OR REPLACE INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR')", (uid,))
                 cursor.execute("INSERT OR REPLACE INTO Regular_User (user_id, interests, location) VALUES (?, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland')", (uid,))
-                cursor.execute("INSERT OR REPLACE INTO User_Credentials (user_id, username, password_hash, account_role) VALUES (?, 'shobita', 'dbms108', 'SUPER_ADMIN')", (uid,))
+                cursor.execute("INSERT OR REPLACE INTO User_Credentials (user_id, username, password_hash, account_role) VALUES (?, 'rajarshi', 'dbms108', 'SUPER_ADMIN')", (uid,))
             else:
-                cursor.execute("UPDATE Users SET password = 'dbms108' WHERE username = 'shobita'")
-                cursor.execute("UPDATE User_Credentials SET password_hash = 'dbms108' WHERE username = 'shobita'")
+                cursor.execute("UPDATE Users SET password = 'dbms108' WHERE username = 'rajarshi'")
+                cursor.execute("UPDATE User_Credentials SET password_hash = 'dbms108' WHERE username = 'rajarshi'")
+            
+            # Seed follow rows if User_Follow is empty
+            cursor.execute("SELECT COUNT(*) AS fcount FROM User_Follow")
+            if cursor.fetchone()["fcount"] == 0:
+                cursor.executescript("""
+                    INSERT OR IGNORE INTO User_Follow (follower_id, following_id) VALUES
+                    (2, 3), (2, 4), (3, 2), (4, 2), (4, 3);
+                """)
+
             conn.commit()

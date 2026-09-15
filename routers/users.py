@@ -1,7 +1,8 @@
+import re
 import logging
 from typing import Optional
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 from db import query_all, query_one, execute_write
 
 logger = logging.getLogger(__name__)
@@ -10,6 +11,8 @@ router = APIRouter(
     prefix="/api/users",
     tags=["Users"]
 )
+
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
 class LoginRequest(BaseModel):
     username: str
@@ -24,6 +27,9 @@ class RegisterRequest(BaseModel):
     interests: Optional[str] = "Technology, Web Development"
     profile_pic: Optional[str] = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
     admin_level: Optional[str] = None
+
+class FollowRequest(BaseModel):
+    caller_id: int
 
 @router.post("/login")
 def login_user(payload: LoginRequest):
@@ -54,7 +60,7 @@ def login_user(payload: LoginRequest):
         user = query_one(sql, (username,))
 
         if not user:
-            raise HTTPException(status_code=401, detail="User account not found. Please check your username or create an account.")
+            raise HTTPException(status_code=401, detail="User account not found. Please check your username or register a new account.")
 
         # Check password against Users or User_Credentials
         cred = query_one("SELECT password_hash FROM User_Credentials WHERE user_id = ?", (user["user_id"],))
@@ -91,27 +97,33 @@ def login_user(payload: LoginRequest):
 
 @router.post("/register")
 def register_user(payload: RegisterRequest):
-    """Register a new user account across Users, User_Credentials, Profile_Pic, and Regular_User tables."""
+    """Register a new user account with strict email validation across relational tables."""
     try:
         username = payload.username.strip()
         password = payload.password.strip()
-        email = payload.email.strip()
+        email = payload.email.strip().lower()
 
         if len(username) < 3:
             raise HTTPException(status_code=400, detail="Username must be at least 3 characters long.")
         if len(password) < 4:
             raise HTTPException(status_code=400, detail="Password must be at least 4 characters long.")
-        if "@" not in email or "." not in email:
-            raise HTTPException(status_code=400, detail="Please provide a valid email address.")
+        
+        # Strict Email Validation
+        if not EMAIL_REGEX.match(email) or len(email.split(".")[-1]) < 2:
+            raise HTTPException(status_code=400, detail="Please enter a valid email address (e.g. user@example.com).")
+
+        # Disallow claiming super admin name
+        if username.lower() == "rajarshi":
+            raise HTTPException(status_code=400, detail="This reserved username is not available for registration.")
 
         # Check existing username or email
         existing_user = query_one("SELECT user_id FROM Users WHERE LOWER(username) = LOWER(?)", (username,))
         if existing_user:
-            raise HTTPException(status_code=400, detail="This username is already taken. Please pick another one.")
+            raise HTTPException(status_code=400, detail="This username is already taken. Please choose another one.")
 
         existing_email = query_one("SELECT user_id FROM Users WHERE LOWER(email) = LOWER(?)", (email,))
         if existing_email:
-            raise HTTPException(status_code=400, detail="An account with this email already exists.")
+            raise HTTPException(status_code=400, detail="An account with this email address already exists.")
 
         # Insert into Users
         user_id = execute_write("""
@@ -149,7 +161,7 @@ def register_user(payload: RegisterRequest):
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
             VALUES (?, 'REGISTER', 'WEB', ?)
-        """, (user_id, f'{{"username": "{username}", "status": "CREATED"}}'))
+        """, (user_id, f'{{"username": "{username}", "email": "{email}", "status": "CREATED"}}'))
 
         # Fetch newly created user object
         sql = """
@@ -195,28 +207,63 @@ def logout_user(payload: dict):
     return {"success": True, "message": "Logged out successfully."}
 
 @router.get("")
-def list_users():
-    """List all registered users with their profile details."""
+def list_users(viewer_id: Optional[int] = Query(None, description="Viewer User ID")):
+    """List registered users, hiding Super Admin rajarshi from regular users for privacy."""
     try:
-        sql = """
-            SELECT
-                u.user_id,
-                u.username,
-                u.email,
-                u.bio,
-                u.account_status,
-                u.dob,
-                pp.image_url AS profile_pic,
-                ru.interests,
-                ru.location,
-                au.admin_level
-            FROM Users u
-            LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
-            LEFT JOIN Regular_User ru ON ru.user_id = u.user_id
-            LEFT JOIN Admin_User au ON au.user_id = u.user_id
-            ORDER BY u.user_id ASC
-        """
-        users = query_all(sql)
+        # Check if viewer is Super Admin
+        is_super_admin = False
+        if viewer_id:
+            viewer = query_one("""
+                SELECT u.username, au.admin_level 
+                FROM Users u
+                LEFT JOIN Admin_User au ON au.user_id = u.user_id
+                WHERE u.user_id = ?
+            """, (viewer_id,))
+            if viewer and (viewer["username"].lower() == "rajarshi" or viewer.get("admin_level") == "SUPER_ADMIN"):
+                is_super_admin = True
+
+        if is_super_admin:
+            sql = """
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.email,
+                    u.bio,
+                    u.account_status,
+                    u.dob,
+                    pp.image_url AS profile_pic,
+                    ru.interests,
+                    ru.location,
+                    au.admin_level
+                FROM Users u
+                LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+                LEFT JOIN Regular_User ru ON ru.user_id = u.user_id
+                LEFT JOIN Admin_User au ON au.user_id = u.user_id
+                ORDER BY u.user_id ASC
+            """
+            users = query_all(sql)
+        else:
+            sql = """
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.email,
+                    u.bio,
+                    u.account_status,
+                    u.dob,
+                    pp.image_url AS profile_pic,
+                    ru.interests,
+                    ru.location,
+                    au.admin_level
+                FROM Users u
+                LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+                LEFT JOIN Regular_User ru ON ru.user_id = u.user_id
+                LEFT JOIN Admin_User au ON au.user_id = u.user_id
+                WHERE LOWER(u.username) != 'rajarshi'
+                ORDER BY u.user_id ASC
+            """
+            users = query_all(sql)
+
         return {
             "success": True,
             "count": len(users),
@@ -228,9 +275,10 @@ def list_users():
 
 @router.get("/{user_id}")
 def get_user_profile(
-    user_id: int = Path(..., description="User ID")
+    user_id: int = Path(..., description="User ID"),
+    viewer_id: Optional[int] = Query(None, description="Viewer User ID")
 ):
-    """Get single user profile by ID."""
+    """Get single user profile by ID with follower statistics."""
     try:
         sql = """
             SELECT
@@ -253,12 +301,149 @@ def get_user_profile(
         user = query_one(sql, (user_id,))
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
+        # Hide super admin from non-admin viewers
+        if user["username"].lower() == "rajarshi" and viewer_id != user_id:
+            viewer = query_one("SELECT admin_level FROM Admin_User WHERE user_id = ?", (viewer_id,)) if viewer_id else None
+            if not viewer or viewer.get("admin_level") != "SUPER_ADMIN":
+                raise HTTPException(status_code=404, detail="User profile is private or not found.")
+
+        # Follow counts
+        followers_count = query_one("SELECT COUNT(*) AS c FROM User_Follow WHERE following_id = ?", (user_id,))["c"]
+        following_count = query_one("SELECT COUNT(*) AS c FROM User_Follow WHERE follower_id = ?", (user_id,))["c"]
+        posts_count = query_one("SELECT COUNT(*) AS c FROM Post WHERE user_id = ?", (user_id,))["c"]
+        
+        is_following = False
+        if viewer_id and viewer_id != user_id:
+            fcheck = query_one("SELECT follow_id FROM User_Follow WHERE follower_id = ? AND following_id = ?", (viewer_id, user_id))
+            is_following = bool(fcheck)
+
+        user_dict = dict(user)
+        user_dict["followers_count"] = followers_count
+        user_dict["following_count"] = following_count
+        user_dict["posts_count"] = posts_count
+        user_dict["is_following"] = is_following
+
         return {
             "success": True,
-            "user": user
+            "user": user_dict
         }
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ================= FOLLOW SYSTEM ENDPOINTS =================
+
+@router.post("/{target_id}/follow")
+def toggle_follow_user(
+    target_id: int = Path(..., description="Target User ID to follow/unfollow"),
+    payload: FollowRequest = None
+):
+    """Toggle Follow / Unfollow status for the authenticated caller."""
+    try:
+        if not payload or not payload.caller_id:
+            raise HTTPException(status_code=400, detail="Caller User ID is required.")
+        
+        caller_id = payload.caller_id
+        if caller_id == target_id:
+            raise HTTPException(status_code=400, detail="You cannot follow yourself.")
+
+        # Check target user exists
+        target = query_one("SELECT username FROM Users WHERE user_id = ?", (target_id,))
+        if not target:
+            raise HTTPException(status_code=404, detail="Target user not found.")
+
+        caller = query_one("SELECT username FROM Users WHERE user_id = ?", (caller_id,))
+        caller_name = caller["username"] if caller else "Someone"
+
+        existing = query_one("SELECT follow_id FROM User_Follow WHERE follower_id = ? AND following_id = ?", (caller_id, target_id))
+
+        if existing:
+            # Unfollow
+            execute_write("DELETE FROM User_Follow WHERE follower_id = ? AND following_id = ?", (caller_id, target_id))
+            followers_count = query_one("SELECT COUNT(*) AS c FROM User_Follow WHERE following_id = ?", (target_id,))["c"]
+            
+            execute_write("""
+                INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+                VALUES (?, 'UNFOLLOW', 'WEB', ?)
+            """, (caller_id, f'{{"target_user_id": {target_id}, "action": "UNFOLLOW"}}'))
+
+            return {
+                "success": True,
+                "following": False,
+                "message": f"You have unfollowed @{target['username']}.",
+                "followers_count": followers_count
+            }
+        else:
+            # Follow
+            execute_write("INSERT INTO User_Follow (follower_id, following_id) VALUES (?, ?)", (caller_id, target_id))
+            followers_count = query_one("SELECT COUNT(*) AS c FROM User_Follow WHERE following_id = ?", (target_id,))["c"]
+            
+            # Send Notification to target user
+            execute_write("""
+                INSERT INTO Notification (recipient_id, content, ref_id, ref_type)
+                VALUES (?, ?, ?, 'USER')
+            """, (target_id, f"@{caller_name} started following you.", caller_id))
+
+            execute_write("""
+                INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+                VALUES (?, 'FOLLOW', 'WEB', ?)
+            """, (caller_id, f'{{"target_user_id": {target_id}, "action": "FOLLOW"}}'))
+
+            return {
+                "success": True,
+                "following": True,
+                "message": f"You are now following @{target['username']}.",
+                "followers_count": followers_count
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error following user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{user_id}/followers")
+def get_user_followers(user_id: int = Path(...)):
+    """List users following the given user."""
+    try:
+        sql = """
+            SELECT u.user_id, u.username, u.email, u.bio, pp.image_url AS profile_pic, uf.created_at
+            FROM User_Follow uf
+            JOIN Users u ON u.user_id = uf.follower_id
+            LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+            WHERE uf.following_id = ?
+            ORDER BY uf.created_at DESC
+        """
+        followers = query_all(sql, (user_id,))
+        return {
+            "success": True,
+            "count": len(followers),
+            "followers": followers
+        }
+    except Exception as e:
+        logger.error(f"Error fetching followers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{user_id}/following")
+def get_user_following(user_id: int = Path(...)):
+    """List users that the given user is following."""
+    try:
+        sql = """
+            SELECT u.user_id, u.username, u.email, u.bio, pp.image_url AS profile_pic, uf.created_at
+            FROM User_Follow uf
+            JOIN Users u ON u.user_id = uf.following_id
+            LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+            WHERE uf.follower_id = ?
+            ORDER BY uf.created_at DESC
+        """
+        following = query_all(sql, (user_id,))
+        return {
+            "success": True,
+            "count": len(following),
+            "following": following
+        }
+    except Exception as e:
+        logger.error(f"Error fetching following list: {e}")
         raise HTTPException(status_code=500, detail=str(e))

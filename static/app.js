@@ -1,41 +1,65 @@
 /**
  * SocialSphere — Instagram Web & Mobile PWA Application Logic
- * Features: PWA Service Worker Caching, Offline Hydration, "Add to Home Screen" Install Prompt,
- * Dedicated User Credentials & Auth Store, Stories Viewer, User Profile Popup,
- * Dynamic Feed with Instant Likes & Comments, Live Direct Messaging, SQL Studio, and Analytics.
+ * Features:
+ * - Mandatory Authentication Gate (Login Screen First)
+ * - Persistent Login Session Caching (localStorage)
+ * - Follow / Unfollow Social Graph System
+ * - Super Admin (rajarshi) Privacy & Restricted SQL Studio
+ * - PWA Service Worker Offline Caching & "Add to Home Screen"
+ * - Dynamic Feed with Likes, Comments, Hashtag Filters
+ * - Real-time Direct Messaging, Communities, and Stories
  */
 
 // Global Application State
-let activeUserId = 1;
+let activeAuthUser = null;
+let activeUserId = null;
 let activeUserObj = null;
 let usersCache = [];
 let activeChatPartnerId = null;
 let currentTagFilter = null;
 let lastSqlResults = null;
 let deferredPwaPrompt = null;
+let followingSet = new Set(); // Set of user_ids that activeUserId follows
 
-// DOM Element Selectors
-const userSelect = document.getElementById("userSelect");
+// DOM Selectors
+const authGateOverlay = document.getElementById("authGateOverlay");
+const appLayoutSection = document.getElementById("appLayoutSection");
+const mobileBottomNav = document.getElementById("mobileBottomNav");
+
+// Auth Form Elements
+const tabBtnLogin = document.getElementById("tabBtnLogin");
+const tabBtnRegister = document.getElementById("tabBtnRegister");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const loginUsername = document.getElementById("loginUsername");
+const loginPassword = document.getElementById("loginPassword");
+const submitLoginBtn = document.getElementById("submitLoginBtn");
+const loginErrorMsg = document.getElementById("loginErrorMsg");
+
+const regUsername = document.getElementById("regUsername");
+const regEmail = document.getElementById("regEmail");
+const regPassword = document.getElementById("regPassword");
+const regBio = document.getElementById("regBio");
+const regLocation = document.getElementById("regLocation");
+const regInterests = document.getElementById("regInterests");
+const submitRegisterBtn = document.getElementById("submitRegisterBtn");
+const registerErrorMsg = document.getElementById("registerErrorMsg");
+
+// User Header & Sidebar Elements
 const headerUserAvatar = document.getElementById("headerUserAvatar");
 const sidebarUserAvatar = document.getElementById("sidebarUserAvatar");
 const sidebarUserName = document.getElementById("sidebarUserName");
 const sidebarAdminBadge = document.getElementById("sidebarAdminBadge");
+const sidebarUserRoleDesc = document.getElementById("sidebarUserRoleDesc");
 const sidebarSelfName = document.getElementById("sidebarSelfName");
+const sidebarSelfRole = document.getElementById("sidebarSelfRole");
 const currentUserAvatar = document.getElementById("currentUserAvatar");
 const currentUserName = document.getElementById("currentUserName");
-const mobileUserAvatar = document.getElementById("mobileUserAvatar");
 const feedAdminBadge = document.getElementById("feedAdminBadge");
+const mobileUserAvatar = document.getElementById("mobileUserAvatar");
 const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
-const navAuthLabel = document.getElementById("navAuthLabel");
 
-// PWA Elements
-const pwaInstallBanner = document.getElementById("pwaInstallBanner");
-const pwaInstallActionBtn = document.getElementById("pwaInstallActionBtn");
-const pwaDismissBtn = document.getElementById("pwaDismissBtn");
-const sidebarInstallAppBtn = document.getElementById("sidebarInstallAppBtn");
-const mobileInstallBtn = document.getElementById("mobileInstallBtn");
-const offlineIndicatorBanner = document.getElementById("offlineIndicatorBanner");
-
+// Feed Elements
 const storiesTrayList = document.getElementById("storiesTrayList");
 const postsList = document.getElementById("postsList");
 const postContent = document.getElementById("postContent");
@@ -51,29 +75,17 @@ const activeFilterBanner = document.getElementById("activeFilterBanner");
 const filterTagName = document.getElementById("filterTagName");
 const removeFilterBtn = document.getElementById("removeFilterBtn");
 
-// Auth Elements
-const tabBtnLogin = document.getElementById("tabBtnLogin");
-const tabBtnRegister = document.getElementById("tabBtnRegister");
-const loginForm = document.getElementById("loginForm");
-const registerForm = document.getElementById("registerForm");
-const loginUsername = document.getElementById("loginUsername");
-const loginPassword = document.getElementById("loginPassword");
-const submitLoginBtn = document.getElementById("submitLoginBtn");
-const loginErrorMsg = document.getElementById("loginErrorMsg");
-const quickFillAdminBtn = document.getElementById("quickFillAdminBtn");
-
-const regUsername = document.getElementById("regUsername");
-const regEmail = document.getElementById("regEmail");
-const regPassword = document.getElementById("regPassword");
-const regBio = document.getElementById("regBio");
-const regLocation = document.getElementById("regLocation");
-const regInterests = document.getElementById("regInterests");
-const submitRegisterBtn = document.getElementById("submitRegisterBtn");
-const registerErrorMsg = document.getElementById("registerErrorMsg");
+// PWA Elements
+const pwaInstallBanner = document.getElementById("pwaInstallBanner");
+const pwaInstallActionBtn = document.getElementById("pwaInstallActionBtn");
+const pwaDismissBtn = document.getElementById("pwaDismissBtn");
+const mobileInstallBtn = document.getElementById("mobileInstallBtn");
+const offlineIndicatorBanner = document.getElementById("offlineIndicatorBanner");
 
 // Sidebar & Tabs Selectors
 const sidebarRecsList = document.getElementById("sidebarRecsList");
 const sidebarGroupsList = document.getElementById("sidebarGroupsList");
+const sidebarSqlWidget = document.getElementById("sidebarSqlWidget");
 const fullRecsGrid = document.getElementById("fullRecsGrid");
 const groupsGrid = document.getElementById("groupsGrid");
 const usersGrid = document.getElementById("usersGrid");
@@ -136,10 +148,13 @@ const profModalUsername = document.getElementById("profModalUsername");
 const profModalBadge = document.getElementById("profModalBadge");
 const profModalBio = document.getElementById("profModalBio");
 const profModalPostsCount = document.getElementById("profModalPostsCount");
+const profModalFollowersCount = document.getElementById("profModalFollowersCount");
+const profModalFollowingCount = document.getElementById("profModalFollowingCount");
+const profModalFollowBtn = document.getElementById("profModalFollowBtn");
 const profModalSendMsgBtn = document.getElementById("profModalSendMsgBtn");
 const closeProfileModalBtn = document.getElementById("closeProfileModalBtn");
 
-// SVG Action Icons
+// SVG Icons
 const ICONS = {
     heartOutline: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
     heartFilled: `<svg viewBox="0 0 24 24" width="24" height="24" fill="#ed4956" stroke="#ed4956" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
@@ -148,114 +163,381 @@ const ICONS = {
     bookmark: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`
 };
 
-// Initial App Bootstrapping
+// ================= INITIALIZATION & AUTH GATE =================
 document.addEventListener("DOMContentLoaded", async () => {
     initPwaServiceWorker();
+    setupAuthListeners();
     setupTabNavigation();
     setupEventListeners();
-    setupAuthListeners();
-    await loadUsers();
-    
-    // Restore session
-    const savedUserId = localStorage.getItem("socialsphere_active_user_id");
-    if (savedUserId && usersCache.some(u => u.user_id === parseInt(savedUserId))) {
-        activeUserId = parseInt(savedUserId);
-    } else if (usersCache.some(u => u.username === "shobita")) {
-        activeUserId = usersCache.find(u => u.username === "shobita").user_id;
+
+    // Check for cached auth user session
+    const savedUserJson = localStorage.getItem("socialsphere_auth_user");
+    if (savedUserJson) {
+        try {
+            activeAuthUser = JSON.parse(savedUserJson);
+            activeUserId = activeAuthUser.user_id;
+            activeUserObj = activeAuthUser;
+            await enterAppSession();
+        } catch (e) {
+            localStorage.removeItem("socialsphere_auth_user");
+            showAuthGate();
+        }
+    } else {
+        showAuthGate();
     }
+});
 
+function showAuthGate() {
+    if (authGateOverlay) authGateOverlay.style.display = "flex";
+    if (appLayoutSection) appLayoutSection.style.display = "none";
+    if (mobileBottomNav) mobileBottomNav.style.display = "none";
+}
+
+async function enterAppSession() {
+    if (authGateOverlay) authGateOverlay.style.display = "none";
+    if (appLayoutSection) appLayoutSection.style.display = "flex";
+    if (mobileBottomNav) mobileBottomNav.style.display = "flex";
+
+    await loadUsers();
+    await loadFollowingSet();
     updateActiveUserDisplay();
+    updateAdminPermissionsUI();
 
-    if (window.location.pathname.endsWith("/sql")) {
+    if (window.location.pathname.endsWith("/sql") && isSuperAdmin()) {
         switchTab("sql-tab");
     } else {
         await refreshFeed();
         await loadSidebarWidgets();
     }
-    
+
     await checkNotifications();
-});
+}
 
-// PWA Service Worker Registration & Install Prompt
-function initPwaServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .then(reg => console.log('[PWA] Service Worker registered with scope:', reg.scope))
-                .catch(err => console.log('[PWA] Service Worker registration failed:', err));
-        });
-    }
+function isSuperAdmin() {
+    if (!activeUserObj) return false;
+    return (
+        activeUserObj.username?.toLowerCase() === "rajarshi" ||
+        activeUserObj.admin_level === "SUPER_ADMIN"
+    );
+}
 
-    // Online / Offline Detection
-    window.addEventListener('online', () => {
-        if (offlineIndicatorBanner) offlineIndicatorBanner.style.display = 'none';
-        refreshFeed();
-    });
-    window.addEventListener('offline', () => {
-        if (offlineIndicatorBanner) offlineIndicatorBanner.style.display = 'block';
-    });
+function updateAdminPermissionsUI() {
+    const adminRestrictedElements = document.querySelectorAll(".admin-restricted");
+    const isSuper = isSuperAdmin();
 
-    if (!navigator.onLine && offlineIndicatorBanner) {
-        offlineIndicatorBanner.style.display = 'block';
-    }
-
-    // Capture beforeinstallprompt event for "Add to Home Screen"
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPwaPrompt = e;
-
-        // Show install button in sidebar & mobile header
-        if (sidebarInstallAppBtn) sidebarInstallAppBtn.style.display = 'flex';
-        if (mobileInstallBtn) mobileInstallBtn.style.display = 'inline-block';
-
-        // Check if user previously dismissed install prompt
-        const dismissed = localStorage.getItem('socialsphere_pwa_dismissed');
-        if (!dismissed && pwaInstallBanner) {
-            pwaInstallBanner.style.display = 'flex';
+    adminRestrictedElements.forEach(el => {
+        if (isSuper) {
+            el.classList.remove("admin-restricted");
+        } else {
+            el.style.display = "none";
         }
     });
 
-    if (pwaInstallActionBtn) {
-        pwaInstallActionBtn.addEventListener('click', triggerPwaInstall);
+    if (sidebarAdminBadge) {
+        sidebarAdminBadge.style.display = isSuper ? "inline-block" : "none";
     }
-    if (sidebarInstallAppBtn) {
-        sidebarInstallAppBtn.addEventListener('click', triggerPwaInstall);
+    if (feedAdminBadge) {
+        feedAdminBadge.style.display = isSuper ? "inline-block" : "none";
     }
-    if (mobileInstallBtn) {
-        mobileInstallBtn.addEventListener('click', triggerPwaInstall);
-    }
+}
 
-    if (pwaDismissBtn) {
-        pwaDismissBtn.addEventListener('click', () => {
-            if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
-            localStorage.setItem('socialsphere_pwa_dismissed', 'true');
+// ================= AUTH LISTENERS & ACTIONS =================
+function setupAuthListeners() {
+    // Switch between Login and Register tabs
+    if (tabBtnLogin && tabBtnRegister) {
+        tabBtnLogin.addEventListener("click", () => {
+            tabBtnLogin.classList.add("active");
+            tabBtnRegister.classList.remove("active");
+            loginForm.style.display = "flex";
+            registerForm.style.display = "none";
+            if (loginErrorMsg) loginErrorMsg.style.display = "none";
+            if (registerErrorMsg) registerErrorMsg.style.display = "none";
+        });
+
+        tabBtnRegister.addEventListener("click", () => {
+            tabBtnRegister.classList.add("active");
+            tabBtnLogin.classList.remove("active");
+            loginForm.style.display = "none";
+            registerForm.style.display = "flex";
+            if (loginErrorMsg) loginErrorMsg.style.display = "none";
+            if (registerErrorMsg) registerErrorMsg.style.display = "none";
         });
     }
 
-    window.addEventListener('appinstalled', () => {
-        console.log('[PWA] SocialSphere installed to Home Screen successfully!');
-        if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
-        if (sidebarInstallAppBtn) sidebarInstallAppBtn.style.display = 'none';
-        if (mobileInstallBtn) mobileInstallBtn.style.display = 'none';
-        deferredPwaPrompt = null;
-    });
-}
+    // Login submit
+    if (loginForm) {
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const uname = loginUsername.value.trim();
+            const pass = loginPassword.value.trim();
+            await performLogin(uname, pass);
+        });
+    }
 
-async function triggerPwaInstall() {
-    if (deferredPwaPrompt) {
-        deferredPwaPrompt.prompt();
-        const { outcome } = await deferredPwaPrompt.userChoice;
-        console.log(`[PWA] Install prompt outcome: ${outcome}`);
-        if (outcome === 'accepted') {
-            if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
-        }
-        deferredPwaPrompt = null;
-    } else {
-        alert("To install SocialSphere on your phone:\n- On Safari (iOS): Tap the Share button, then 'Add to Home Screen'.\n- On Chrome (Android): Tap the menu (⋮), then 'Install App' or 'Add to Home screen'.");
+    // Register submit
+    if (registerForm) {
+        registerForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const uname = regUsername.value.trim();
+            const email = regEmail.value.trim().toLowerCase();
+            const pass = regPassword.value.trim();
+            const bio = regBio.value.trim();
+            const loc = regLocation.value.trim();
+            const interests = regInterests.value.trim();
+
+            // Strict client-side email format regex
+            const emailPattern = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+            if (!emailPattern.test(email) || email.split(".").pop().length < 2) {
+                if (registerErrorMsg) {
+                    registerErrorMsg.textContent = "Please enter a valid email address with domain (e.g. user@example.com).";
+                    registerErrorMsg.style.display = "block";
+                }
+                return;
+            }
+
+            await performRegister({
+                username: uname,
+                email: email,
+                password: pass,
+                bio: bio,
+                location: loc,
+                interests: interests
+            });
+        });
+    }
+
+    // Demo user chip buttons
+    document.querySelectorAll(".btn-demo-chip[data-user]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const u = btn.getAttribute("data-user");
+            const p = btn.getAttribute("data-pass");
+            loginUsername.value = u;
+            loginPassword.value = p;
+            await performLogin(u, p);
+        });
+    });
+
+    if (sidebarLogoutBtn) {
+        sidebarLogoutBtn.addEventListener("click", handleLogout);
     }
 }
 
-// Tab Navigation
+async function performLogin(username, password) {
+    if (loginErrorMsg) loginErrorMsg.style.display = "none";
+    if (submitLoginBtn) {
+        submitLoginBtn.disabled = true;
+        submitLoginBtn.innerHTML = `<span>Authenticating...</span>`;
+    }
+
+    try {
+        const res = await fetch("/api/users/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success && data.user) {
+            activeAuthUser = data.user;
+            activeUserId = data.user.user_id;
+            activeUserObj = data.user;
+            localStorage.setItem("socialsphere_auth_user", JSON.stringify(data.user));
+            await enterAppSession();
+        } else {
+            if (loginErrorMsg) {
+                loginErrorMsg.textContent = data.detail || "Invalid login credentials. Please try again.";
+                loginErrorMsg.style.display = "block";
+            }
+        }
+    } catch (err) {
+        if (loginErrorMsg) {
+            loginErrorMsg.textContent = "Network error: " + err.message;
+            loginErrorMsg.style.display = "block";
+        }
+    } finally {
+        if (submitLoginBtn) {
+            submitLoginBtn.disabled = false;
+            submitLoginBtn.innerHTML = `<span>Log in</span>`;
+        }
+    }
+}
+
+async function performRegister(payload) {
+    if (registerErrorMsg) registerErrorMsg.style.display = "none";
+    if (submitRegisterBtn) {
+        submitRegisterBtn.disabled = true;
+        submitRegisterBtn.innerHTML = `<span>Creating Account...</span>`;
+    }
+
+    try {
+        const res = await fetch("/api/users/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success && data.user) {
+            activeAuthUser = data.user;
+            activeUserId = data.user.user_id;
+            activeUserObj = data.user;
+            localStorage.setItem("socialsphere_auth_user", JSON.stringify(data.user));
+            await enterAppSession();
+        } else {
+            if (registerErrorMsg) {
+                registerErrorMsg.textContent = data.detail || "Registration failed. Please verify your details.";
+                registerErrorMsg.style.display = "block";
+            }
+        }
+    } catch (err) {
+        if (registerErrorMsg) {
+            registerErrorMsg.textContent = "Network error: " + err.message;
+            registerErrorMsg.style.display = "block";
+        }
+    } finally {
+        if (submitRegisterBtn) {
+            submitRegisterBtn.disabled = false;
+            submitRegisterBtn.innerHTML = `<span>Create Account</span>`;
+        }
+    }
+}
+
+async function handleLogout() {
+    if (activeUserId) {
+        try {
+            await fetch("/api/users/logout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: activeUserId })
+            });
+        } catch (e) {
+            // Ignore telemetry error on logout
+        }
+    }
+
+    localStorage.removeItem("socialsphere_auth_user");
+    activeAuthUser = null;
+    activeUserId = null;
+    activeUserObj = null;
+    followingSet.clear();
+    showAuthGate();
+}
+
+// ================= USERS & SOCIAL FOLLOW SYSTEM =================
+async function loadUsers() {
+    try {
+        const viewerParam = activeUserId ? `?viewer_id=${activeUserId}` : "";
+        const res = await fetch(`/api/users${viewerParam}`);
+        const data = await res.json();
+        if (data.success && data.users) {
+            usersCache = data.users;
+        }
+    } catch (err) {
+        console.error("Error loading users:", err);
+    }
+}
+
+async function loadFollowingSet() {
+    if (!activeUserId) return;
+    try {
+        const res = await fetch(`/api/users/${activeUserId}/following`);
+        const data = await res.json();
+        if (data.success && data.following) {
+            followingSet = new Set(data.following.map(u => u.user_id));
+        }
+    } catch (e) {
+        console.error("Error loading following set:", e);
+    }
+}
+
+async function toggleFollowUser(targetUserId, btnElement) {
+    if (!activeUserId) {
+        showAuthGate();
+        return;
+    }
+    if (activeUserId === targetUserId) {
+        alert("You cannot follow yourself.");
+        return;
+    }
+
+    try {
+        if (btnElement) btnElement.disabled = true;
+
+        const res = await fetch(`/api/users/${targetUserId}/follow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ caller_id: activeUserId })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            if (data.following) {
+                followingSet.add(targetUserId);
+            } else {
+                followingSet.delete(targetUserId);
+            }
+
+            // Update all buttons for this target user on the page
+            updateFollowButtonsState(targetUserId, data.following);
+
+            // Update follower count in profile modal if open
+            if (profModalFollowersCount) {
+                profModalFollowersCount.textContent = data.followers_count;
+            }
+        }
+    } catch (err) {
+        console.error("Error toggling follow:", err);
+    } finally {
+        if (btnElement) btnElement.disabled = false;
+    }
+}
+
+function updateFollowButtonsState(targetUserId, isFollowing) {
+    document.querySelectorAll(`.btn-follow-toggle[data-target-id="${targetUserId}"]`).forEach(btn => {
+        if (isFollowing) {
+            btn.className = "btn-following btn-follow-toggle";
+            btn.textContent = "Following";
+        } else {
+            btn.className = "btn-follow btn-follow-toggle";
+            btn.textContent = "Follow";
+        }
+    });
+
+    if (profModalFollowBtn && profModalFollowBtn.getAttribute("data-target-id") == targetUserId) {
+        if (isFollowing) {
+            profModalFollowBtn.className = "btn-following";
+            profModalFollowBtn.textContent = "Following";
+        } else {
+            profModalFollowBtn.className = "btn-follow";
+            profModalFollowBtn.textContent = "Follow";
+        }
+    }
+}
+
+function updateActiveUserDisplay() {
+    if (!activeUserObj) return;
+
+    const avatarUrl = activeUserObj.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
+    const uname = activeUserObj.username || "User";
+
+    if (headerUserAvatar) headerUserAvatar.src = avatarUrl;
+    if (sidebarUserAvatar) sidebarUserAvatar.src = avatarUrl;
+    if (currentUserAvatar) currentUserAvatar.src = avatarUrl;
+    if (mobileUserAvatar) mobileUserAvatar.src = avatarUrl;
+
+    if (sidebarUserName) sidebarUserName.textContent = uname;
+    if (sidebarSelfName) sidebarSelfName.textContent = uname;
+    if (currentUserName) currentUserName.textContent = uname;
+    if (directSelfName) directSelfName.textContent = uname;
+
+    const roleDesc = activeUserObj.admin_level ? "Lead Architect & Admin" : (activeUserObj.bio || "Platform Member");
+    if (sidebarUserRoleDesc) sidebarUserRoleDesc.textContent = roleDesc;
+    if (sidebarSelfRole) sidebarSelfRole.textContent = activeUserObj.admin_level || "Member";
+}
+
+// ================= TAB NAVIGATION =================
 function setupTabNavigation() {
     const allNavButtons = document.querySelectorAll(".insta-nav-link[data-tab], .mobile-nav-btn[data-tab]");
     allNavButtons.forEach(btn => {
@@ -287,11 +569,17 @@ function setupTabNavigation() {
 
     const launchSqlBtn = document.getElementById("launchSqlBtn");
     if (launchSqlBtn) {
-        launchSqlBtn.addEventListener("click", () => switchTab("sql-tab"));
+        launchSqlBtn.addEventListener("click", () => {
+            if (isSuperAdmin()) switchTab("sql-tab");
+        });
     }
 }
 
 function switchTab(targetTabId) {
+    if ((targetTabId === "sql-tab" || targetTabId === "analytics-tab") && !isSuperAdmin()) {
+        targetTabId = "feed-tab";
+    }
+
     document.querySelectorAll(".insta-nav-link[data-tab], .mobile-nav-btn[data-tab]").forEach(btn => {
         if (btn.getAttribute("data-tab") === targetTabId) {
             btn.classList.add("active");
@@ -315,33 +603,12 @@ function switchTab(targetTabId) {
     if (targetTabId === "messages-tab") loadConversations();
     if (targetTabId === "groups-tab") loadCommunityGroups();
     if (targetTabId === "recommendations-tab") loadRecommendations();
-    if (targetTabId === "sql-tab") initSqlStudio();
-    if (targetTabId === "analytics-tab") loadAnalyticsData();
+    if (targetTabId === "sql-tab" && isSuperAdmin()) initSqlStudio();
+    if (targetTabId === "analytics-tab" && isSuperAdmin()) loadAnalyticsData();
     if (targetTabId === "users-tab") renderUsersDirectory();
 }
 
 function setupEventListeners() {
-    if (userSelect) {
-        userSelect.addEventListener("change", async (e) => {
-            activeUserId = parseInt(e.target.value);
-            localStorage.setItem("socialsphere_active_user_id", activeUserId);
-            updateActiveUserDisplay();
-            
-            const activeTab = document.querySelector(".tab-content.active")?.id;
-            if (activeTab === "feed-tab") {
-                await refreshFeed();
-                await loadSidebarWidgets();
-            } else if (activeTab === "messages-tab") {
-                await loadConversations();
-            } else if (activeTab === "groups-tab") {
-                await loadCommunityGroups();
-            } else if (activeTab === "recommendations-tab") {
-                await loadRecommendations();
-            }
-            await checkNotifications();
-        });
-    }
-
     // Image URL preview for post creation
     if (postUrl) {
         postUrl.addEventListener("input", () => {
@@ -399,9 +666,6 @@ function setupEventListeners() {
     if (closeGroupModalBtn) closeGroupModalBtn.addEventListener("click", () => createGroupModal.style.display = "none");
     if (createGroupForm) createGroupForm.addEventListener("submit", handleCreateCommunityGroup);
 
-    // Logout
-    if (sidebarLogoutBtn) sidebarLogoutBtn.addEventListener("click", handleLogout);
-
     window.addEventListener("click", (e) => {
         if (e.target === notificationsModal) notificationsModal.style.display = "none";
         if (e.target === createGroupModal) createGroupModal.style.display = "none";
@@ -410,341 +674,30 @@ function setupEventListeners() {
     });
 }
 
-// 1. Authentication System
-function setupAuthListeners() {
-    // Switch between Login and Register tabs
-    if (tabBtnLogin && tabBtnRegister) {
-        tabBtnLogin.addEventListener("click", () => {
-            tabBtnLogin.classList.add("active");
-            tabBtnRegister.classList.remove("active");
-            loginForm.style.display = "flex";
-            registerForm.style.display = "none";
-            loginErrorMsg.style.display = "none";
-            registerErrorMsg.style.display = "none";
-        });
-
-        tabBtnRegister.addEventListener("click", () => {
-            tabBtnRegister.classList.add("active");
-            tabBtnLogin.classList.remove("active");
-            loginForm.style.display = "none";
-            registerForm.style.display = "flex";
-            loginErrorMsg.style.display = "none";
-            registerErrorMsg.style.display = "none";
-        });
-    }
-
-    // Login Form Submit
-    if (loginForm) {
-        loginForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const uname = loginUsername.value.trim();
-            const pass = loginPassword.value.trim();
-            await performLogin(uname, pass);
-        });
-    }
-
-    // Register Form Submit
-    if (registerForm) {
-        registerForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const uname = regUsername.value.trim();
-            const email = regEmail.value.trim();
-            const pass = regPassword.value.trim();
-            const bio = regBio.value.trim();
-            const loc = regLocation.value.trim();
-            const interests = regInterests.value.trim();
-
-            await performRegister({ username: uname, email, password: pass, bio, location: loc, interests });
-        });
-    }
-
-    // Quick Fill Admin button
-    if (quickFillAdminBtn) {
-        quickFillAdminBtn.addEventListener("click", async () => {
-            loginUsername.value = "shobita";
-            loginPassword.value = "dbms108";
-            await performLogin("shobita", "dbms108");
-        });
-    }
-
-    // Demo user chips
-    document.querySelectorAll(".btn-demo-chip[data-user]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const u = btn.getAttribute("data-user");
-            const p = btn.getAttribute("data-pass");
-            loginUsername.value = u;
-            loginPassword.value = p;
-            await performLogin(u, p);
-        });
-    });
-}
-
-async function performLogin(username, password) {
-    if (loginErrorMsg) loginErrorMsg.style.display = "none";
-    if (submitLoginBtn) {
-        submitLoginBtn.disabled = true;
-        submitLoginBtn.innerHTML = `<span>Authenticating...</span>`;
-    }
-
-    try {
-        const res = await fetch("/api/users/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.success && data.user) {
-            activeUserId = data.user.user_id;
-            activeUserObj = data.user;
-            localStorage.setItem("socialsphere_active_user_id", activeUserId);
-            
-            await loadUsers();
-            updateActiveUserDisplay();
-            switchTab("feed-tab");
-            await checkNotifications();
-        } else {
-            if (loginErrorMsg) {
-                loginErrorMsg.textContent = data.detail || "Invalid login credentials.";
-                loginErrorMsg.style.display = "block";
-            } else {
-                alert(data.detail || "Invalid login credentials.");
-            }
-        }
-    } catch (err) {
-        if (loginErrorMsg) {
-            loginErrorMsg.textContent = "Network error: " + err.message;
-            loginErrorMsg.style.display = "block";
-        }
-    } finally {
-        if (submitLoginBtn) {
-            submitLoginBtn.disabled = false;
-            submitLoginBtn.innerHTML = `<span>Log in</span>`;
-        }
-    }
-}
-
-async function performRegister(payload) {
-    if (registerErrorMsg) registerErrorMsg.style.display = "none";
-    if (submitRegisterBtn) {
-        submitRegisterBtn.disabled = true;
-        submitRegisterBtn.innerHTML = `<span>Creating Account...</span>`;
-    }
-
-    try {
-        const res = await fetch("/api/users/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.success && data.user) {
-            activeUserId = data.user.user_id;
-            activeUserObj = data.user;
-            localStorage.setItem("socialsphere_active_user_id", activeUserId);
-            
-            await loadUsers();
-            updateActiveUserDisplay();
-            switchTab("feed-tab");
-            await checkNotifications();
-        } else {
-            if (registerErrorMsg) {
-                registerErrorMsg.textContent = data.detail || "Registration failed.";
-                registerErrorMsg.style.display = "block";
-            } else {
-                alert(data.detail || "Registration failed.");
-            }
-        }
-    } catch (err) {
-        if (registerErrorMsg) {
-            registerErrorMsg.textContent = "Network error: " + err.message;
-            registerErrorMsg.style.display = "block";
-        }
-    } finally {
-        if (submitRegisterBtn) {
-            submitRegisterBtn.disabled = false;
-            submitRegisterBtn.innerHTML = `<span>Create Account</span>`;
-        }
-    }
-}
-
-async function handleLogout() {
-    try {
-        await fetch("/api/users/logout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: activeUserId })
-        });
-    } catch (e) {
-        // Continue logout locally
-    }
-
-    localStorage.removeItem("socialsphere_active_user_id");
-    activeUserId = 1;
-    switchTab("login-tab");
-}
-
-// 2. Users Management
-async function loadUsers() {
-    try {
-        const res = await fetch("/api/users");
-        const data = await res.json();
-        if (data.success && data.users) {
-            usersCache = data.users;
-            if (userSelect) {
-                userSelect.innerHTML = usersCache.map(u => `
-                    <option value="${u.user_id}" ${u.user_id === activeUserId ? 'selected' : ''}>
-                        ${u.username} (${u.admin_level ? 'Admin' : 'User'})
-                    </option>
-                `).join("");
-            }
-            renderStoriesTray();
-            updateActiveUserDisplay();
-        }
-    } catch (err) {
-        console.error("Failed to load users:", err);
-    }
-}
-
-function updateActiveUserDisplay() {
-    const activeUser = usersCache.find(u => u.user_id === activeUserId);
-    if (activeUser) {
-        activeUserObj = activeUser;
-        const avatar = activeUser.profile_pic || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2";
-
-        if (currentUserName) currentUserName.textContent = activeUser.username;
-        if (sidebarUserName) sidebarUserName.textContent = activeUser.username;
-        if (sidebarSelfName) sidebarSelfName.textContent = activeUser.username;
-        if (directSelfName) directSelfName.textContent = activeUser.username;
-
-        if (currentUserAvatar) currentUserAvatar.src = avatar;
-        if (sidebarUserAvatar) sidebarUserAvatar.src = avatar;
-        if (headerUserAvatar) headerUserAvatar.src = avatar;
-        if (mobileUserAvatar) mobileUserAvatar.src = avatar;
-
-        const isAdmin = Boolean(activeUser.admin_level);
-        if (sidebarAdminBadge) {
-            sidebarAdminBadge.style.display = isAdmin ? "inline-block" : "none";
-            sidebarAdminBadge.textContent = activeUser.admin_level || "USER";
-        }
-        if (feedAdminBadge) {
-            feedAdminBadge.style.display = isAdmin ? "inline-block" : "none";
-            feedAdminBadge.textContent = activeUser.admin_level || "USER";
-        }
-        if (navAuthLabel) {
-            navAuthLabel.textContent = `User: ${activeUser.username}`;
-        }
-    }
-}
-
-// 3. Instagram Stories Tray
-function renderStoriesTray() {
-    if (!storiesTrayList) return;
-    
-    const current = usersCache.find(u => u.user_id === activeUserId);
-    const others = usersCache.filter(u => u.user_id !== activeUserId);
-
-    let html = "";
-    if (current) {
-        html += `
-            <div class="story-item" onclick="openStoryModal(${current.user_id})">
-                <div class="story-ring-wrap">
-                    <img class="story-avatar-img" src="${current.profile_pic || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2'}" alt="${current.username}">
-                </div>
-                <span class="story-username-text">Your story</span>
-            </div>
-        `;
-    }
-
-    others.forEach(u => {
-        html += `
-            <div class="story-item" onclick="openStoryModal(${u.user_id})">
-                <div class="story-ring-wrap">
-                    <img class="story-avatar-img" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
-                </div>
-                <span class="story-username-text">${u.username}</span>
-            </div>
-        `;
-    });
-
-    storiesTrayList.innerHTML = html;
-}
-
-function openStoryModal(userId) {
-    const user = usersCache.find(u => u.user_id === userId);
-    if (!user || !storyViewerModal) return;
-
-    storyModalAvatar.src = user.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
-    storyModalUname.textContent = user.username;
-    
-    // Sample story images
-    const sampleStories = [
-        "https://images.unsplash.com/photo-1517694712202-14dd9538aa97",
-        "https://images.unsplash.com/photo-1555066931-4365d14bab8c",
-        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5",
-        "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8"
-    ];
-    storyModalImg.src = sampleStories[userId % sampleStories.length];
-    storyModalTextOverlay.textContent = user.bio || `Active member of SocialSphere & developer collective.`;
-
-    storyViewerModal.style.display = "flex";
-}
-
-function openProfileModal(userId) {
-    const user = usersCache.find(u => u.user_id === userId);
-    if (!user || !userProfileModal) return;
-
-    profModalAvatar.src = user.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
-    profModalUsername.textContent = user.username;
-    profModalBadge.textContent = user.admin_level || "REGULAR USER";
-    profModalBadge.className = `admin-badge-pill ${user.admin_level ? 'admin' : ''}`;
-    profModalBio.textContent = `${user.bio || 'Platform member'} · Location: ${user.location || 'Global'} · Interests: ${user.interests || 'Tech'}`;
-    
-    profModalSendMsgBtn.onclick = () => {
-        userProfileModal.style.display = "none";
-        startDirectChat(userId);
-    };
-
-    userProfileModal.style.display = "flex";
-}
-
-// 4. Feed & Posts
+// ================= FEED & POSTS =================
 async function refreshFeed() {
-    if (!postsList) return;
-    postsList.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--ig-text-secondary); font-size: 13px;">Loading feed posts...</div>`;
-    await loadTrendingHashtags();
-
-    try {
-        const url = currentTagFilter ? `/api/posts?tag=${encodeURIComponent(currentTagFilter)}` : "/api/posts";
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.success && data.posts) {
-            if (data.posts.length === 0) {
-                postsList.innerHTML = `
-                    <div class="post-card" style="text-align: center; padding: 3.5rem; color: var(--ig-text-secondary);">
-                        <p style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No Posts Yet</p>
-                        <p style="font-size: 13px;">Create the first post to share with the community.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            postsList.innerHTML = data.posts.map(post => renderInstagramPostCard(post)).join("");
-            attachInstagramPostListeners();
-        }
-    } catch (err) {
-        postsList.innerHTML = `<div class="sql-error-banner">Failed to retrieve posts from server.</div>`;
-    }
+    await renderStoriesTray();
+    await loadHashtags();
+    await loadPostsFeed();
 }
 
-async function loadTrendingHashtags() {
+async function renderStoriesTray() {
+    if (!storiesTrayList) return;
+    const storiesUsers = usersCache.slice(0, 8);
+    storiesTrayList.innerHTML = storiesUsers.map(u => `
+        <div class="story-bubble-item" onclick="openStoryViewer(${u.user_id})">
+            <div class="story-ring-gradient">
+                <img class="story-avatar-img" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
+            </div>
+            <span class="story-uname-label">${u.username}</span>
+        </div>
+    `).join("");
+}
+
+async function loadHashtags() {
     if (!feedHashtagsList) return;
     try {
-        const res = await fetch("/api/analytics/hashtags");
+        const res = await fetch("/api/posts/hashtags");
         const data = await res.json();
         if (data.success && data.hashtags) {
             feedHashtagsList.innerHTML = data.hashtags.map(h => `
@@ -780,6 +733,34 @@ function clearTagFilter() {
     refreshFeed();
 }
 
+async function loadPostsFeed() {
+    if (!postsList) return;
+    postsList.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-secondary); font-size: 13px;">Loading feed posts...</div>`;
+
+    try {
+        const url = currentTagFilter ? `/api/posts/hashtag/${currentTagFilter}` : "/api/posts";
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.success && data.posts) {
+            if (data.posts.length === 0) {
+                postsList.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; background: var(--ig-surface); border: 1px solid var(--ig-border); border-radius: var(--radius-md);">
+                        <h4 style="margin-bottom: 6px;">No posts found</h4>
+                        <p style="font-size: 13px; color: var(--ig-text-secondary);">Be the first to share an update with the community.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            postsList.innerHTML = data.posts.map(renderInstagramPostCard).join("");
+            attachInstagramPostListeners();
+        }
+    } catch (err) {
+        postsList.innerHTML = `<div class="sql-error-banner">Could not load posts feed: ${err.message}</div>`;
+    }
+}
+
 function renderInstagramPostCard(post) {
     const avatar = post.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
     const hasMedia = Boolean(post.url);
@@ -797,7 +778,7 @@ function renderInstagramPostCard(post) {
 
     return `
         <article class="post-card" data-post-id="${post.post_id}">
-            <!-- Header: Author Row -->
+            <!-- Author Row -->
             <div class="post-header-row">
                 <div class="post-author-info" onclick="openProfileModal(${post.user_id})">
                     <img class="avatar-square-sm" src="${avatar}" alt="${post.username}">
@@ -809,7 +790,7 @@ function renderInstagramPostCard(post) {
                 <span class="post-role-badge">${post.visibility || 'PUBLIC'}</span>
             </div>
 
-            <!-- Media / Image Content -->
+            <!-- Media Content -->
             ${hasMedia ? `
                 <div class="post-media-box">
                     <img src="${post.url}" alt="Post Media" loading="lazy" onerror="this.parentElement.style.display='none';">
@@ -821,7 +802,7 @@ function renderInstagramPostCard(post) {
                 <div class="post-text-body">${escapeHTML(post.content)}</div>
             ` : ''}
 
-            <!-- Instagram Action Buttons Bar -->
+            <!-- Action Buttons Bar -->
             <div class="post-actions-bar">
                 <div class="actions-left">
                     <button class="action-icon-btn ${userLiked ? 'liked' : ''}" data-action="toggle-like" data-post-id="${post.post_id}" title="Like">
@@ -839,7 +820,7 @@ function renderInstagramPostCard(post) {
                 </button>
             </div>
 
-            <!-- Likes & Caption Row -->
+            <!-- Likes & Caption -->
             <div class="post-meta-details">
                 <div class="post-likes-count">${likesText}</div>
                 
@@ -875,7 +856,7 @@ function renderInstagramPostCard(post) {
                 </div>
             </div>
 
-            <!-- Inline Comment Form -->
+            <!-- Comment Form -->
             <form class="post-comment-form" data-post-id="${post.post_id}">
                 <input type="text" class="post-comment-input" placeholder="Add a comment..." required>
                 <button type="submit" class="btn-comment-submit">Post</button>
@@ -924,7 +905,7 @@ function attachInstagramPostListeners() {
         });
     });
 
-    // Submit new inline comment
+    // Submit inline comment
     document.querySelectorAll(".post-comment-form").forEach(form => {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -960,12 +941,14 @@ async function handleCreatePost() {
     const url = postUrl.value.trim();
 
     if (!content && !url) {
-        alert("Please provide a caption or image URL.");
+        alert("Please enter post text or attach an image URL.");
         return;
     }
 
-    submitPostBtn.disabled = true;
-    submitPostBtn.textContent = "Sharing...";
+    if (submitPostBtn) {
+        submitPostBtn.disabled = true;
+        submitPostBtn.textContent = "Sharing...";
+    }
 
     try {
         const res = await fetch("/api/posts", {
@@ -984,160 +967,383 @@ async function handleCreatePost() {
             postUrl.value = "";
             createPostPreviewBox.style.display = "none";
             await refreshFeed();
-            await loadTrendingHashtags();
         } else {
-            alert("Could not share post.");
+            const err = await res.json();
+            alert(err.detail || "Failed to create post.");
         }
-    } catch (err) {
-        console.error("Error creating post:", err);
+    } catch (e) {
+        alert("Error publishing post: " + e.message);
     } finally {
-        submitPostBtn.disabled = false;
-        submitPostBtn.textContent = "Share";
+        if (submitPostBtn) {
+            submitPostBtn.disabled = false;
+            submitPostBtn.textContent = "Share";
+        }
     }
 }
 
-// 5. Sidebar Suggestions & Communities
+// ================= SIDEBAR WIDGETS =================
 async function loadSidebarWidgets() {
+    await loadSuggestedConnections();
+    await loadSidebarCommunities();
+}
+
+async function loadSuggestedConnections() {
+    if (!sidebarRecsList) return;
     try {
         const res = await fetch(`/api/recommendations/${activeUserId}`);
         const data = await res.json();
-        if (data.success && data.recommendations && sidebarRecsList) {
-            if (data.recommendations.length === 0) {
-                sidebarRecsList.innerHTML = `<span style="font-size: 11px; color: var(--ig-text-muted);">No recommendations currently.</span>`;
-            } else {
-                sidebarRecsList.innerHTML = data.recommendations.slice(0, 4).map(rec => `
-                    <div class="rec-mini-item">
-                        <div class="rec-mini-user" onclick="openProfileModal(${rec.RecommendedUserID})">
-                            <img class="avatar-square-sm" src="${rec.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="Pic">
-                            <div>
-                                <strong style="font-size: 12px; display: block;">${rec.Username}</strong>
-                                <span style="font-size: 11px; color: var(--ig-text-muted);">${rec.Location || 'Suggested for you'}</span>
-                            </div>
+        if (data.success && data.recommendations) {
+            const recs = data.recommendations.slice(0, 5);
+            sidebarRecsList.innerHTML = recs.map(r => {
+                const isFollowing = followingSet.has(r.RecommendedUserID);
+                return `
+                    <div class="sidebar-rec-item">
+                        <img class="avatar-square-sm" src="${r.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${r.Username}" onclick="openProfileModal(${r.RecommendedUserID})">
+                        <div class="rec-user-meta" onclick="openProfileModal(${r.RecommendedUserID})">
+                            <span class="rec-uname">${r.Username}</span>
+                            <span class="rec-match">${Math.round(r.Score * 100)}% match</span>
                         </div>
-                        <button class="btn-text-sm" onclick="startDirectChat(${rec.RecommendedUserID})">Message</button>
+                        <button class="${isFollowing ? 'btn-following' : 'btn-follow'} btn-follow-toggle" data-target-id="${r.RecommendedUserID}" onclick="toggleFollowUser(${r.RecommendedUserID}, this)">
+                            ${isFollowing ? 'Following' : 'Follow'}
+                        </button>
                     </div>
-                `).join("");
-            }
+                `;
+            }).join("");
         }
-    } catch (err) {
-        console.error("Error loading sidebar recs:", err);
-    }
-
-    try {
-        const res = await fetch(`/api/groups?user_id=${activeUserId}`);
-        const data = await res.json();
-        if (data.success && data.groups && sidebarGroupsList) {
-            sidebarGroupsList.innerHTML = data.groups.slice(0, 3).map(g => `
-                <div class="rec-mini-item">
-                    <div>
-                        <strong style="font-size: 12px; display: block;">${g.group_name}</strong>
-                        <span style="font-size: 11px; color: var(--ig-text-muted);">${g.member_count} members &middot; ${g.privacy_setting}</span>
-                    </div>
-                    <button class="btn-chip" onclick="switchTab('groups-tab')">View</button>
-                </div>
-            `).join("");
-        }
-    } catch (err) {
-        console.error("Error loading sidebar groups:", err);
+    } catch (e) {
+        console.error("Error loading recommendations:", e);
     }
 }
 
-// 6. Direct Messaging
+async function loadSidebarCommunities() {
+    if (!sidebarGroupsList) return;
+    try {
+        const res = await fetch("/api/groups");
+        const data = await res.json();
+        if (data.success && data.groups) {
+            const groups = data.groups.slice(0, 3);
+            sidebarGroupsList.innerHTML = groups.map(g => `
+                <div class="sidebar-group-item" onclick="switchTab('groups-tab')">
+                    <div class="group-icon-square">${escapeHTML(g.group_name.slice(0, 2).toUpperCase())}</div>
+                    <div class="sidebar-group-meta">
+                        <span class="group-title">${g.group_name}</span>
+                        <span class="group-sub">${g.member_count || 1} members &middot; ${g.privacy_setting}</span>
+                    </div>
+                </div>
+            `).join("");
+        }
+    } catch (e) {
+        console.error("Error loading sidebar communities:", e);
+    }
+}
+
+// ================= RECOMMENDATIONS & COMMUNITIES TABS =================
+async function loadRecommendations() {
+    if (!fullRecsGrid) return;
+    fullRecsGrid.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-secondary);">Loading suggested connections...</div>`;
+    try {
+        const res = await fetch(`/api/recommendations/${activeUserId}`);
+        const data = await res.json();
+        if (data.success && data.recommendations) {
+            if (data.recommendations.length === 0) {
+                fullRecsGrid.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-muted);">No suggestions right now. Check back soon!</div>`;
+                return;
+            }
+            fullRecsGrid.innerHTML = data.recommendations.map(r => {
+                const isFollowing = followingSet.has(r.RecommendedUserID);
+                return `
+                    <div class="profile-card">
+                        <img class="profile-avatar-lg" src="${r.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${r.Username}" onclick="openProfileModal(${r.RecommendedUserID})">
+                        <h3 class="profile-name" onclick="openProfileModal(${r.RecommendedUserID})">${r.Username}</h3>
+                        <span class="role-badge regular">${Math.round(r.Score * 100)}% Compatibility</span>
+                        <p class="profile-bio">${escapeHTML(r.Bio || 'SocialSphere member')}</p>
+                        <div class="profile-meta-tags">
+                            ${r.Location ? `<span>${r.Location}</span>` : ''}
+                            ${r.Interests ? `<span>${r.Interests}</span>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 8px; width: 100%; margin-top: 10px;">
+                            <button class="${isFollowing ? 'btn-following' : 'btn-follow'} btn-follow-toggle" style="flex: 1;" data-target-id="${r.RecommendedUserID}" onclick="toggleFollowUser(${r.RecommendedUserID}, this)">
+                                ${isFollowing ? 'Following' : 'Follow'}
+                            </button>
+                            <button class="btn-insta-secondary" style="flex: 1;" onclick="startDirectChat(${r.RecommendedUserID})">
+                                Message
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+    } catch (e) {
+        fullRecsGrid.innerHTML = `<div class="sql-error-banner">Could not load recommendations.</div>`;
+    }
+}
+
+async function loadCommunityGroups() {
+    if (!groupsGrid) return;
+    groupsGrid.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-secondary);">Loading community channels...</div>`;
+    try {
+        const res = await fetch("/api/groups");
+        const data = await res.json();
+        if (data.success && data.groups) {
+            groupsGrid.innerHTML = data.groups.map(g => `
+                <div class="community-card">
+                    <div class="community-header">
+                        <div class="group-icon-square lg">${escapeHTML(g.group_name.slice(0, 2).toUpperCase())}</div>
+                        <div>
+                            <h3 class="community-title">${g.group_name}</h3>
+                            <span class="community-pill ${g.privacy_setting.toLowerCase()}">${g.privacy_setting}</span>
+                        </div>
+                    </div>
+                    <p class="community-desc">${escapeHTML(g.description || 'Channel for group discussions.')}</p>
+                    <div class="community-footer">
+                        <span class="member-count-text">${g.member_count || 1} members</span>
+                        <button class="btn-insta-secondary" onclick="joinCommunityGroup(${g.group_id})">Join Community</button>
+                    </div>
+                </div>
+            `).join("");
+        }
+    } catch (e) {
+        groupsGrid.innerHTML = `<div class="sql-error-banner">Could not load communities.</div>`;
+    }
+}
+
+async function handleCreateCommunityGroup(e) {
+    e.preventDefault();
+    const name = groupNameInput.value.trim();
+    const desc = groupDescInput.value.trim();
+    const privacy = groupPrivacySelect.value;
+
+    if (!name) return;
+
+    try {
+        const res = await fetch("/api/groups", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                group_name: name,
+                description: desc,
+                privacy_setting: privacy,
+                created_by: activeUserId
+            })
+        });
+
+        if (res.ok) {
+            createGroupModal.style.display = "none";
+            createGroupForm.reset();
+            await loadCommunityGroups();
+            await loadSidebarCommunities();
+        } else {
+            alert("Failed to create community group.");
+        }
+    } catch (err) {
+        alert("Error creating community: " + err.message);
+    }
+}
+
+async function joinCommunityGroup(groupId) {
+    try {
+        const res = await fetch(`/api/groups/${groupId}/join`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: activeUserId })
+        });
+        if (res.ok) {
+            alert("You have joined the community!");
+            await loadCommunityGroups();
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Already a member of this community.");
+        }
+    } catch (e) {
+        console.error("Error joining community:", e);
+    }
+}
+
+// ================= MEMBER EXPLORE DIRECTORY =================
+function renderUsersDirectory() {
+    if (!usersGrid) return;
+    usersGrid.innerHTML = usersCache.map(u => {
+        const isFollowing = followingSet.has(u.user_id);
+        const isSelf = u.user_id === activeUserId;
+        return `
+            <div class="profile-card">
+                <img class="profile-avatar-lg" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}" onclick="openProfileModal(${u.user_id})">
+                <h3 class="profile-name" onclick="openProfileModal(${u.user_id})">${u.username}</h3>
+                <span class="role-badge ${u.admin_level ? 'admin' : 'regular'}">
+                    ${u.admin_level || 'REGULAR USER'}
+                </span>
+                <p style="font-size: 11px; color: var(--ig-text-muted); font-family: var(--font-mono);">${u.email}</p>
+                <p class="profile-bio">${escapeHTML(u.bio || 'Platform member')}</p>
+                <div class="profile-meta-tags">
+                    ${u.location ? `<span>${u.location}</span>` : ''}
+                    ${u.interests ? `<span>${u.interests}</span>` : ''}
+                </div>
+                ${!isSelf ? `
+                    <div style="display: flex; gap: 8px; width: 100%; margin-top: 10px;">
+                        <button class="${isFollowing ? 'btn-following' : 'btn-follow'} btn-follow-toggle" style="flex: 1;" data-target-id="${u.user_id}" onclick="toggleFollowUser(${u.user_id}, this)">
+                            ${isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                        <button class="btn-insta-secondary" style="flex: 1;" onclick="startDirectChat(${u.user_id})">
+                            Message
+                        </button>
+                    </div>
+                ` : `
+                    <div style="width: 100%; text-align: center; padding: 6px; font-size: 12px; color: var(--ig-text-muted); font-weight: 600;">
+                        (Your Account)
+                    </div>
+                `}
+            </div>
+        `;
+    }).join("");
+}
+
+// ================= PROFILE MODAL =================
+async function openProfileModal(userId) {
+    if (!userProfileModal) return;
+    try {
+        const viewerParam = activeUserId ? `?viewer_id=${activeUserId}` : "";
+        const res = await fetch(`/api/users/${userId}${viewerParam}`);
+        const data = await res.json();
+
+        if (data.success && data.user) {
+            const u = data.user;
+            profModalAvatar.src = u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde';
+            profModalUsername.textContent = u.username;
+            profModalBadge.textContent = u.admin_level || 'USER';
+            profModalBio.textContent = u.bio || 'No bio provided.';
+            profModalPostsCount.textContent = u.posts_count || 0;
+            profModalFollowersCount.textContent = u.followers_count || 0;
+            profModalFollowingCount.textContent = u.following_count || 0;
+
+            if (u.user_id === activeUserId) {
+                profModalFollowBtn.style.display = "none";
+            } else {
+                profModalFollowBtn.style.display = "block";
+                profModalFollowBtn.setAttribute("data-target-id", u.user_id);
+                if (u.is_following) {
+                    profModalFollowBtn.className = "btn-following";
+                    profModalFollowBtn.textContent = "Following";
+                } else {
+                    profModalFollowBtn.className = "btn-follow";
+                    profModalFollowBtn.textContent = "Follow";
+                }
+                profModalFollowBtn.onclick = () => toggleFollowUser(u.user_id, profModalFollowBtn);
+            }
+
+            profModalSendMsgBtn.onclick = () => {
+                userProfileModal.style.display = "none";
+                startDirectChat(u.user_id);
+            };
+
+            userProfileModal.style.display = "flex";
+        }
+    } catch (e) {
+        console.error("Error opening profile modal:", e);
+    }
+}
+
+// ================= STORY VIEWER =================
+async function openStoryViewer(userId) {
+    const user = usersCache.find(u => u.user_id === userId);
+    if (!user || !storyViewerModal) return;
+
+    storyModalAvatar.src = user.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde';
+    storyModalUname.textContent = user.username;
+
+    // Use high-res imagery for story preview
+    const sampleStories = [
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
+        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05",
+        "https://images.unsplash.com/photo-1518770660439-4636190af475"
+    ];
+    storyModalImg.src = sampleStories[userId % sampleStories.length];
+    storyModalTextOverlay.textContent = user.bio || "Live from SocialSphere!";
+    storyViewerModal.style.display = "flex";
+}
+
+// ================= DIRECT MESSAGING =================
 async function loadConversations() {
     if (!conversationsList) return;
     try {
         const res = await fetch(`/api/messages/conversations/${activeUserId}`);
         const data = await res.json();
 
-        if (data.success) {
-            let convos = data.conversations;
-
-            if (convos.length === 0) {
+        if (data.success && data.conversations) {
+            if (data.conversations.length === 0) {
+                // Show other users to start a conversation
                 const otherUsers = usersCache.filter(u => u.user_id !== activeUserId);
-                conversationsList.innerHTML = otherUsers.map(u => `
-                    <div class="conversation-item" data-partner-id="${u.user_id}">
-                        <img class="avatar-square-sm" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
-                        <div class="convo-info">
-                            <div class="convo-top">
-                                <span class="convo-name">${u.username}</span>
-                                <span class="convo-time">Start</span>
+                conversationsList.innerHTML = `
+                    <div style="padding: 10px; font-size: 12px; color: var(--ig-text-secondary);">Start a new conversation:</div>
+                    ${otherUsers.map(u => `
+                        <div class="direct-conversation-item" onclick="startDirectChat(${u.user_id})">
+                            <img class="avatar-square-sm" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}">
+                            <div class="conv-meta">
+                                <span class="conv-uname">${u.username}</span>
+                                <span class="conv-preview">Tap to start chatting</span>
                             </div>
-                            <div class="convo-snippet">Click to send a direct message</div>
                         </div>
-                    </div>
-                `).join("");
-            } else {
-                conversationsList.innerHTML = convos.map(c => `
-                    <div class="conversation-item ${activeChatPartnerId === c.partner.user_id ? 'active' : ''}" data-partner-id="${c.partner.user_id}">
-                        <img class="avatar-square-sm" src="${c.partner.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${c.partner.username}">
-                        <div class="convo-info">
-                            <div class="convo-top">
-                                <span class="convo-name">${c.partner.username}</span>
-                                <span class="convo-time">${c.last_message ? c.last_message.sent_at.slice(11, 16) : ''}</span>
-                            </div>
-                            <div class="convo-snippet">${c.last_message ? escapeHTML(c.last_message.content) : 'No messages'}</div>
-                        </div>
-                    </div>
-                `).join("");
+                    `).join("")}
+                `;
+                return;
             }
 
-            document.querySelectorAll(".conversation-item[data-partner-id]").forEach(item => {
-                item.addEventListener("click", () => {
-                    const partnerId = parseInt(item.getAttribute("data-partner-id"));
-                    openChatThread(partnerId);
-                });
-            });
-
-            if (!activeChatPartnerId && (convos.length > 0 || usersCache.length > 1)) {
-                const firstId = convos.length > 0 ? convos[0].partner.user_id : usersCache.find(u => u.user_id !== activeUserId)?.user_id;
-                if (firstId) openChatThread(firstId);
-            }
+            conversationsList.innerHTML = data.conversations.map(c => `
+                <div class="direct-conversation-item ${c.partner_id === activeChatPartnerId ? 'active' : ''}" onclick="startDirectChat(${c.partner_id})">
+                    <img class="avatar-square-sm" src="${c.partner_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${c.partner_username}">
+                    <div class="conv-meta">
+                        <span class="conv-uname">${c.partner_username}</span>
+                        <span class="conv-preview">${escapeHTML(c.last_message || '')}</span>
+                    </div>
+                </div>
+            `).join("");
         }
-    } catch (err) {
-        console.error("Error loading conversations:", err);
+    } catch (e) {
+        console.error("Error loading conversations:", e);
     }
 }
 
-async function openChatThread(partnerId) {
+async function startDirectChat(partnerId) {
     activeChatPartnerId = partnerId;
-    const partner = usersCache.find(u => u.user_id === partnerId);
+    switchTab("messages-tab");
 
+    const partner = usersCache.find(u => u.user_id === partnerId);
     if (partner) {
         if (chatPartnerName) chatPartnerName.textContent = partner.username;
-        if (chatPartnerAvatar) chatPartnerAvatar.src = partner.profile_pic || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
+        if (chatPartnerAvatar) chatPartnerAvatar.src = partner.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde';
     }
 
-    if (window.innerWidth <= 640 && chatSidebar && chatMain) {
-        chatSidebar.style.display = "none";
-        chatMain.style.display = "flex";
+    if (window.innerWidth <= 640) {
+        if (chatSidebar) chatSidebar.style.display = "none";
+        if (chatMain) chatMain.style.display = "flex";
     }
 
+    await loadChatThread(partnerId);
+}
+
+async function loadChatThread(partnerId) {
     if (!chatMessagesList) return;
-    chatMessagesList.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-secondary); font-size: 12px;">Loading messages...</div>`;
-
     try {
-        const res = await fetch(`/api/messages/thread/${activeUserId}/${partnerId}`);
+        const res = await fetch(`/api/messages/thread?user1=${activeUserId}&user2=${partnerId}`);
         const data = await res.json();
 
         if (data.success && data.messages) {
             if (data.messages.length === 0) {
                 chatMessagesList.innerHTML = `
                     <div class="empty-chat-state">
-                        ${ICONS.comment}
-                        <h4>Direct Message</h4>
-                        <p>Send a message to start conversation with <strong>${partner ? partner.username : 'user'}</strong>.</p>
+                        <h4>No messages yet</h4>
+                        <p>Say hello to start the conversation!</p>
                     </div>
                 `;
                 return;
             }
 
             chatMessagesList.innerHTML = data.messages.map(m => {
-                const isOutgoing = m.sender_id === activeUserId;
+                const isSent = m.sender_id === activeUserId;
                 return `
-                    <div class="msg-row ${isOutgoing ? 'outgoing' : 'incoming'}">
-                        <div class="msg-content-box">
-                            <div>${escapeHTML(m.content)}</div>
-                            <span class="msg-timestamp">${m.sent_at ? m.sent_at.slice(11, 16) : ''}</span>
+                    <div class="direct-msg-row ${isSent ? 'sent' : 'received'}">
+                        <div class="direct-bubble ${isSent ? 'sent' : 'received'}">
+                            ${escapeHTML(m.content)}
+                            <span class="bubble-time">${m.sent_at.slice(11, 16)}</span>
                         </div>
                     </div>
                 `;
@@ -1145,8 +1351,8 @@ async function openChatThread(partnerId) {
 
             chatMessagesList.scrollTop = chatMessagesList.scrollHeight;
         }
-    } catch (err) {
-        chatMessagesList.innerHTML = `<div class="sql-error-banner">Failed to load message thread.</div>`;
+    } catch (e) {
+        console.error("Error loading chat messages:", e);
     }
 }
 
@@ -1173,7 +1379,7 @@ async function handleSendMessage(e) {
 
         if (res.ok) {
             messageInput.value = "";
-            await openChatThread(activeChatPartnerId);
+            await loadChatThread(activeChatPartnerId);
             await loadConversations();
         }
     } catch (err) {
@@ -1181,431 +1387,9 @@ async function handleSendMessage(e) {
     }
 }
 
-function startDirectChat(targetUserId) {
-    switchTab("messages-tab");
-    openChatThread(targetUserId);
-}
-
-// 7. Community Groups
-async function loadCommunityGroups() {
-    if (!groupsGrid) return;
-    groupsGrid.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--ig-text-secondary); font-size: 13px;">Loading communities...</div>`;
-    try {
-        const res = await fetch(`/api/groups?user_id=${activeUserId}`);
-        const data = await res.json();
-
-        if (data.success && data.groups) {
-            groupsGrid.innerHTML = data.groups.map(g => `
-                <div class="community-card">
-                    <div class="comm-top-row">
-                        <h3 class="comm-title">${g.group_name}</h3>
-                        <span class="comm-privacy-badge">${g.privacy_setting}</span>
-                    </div>
-                    <p class="comm-desc">${escapeHTML(g.description || 'No description provided.')}</p>
-                    <div class="comm-roster-row">
-                        <span>${g.member_count} members</span>
-                        <div class="comm-avatars-overlap">
-                            ${(g.members || []).slice(0, 4).map(m => `
-                                <img class="avatar-overlap" src="${m.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" title="${m.username}">
-                            `).join("")}
-                        </div>
-                    </div>
-                    <button class="btn-join-toggle ${g.is_member ? 'joined' : 'not-joined'}" data-group-id="${g.group_id}">
-                        ${g.is_member ? 'Joined' : 'Join'}
-                    </button>
-                </div>
-            `).join("");
-
-            document.querySelectorAll(".btn-join-toggle[data-group-id]").forEach(btn => {
-                btn.addEventListener("click", async () => {
-                    const groupId = btn.getAttribute("data-group-id");
-                    try {
-                        const r = await fetch(`/api/groups/${groupId}/toggle-join`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ user_id: activeUserId })
-                        });
-                        if (r.ok) {
-                            await loadCommunityGroups();
-                        }
-                    } catch (e) {
-                        console.error("Error toggling group:", e);
-                    }
-                });
-            });
-        }
-    } catch (err) {
-        groupsGrid.innerHTML = `<div class="sql-error-banner">Failed to load groups.</div>`;
-    }
-}
-
-async function handleCreateCommunityGroup(e) {
-    e.preventDefault();
-    const name = groupNameInput.value.trim();
-    const desc = groupDescInput.value.trim();
-    const privacy = groupPrivacySelect.value;
-
-    if (!name) return;
-
-    try {
-        const res = await fetch("/api/groups", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                user_id: activeUserId,
-                group_name: name,
-                description: desc,
-                privacy_setting: privacy
-            })
-        });
-
-        if (res.ok) {
-            createGroupModal.style.display = "none";
-            groupNameInput.value = "";
-            groupDescInput.value = "";
-            await loadCommunityGroups();
-        }
-    } catch (err) {
-        console.error("Error creating group:", err);
-    }
-}
-
-// 8. Suggested Connections
-async function loadRecommendations() {
-    if (!fullRecsGrid) return;
-    fullRecsGrid.innerHTML = `<div style="text-align: center; padding: 2.5rem; color: var(--ig-text-secondary); font-size: 13px;">Computing suggested connections...</div>`;
-    try {
-        const res = await fetch(`/api/recommendations/${activeUserId}`);
-        const data = await res.json();
-
-        if (data.success && data.recommendations) {
-            if (data.recommendations.length === 0) {
-                fullRecsGrid.innerHTML = `<div class="profile-card" style="grid-column: 1/-1; padding: 2.5rem;">No recommendation matches found.</div>`;
-                return;
-            }
-
-            fullRecsGrid.innerHTML = data.recommendations.map(rec => `
-                <div class="profile-card">
-                    <img class="profile-avatar-lg" src="${rec.ProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${rec.Username}" onclick="openProfileModal(${rec.RecommendedUserID})">
-                    <h3 class="profile-name" onclick="openProfileModal(${rec.RecommendedUserID})">${rec.Username}</h3>
-                    <span class="score-pill-sm">
-                        ${Math.round(rec.Score * 100)}% Match
-                    </span>
-                    <p class="profile-bio">${escapeHTML(rec.Bio || 'Platform member')}</p>
-                    <div class="profile-meta-tags">
-                        ${rec.Location ? `<span>${rec.Location}</span>` : ''}
-                        ${rec.Interests ? `<span>${rec.Interests}</span>` : ''}
-                    </div>
-                    <button class="btn-insta-primary" style="width: 100%;" onclick="startDirectChat(${rec.RecommendedUserID})">
-                        Send Message
-                    </button>
-                </div>
-            `).join("");
-        }
-    } catch (err) {
-        fullRecsGrid.innerHTML = `<div class="sql-error-banner">Failed to calculate recommendations.</div>`;
-    }
-}
-
-// 9. Relational /SQL Studio
-async function initSqlStudio() {
-    await loadSqlPresets();
-    await loadSqlSchema();
-}
-
-async function loadSqlPresets() {
-    if (!sqlPresetButtons) return;
-    try {
-        const res = await fetch("/api/sql/presets");
-        const data = await res.json();
-        if (data.success && data.presets) {
-            sqlPresetButtons.innerHTML = data.presets.map(p => `
-                <button class="preset-chip" data-sql="${escapeAttribute(p.sql)}">
-                    ${p.title}
-                </button>
-            `).join("");
-
-            document.querySelectorAll(".preset-chip[data-sql]").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    sqlQueryInput.value = btn.getAttribute("data-sql");
-                    handleExecuteSql();
-                });
-            });
-
-            if (!sqlQueryInput.value.trim()) {
-                sqlQueryInput.value = data.presets[0].sql;
-            }
-        }
-    } catch (err) {
-        console.error("Error loading presets:", err);
-    }
-}
-
-async function loadSqlSchema() {
-    if (!schemaTablesList) return;
-    try {
-        const res = await fetch("/api/sql/schema");
-        const data = await res.json();
-        if (data.success && data.tables) {
-            if (schemaTableCount) schemaTableCount.textContent = `${data.table_count}`;
-            schemaTablesList.innerHTML = data.tables.map(t => `
-                <div class="schema-table-item">
-                    <div class="schema-table-header" onclick="insertTableQuery('${t.table_name}')">
-                        <span>${t.table_name}</span>
-                        <span style="font-size: 10px; color: var(--ig-text-secondary);">${t.row_count} rows</span>
-                    </div>
-                    <div class="schema-cols-list">
-                        ${t.columns.map(c => `
-                            <div class="schema-col-row">
-                                <span class="${c.pk ? 'col-pk' : ''}">${c.pk ? '[PK] ' : ''}${c.name}</span>
-                                <span>${c.type}</span>
-                            </div>
-                        `).join("")}
-                    </div>
-                </div>
-            `).join("");
-        }
-    } catch (err) {
-        console.error("Error loading schema:", err);
-    }
-}
-
-function insertTableQuery(tableName) {
-    if (sqlQueryInput) {
-        sqlQueryInput.value = `SELECT * FROM ${tableName} LIMIT 25;`;
-        handleExecuteSql();
-    }
-}
-
-async function handleExecuteSql() {
-    const query = sqlQueryInput.value.trim();
-    if (!query) {
-        alert("Please write a SQL statement to execute.");
-        return;
-    }
-
-    if (sqlExecutionStatus) sqlExecutionStatus.textContent = "RUNNING";
-    runSqlQueryBtn.disabled = true;
-
-    try {
-        const res = await fetch("/api/sql/execute", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: query })
-        });
-
-        const data = await res.json();
-        lastSqlResults = data;
-
-        if (data.success) {
-            if (sqlExecutionStatus) sqlExecutionStatus.textContent = "SUCCESS";
-            if (executionTimeBadge) {
-                executionTimeBadge.style.display = "inline-block";
-                executionTimeBadge.textContent = `${data.execution_time_ms}ms`;
-            }
-            if (resultsMetaText) resultsMetaText.textContent = `${data.message || `${data.row_count} row(s) returned`}`;
-
-            renderSqlResultsTable(data.columns, data.rows);
-        } else {
-            if (sqlExecutionStatus) sqlExecutionStatus.textContent = "ERROR";
-            if (executionTimeBadge) {
-                executionTimeBadge.style.display = "inline-block";
-                executionTimeBadge.textContent = `${data.execution_time_ms}ms`;
-            }
-            if (resultsMetaText) resultsMetaText.textContent = `Query error`;
-
-            sqlResultsContainer.innerHTML = `
-                <div class="sql-error-banner">
-                    <strong>QUERY ERROR:</strong><br>
-                    ${escapeHTML(data.error || "Database error occurred.")}
-                </div>
-            `;
-        }
-    } catch (err) {
-        sqlResultsContainer.innerHTML = `<div class="sql-error-banner">${err.message}</div>`;
-    } finally {
-        runSqlQueryBtn.disabled = false;
-    }
-}
-
-function renderSqlResultsTable(columns, rows) {
-    if (!rows || rows.length === 0) {
-        sqlResultsContainer.innerHTML = `
-            <div class="sql-placeholder-box">
-                Query executed successfully. (0 rows returned)
-            </div>
-        `;
-        return;
-    }
-
-    const tableHtml = `
-        <table class="sql-data-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    ${columns.map(col => `<th>${col}</th>`).join("")}
-                </tr>
-            </thead>
-            <tbody>
-                ${rows.map((row, idx) => `
-                    <tr>
-                        <td style="color: var(--ig-text-muted);">${idx + 1}</td>
-                        ${columns.map(col => `<td>${formatCellValue(row[col])}</td>`).join("")}
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-    `;
-
-    sqlResultsContainer.innerHTML = tableHtml;
-}
-
-function formatCellValue(val) {
-    if (val === null || val === undefined) return `<em style="color: var(--ig-text-muted);">NULL</em>`;
-    if (typeof val === "object") return escapeHTML(JSON.stringify(val));
-    return escapeHTML(String(val));
-}
-
-function exportResultsAsCsv() {
-    if (!lastSqlResults || !lastSqlResults.rows || lastSqlResults.rows.length === 0) {
-        alert("No query results to export.");
-        return;
-    }
-    const cols = lastSqlResults.columns;
-    const csvRows = [cols.join(",")];
-
-    lastSqlResults.rows.forEach(r => {
-        const vals = cols.map(c => {
-            let cell = r[c] === null ? "" : String(r[c]);
-            cell = cell.replace(/"/g, '""');
-            return `"${cell}"`;
-        });
-        csvRows.push(vals.join(","));
-    });
-
-    downloadBlob(csvRows.join("\n"), "socialsphere_export.csv", "text/csv");
-}
-
-function exportResultsAsJson() {
-    if (!lastSqlResults || !lastSqlResults.rows || lastSqlResults.rows.length === 0) {
-        alert("No query results to export.");
-        return;
-    }
-    downloadBlob(JSON.stringify(lastSqlResults.rows, null, 2), "socialsphere_export.json", "application/json");
-}
-
-function downloadBlob(content, filename, contentType) {
-    const blob = new Blob([content], { type: contentType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-// 10. Analytics & Telemetry
-async function loadAnalyticsData() {
-    if (!analyticsGrid) return;
-    try {
-        const res = await fetch("/api/analytics/overview");
-        const data = await res.json();
-        if (data.success && data.analytics) {
-            const a = data.analytics;
-            const metrics = [
-                { label: "Total Users", count: a.totalUsers, code: "USR" },
-                { label: "User Credentials", count: a.totalCreds || a.totalUsers, code: "CRD" },
-                { label: "Regular Users", count: a.totalRegular, code: "REG" },
-                { label: "Admins", count: a.totalAdmin, code: "ADM" },
-                { label: "Feed Posts", count: a.totalPosts, code: "PST" },
-                { label: "Comments", count: a.totalComments, code: "CMT" },
-                { label: "Reactions", count: a.totalReactions, code: "RCT" },
-                { label: "Direct Messages", count: a.totalMessages, code: "MSG" },
-                { label: "Communities", count: a.totalGroups, code: "GRP" },
-                { label: "Memberships", count: a.totalMemberships, code: "MBR" },
-                { label: "Hashtags", count: a.totalHashtags, code: "TAG" },
-                { label: "Tagged Posts", count: a.totalTaggedPosts, code: "PTG" },
-                { label: "Recommendations", count: a.totalRecommendations, code: "REC" },
-                { label: "Notifications", count: a.totalNotifications, code: "NTF" },
-                { label: "Events Tracked", count: a.totalEvents, code: "EVT" },
-                { label: "Profile Avatars", count: a.totalPics, code: "PIC" }
-            ];
-
-            analyticsGrid.innerHTML = metrics.map(m => `
-                <div class="stat-metric-card">
-                    <div class="stat-info-wrap">
-                        <h4>${m.label}</h4>
-                        <div class="stat-huge-number">${m.count}</div>
-                    </div>
-                    <div class="stat-big-icon">${m.code}</div>
-                </div>
-            `).join("");
-        }
-    } catch (err) {
-        console.error("Error loading analytics:", err);
-    }
-
-    try {
-        const res = await fetch("/api/analytics/events?limit=25");
-        const data = await res.json();
-        if (data.success && data.events && telemetryEventsList) {
-            telemetryEventsList.innerHTML = `
-                <table class="telemetry-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>USER</th>
-                            <th>EVENT TYPE</th>
-                            <th>DEVICE</th>
-                            <th>PAYLOAD</th>
-                            <th>TIMESTAMP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.events.map(e => `
-                            <tr>
-                                <td>#${e.event_id}</td>
-                                <td><strong>${e.username}</strong></td>
-                                <td><span class="telemetry-tag">${e.event_type}</span></td>
-                                <td>${e.device_type || 'WEB'}</td>
-                                <td><code>${escapeHTML(e.metadata || '{}')}</code></td>
-                                <td style="color: var(--ig-text-muted);">${e.event_time}</td>
-                            </tr>
-                        `).join("")}
-                    </tbody>
-                </table>
-            `;
-        }
-    } catch (err) {
-        console.error("Error loading telemetry events:", err);
-    }
-}
-
-// 11. Platform Directory
-function renderUsersDirectory() {
-    if (!usersGrid) return;
-    usersGrid.innerHTML = usersCache.map(u => `
-        <div class="profile-card">
-            <img class="profile-avatar-lg" src="${u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}" alt="${u.username}" onclick="openProfileModal(${u.user_id})">
-            <h3 class="profile-name" onclick="openProfileModal(${u.user_id})">${u.username}</h3>
-            <span class="role-badge ${u.admin_level ? 'admin' : 'regular'}">
-                ${u.admin_level || 'REGULAR USER'}
-            </span>
-            <p style="font-size: 11px; color: var(--ig-text-muted); font-family: var(--font-mono);">${u.email}</p>
-            <p class="profile-bio">${escapeHTML(u.bio || 'Platform member')}</p>
-            <div class="profile-meta-tags">
-                ${u.location ? `<span>${u.location}</span>` : ''}
-                ${u.interests ? `<span>${u.interests}</span>` : ''}
-            </div>
-            <button class="btn-insta-primary" style="width: 100%;" onclick="startDirectChat(${u.user_id})">
-                Message
-            </button>
-        </div>
-    `).join("");
-}
-
-// 12. Notifications
+// ================= NOTIFICATIONS =================
 async function checkNotifications() {
+    if (!activeUserId) return;
     try {
         const res = await fetch(`/api/notifications/${activeUserId}`);
         const data = await res.json();
@@ -1658,6 +1442,319 @@ async function dismissNotification(notifId) {
         await checkNotifications();
     } catch (err) {
         console.error("Error dismissing notification:", err);
+    }
+}
+
+// ================= SQL STUDIO (SUPER ADMIN ONLY) =================
+async function initSqlStudio() {
+    if (!isSuperAdmin()) return;
+    await loadSqlPresets();
+    await loadSqlSchema();
+}
+
+async function loadSqlPresets() {
+    if (!sqlPresetButtons) return;
+    try {
+        const res = await fetch("/api/sql/presets");
+        const data = await res.json();
+        if (data.success && data.presets) {
+            sqlPresetButtons.innerHTML = data.presets.map(p => `
+                <button class="preset-chip" onclick="applySqlPreset('${escapeAttribute(p.sql)}')">
+                    ${escapeHTML(p.title)}
+                </button>
+            `).join("");
+        }
+    } catch (err) {
+        console.error("Error loading SQL presets:", err);
+    }
+}
+
+function applySqlPreset(sqlString) {
+    if (sqlQueryInput) {
+        sqlQueryInput.value = sqlString;
+        handleExecuteSql();
+    }
+}
+
+async function loadSqlSchema() {
+    if (!schemaTablesList) return;
+    try {
+        const res = await fetch("/api/sql/schema");
+        const data = await res.json();
+        if (data.success && data.tables) {
+            if (schemaTableCount) schemaTableCount.textContent = data.table_count;
+            schemaTablesList.innerHTML = data.tables.map(t => `
+                <div class="schema-table-item">
+                    <div class="schema-table-head" onclick="applySqlPreset('SELECT * FROM ${t.table_name} LIMIT 20;')">
+                        <span class="table-name-txt">${t.table_name}</span>
+                        <span class="table-rows-badge">${t.row_count} rows</span>
+                    </div>
+                </div>
+            `).join("");
+        }
+    } catch (err) {
+        console.error("Error loading schema:", err);
+    }
+}
+
+async function handleExecuteSql() {
+    if (!isSuperAdmin()) return;
+    const query = sqlQueryInput.value.trim();
+    if (!query) return;
+
+    if (sqlExecutionStatus) {
+        sqlExecutionStatus.textContent = "RUNNING";
+        sqlExecutionStatus.className = "status-pill-running";
+    }
+
+    try {
+        const res = await fetch("/api/sql/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: query })
+        });
+        const data = await res.json();
+        lastSqlResults = data;
+
+        if (executionTimeBadge) {
+            executionTimeBadge.textContent = `${data.execution_time_ms}ms`;
+            executionTimeBadge.style.display = "inline-block";
+        }
+
+        if (data.success) {
+            if (sqlExecutionStatus) {
+                sqlExecutionStatus.textContent = "SUCCESS";
+                sqlExecutionStatus.className = "status-pill-success";
+            }
+            if (resultsMetaText) resultsMetaText.textContent = data.message;
+            renderSqlResultsTable(data.columns, data.rows);
+        } else {
+            if (sqlExecutionStatus) {
+                sqlExecutionStatus.textContent = "ERROR";
+                sqlExecutionStatus.className = "status-pill-error";
+            }
+            if (resultsMetaText) resultsMetaText.textContent = "Execution failed";
+            sqlResultsContainer.innerHTML = `<div class="sql-error-banner">${escapeHTML(data.error || 'SQL Error')}</div>`;
+        }
+    } catch (err) {
+        if (sqlExecutionStatus) {
+            sqlExecutionStatus.textContent = "ERROR";
+            sqlExecutionStatus.className = "status-pill-error";
+        }
+        sqlResultsContainer.innerHTML = `<div class="sql-error-banner">Execution error: ${err.message}</div>`;
+    }
+}
+
+function renderSqlResultsTable(columns, rows) {
+    if (!sqlResultsContainer) return;
+    if (!rows || rows.length === 0) {
+        sqlResultsContainer.innerHTML = `<div class="sql-placeholder-box"><span>Statement returned 0 rows.</span></div>`;
+        return;
+    }
+
+    sqlResultsContainer.innerHTML = `
+        <table class="sql-results-table">
+            <thead>
+                <tr>${columns.map(c => `<th>${escapeHTML(c)}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+                ${rows.map(row => `
+                    <tr>
+                        ${columns.map(c => `<td>${escapeHTML(row[c] !== null && row[c] !== undefined ? String(row[c]) : 'NULL')}</td>`).join("")}
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function exportResultsAsCsv() {
+    if (!lastSqlResults || !lastSqlResults.rows || lastSqlResults.rows.length === 0) {
+        alert("No SQL results to export.");
+        return;
+    }
+    const cols = lastSqlResults.columns;
+    const csvContent = [
+        cols.join(","),
+        ...lastSqlResults.rows.map(row => cols.map(c => `"${String(row[c] || '').replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    downloadFile(csvContent, "query_results.csv", "text/csv");
+}
+
+function exportResultsAsJson() {
+    if (!lastSqlResults || !lastSqlResults.rows) {
+        alert("No SQL results to export.");
+        return;
+    }
+    const jsonContent = JSON.stringify(lastSqlResults.rows, null, 2);
+    downloadFile(jsonContent, "query_results.json", "application/json");
+}
+
+function downloadFile(content, fileName, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ================= ANALYTICS & TELEMETRY (SUPER ADMIN ONLY) =================
+async function loadAnalyticsData() {
+    if (!isSuperAdmin()) return;
+    try {
+        const res = await fetch("/api/analytics/overview");
+        const data = await res.json();
+
+        if (data.success && data.analytics && analyticsGrid) {
+            const a = data.analytics;
+            analyticsGrid.innerHTML = `
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalUsers || 0}</span>
+                    <span class="stat-title">Platform Users</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalPosts || 0}</span>
+                    <span class="stat-title">Total Posts</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalFollows || 0}</span>
+                    <span class="stat-title">Follow Connections</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalGroups || 0}</span>
+                    <span class="stat-title">Communities</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalReactions || 0}</span>
+                    <span class="stat-title">Reactions / Likes</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalComments || 0}</span>
+                    <span class="stat-title">Comments</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalMessages || 0}</span>
+                    <span class="stat-title">Direct Messages</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-num">${a.totalEvents || 0}</span>
+                    <span class="stat-title">Audit Events</span>
+                </div>
+            `;
+        }
+
+        await loadTelemetryLogs();
+    } catch (err) {
+        console.error("Error loading analytics:", err);
+    }
+}
+
+async function loadTelemetryLogs() {
+    try {
+        const res = await fetch("/api/analytics/events?limit=50");
+        const data = await res.json();
+        if (data.success && data.events && telemetryEventsList) {
+            telemetryEventsList.innerHTML = `
+                <table class="telemetry-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>USER</th>
+                            <th>EVENT TYPE</th>
+                            <th>DEVICE</th>
+                            <th>METADATA</th>
+                            <th>TIMESTAMP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.events.map(e => `
+                            <tr>
+                                <td>#${e.event_id}</td>
+                                <td><strong>${escapeHTML(e.username)}</strong></td>
+                                <td><span class="telemetry-tag">${e.event_type}</span></td>
+                                <td>${e.device_type || 'WEB'}</td>
+                                <td><code>${escapeHTML(e.metadata || '{}')}</code></td>
+                                <td style="color: var(--ig-text-muted);">${e.event_time}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+    } catch (err) {
+        console.error("Error loading telemetry logs:", err);
+    }
+}
+
+// ================= PWA SERVICE WORKER & OFFLINE =================
+function initPwaServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(reg => console.log('[PWA] Service Worker registered with scope:', reg.scope))
+                .catch(err => console.log('[PWA] Service Worker registration failed:', err));
+        });
+    }
+
+    // Online / Offline Events
+    window.addEventListener('online', () => {
+        if (offlineIndicatorBanner) offlineIndicatorBanner.style.display = 'none';
+        if (activeUserId) refreshFeed();
+    });
+    window.addEventListener('offline', () => {
+        if (offlineIndicatorBanner) offlineIndicatorBanner.style.display = 'block';
+    });
+
+    if (!navigator.onLine && offlineIndicatorBanner) {
+        offlineIndicatorBanner.style.display = 'block';
+    }
+
+    // "Add to Home Screen" install banner
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPwaPrompt = e;
+
+        if (mobileInstallBtn) mobileInstallBtn.style.display = 'inline-block';
+
+        const dismissed = localStorage.getItem('socialsphere_pwa_dismissed');
+        if (!dismissed && pwaInstallBanner) {
+            pwaInstallBanner.style.display = 'flex';
+        }
+    });
+
+    if (pwaInstallActionBtn) {
+        pwaInstallActionBtn.addEventListener('click', triggerPwaInstall);
+    }
+    if (mobileInstallBtn) {
+        mobileInstallBtn.addEventListener('click', triggerPwaInstall);
+    }
+    if (pwaDismissBtn) {
+        pwaDismissBtn.addEventListener('click', () => {
+            if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
+            localStorage.setItem('socialsphere_pwa_dismissed', 'true');
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
+        if (mobileInstallBtn) mobileInstallBtn.style.display = 'none';
+        deferredPwaPrompt = null;
+    });
+}
+
+async function triggerPwaInstall() {
+    if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        const { outcome } = await deferredPwaPrompt.userChoice;
+        if (outcome === 'accepted') {
+            if (pwaInstallBanner) pwaInstallBanner.style.display = 'none';
+        }
+        deferredPwaPrompt = null;
+    } else {
+        alert("To install SocialSphere on your phone:\n- On Safari (iOS): Tap the Share icon, then select 'Add to Home Screen'.\n- On Chrome (Android): Tap the menu (⋮), then select 'Install app' or 'Add to Home screen'.");
     }
 }
 

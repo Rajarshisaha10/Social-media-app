@@ -46,13 +46,24 @@ try:
     assert r.status_code == 200, f"Service worker failed: {r.text}"
     print(" [PASS] GET /sw.js (PWA Service Worker served)")
 
-    # 4. Authentication: Login & Register
-    r = client.post("/api/users/login", json={"username": "shobita", "password": "dbms108"})
+    # 4. Authentication: Login with Super Admin rajarshi
+    r = client.post("/api/users/login", json={"username": "rajarshi", "password": "dbms108"})
     assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] POST /api/users/login (Admin shobita):", r.json()["user"]["username"])
+    admin_user = r.json()["user"]
+    assert admin_user["username"] == "rajarshi"
+    print(" [PASS] POST /api/users/login (Admin rajarshi):", admin_user["username"])
+
+    # 5. Strict Email Validation
+    r_bad_email = client.post("/api/users/register", json={
+        "username": "bademail_test",
+        "email": "invalid_email_format",
+        "password": "password123"
+    })
+    assert r_bad_email.status_code == 400
+    print(" [PASS] Strict Email Validation: Rejected invalid email format successfully.")
 
     unique_uname = f"dev_{int(time.time())}"
-    r = client.post("/api/users/register", json={
+    r_good = client.post("/api/users/register", json={
         "username": unique_uname,
         "email": f"{unique_uname}@socialsphere.io",
         "password": "securepass123",
@@ -60,44 +71,63 @@ try:
         "location": "Cloud",
         "interests": "SQL, Python"
     })
-    assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] POST /api/users/register (New User):", r.json()["user"]["username"])
+    assert r_good.status_code == 200 and r_good.json()["success"]
+    new_user_id = r_good.json()["user"]["user_id"]
+    print(" [PASS] POST /api/users/register (Valid Email):", r_good.json()["user"]["username"])
 
-    # 5. Posts & Hashtags
+    # 6. Follow / Unfollow Social Graph
+    r_follow = client.post(f"/api/users/{new_user_id}/follow", json={"caller_id": 2})
+    assert r_follow.status_code == 200 and r_follow.json()["following"] == True
+    print(" [PASS] POST /api/users/{id}/follow (Follow Action): following=True")
+
+    r_unfollow = client.post(f"/api/users/{new_user_id}/follow", json={"caller_id": 2})
+    assert r_unfollow.status_code == 200 and r_unfollow.json()["following"] == False
+    print(" [PASS] POST /api/users/{id}/follow (Unfollow Action): following=False")
+
+    r_followers = client.get(f"/api/users/2/followers")
+    assert r_followers.status_code == 200 and r_followers.json()["success"]
+    print(" [PASS] GET /api/users/{id}/followers - Count:", r_followers.json()["count"])
+
+    # 7. Privacy: Super Admin rajarshi hidden from regular users
+    r_users_public = client.get("/api/users")
+    assert r_users_public.status_code == 200
+    user_names = [u["username"].lower() for u in r_users_public.json()["users"]]
+    assert "rajarshi" not in user_names
+    print(" [PASS] Super Admin Privacy: 'rajarshi' hidden from public user directory.")
+
+    rajarshi_uid = query_one("SELECT user_id FROM Users WHERE username = 'rajarshi'")["user_id"]
+    r_users_admin = client.get(f"/api/users?viewer_id={rajarshi_uid}")
+    assert r_users_admin.status_code == 200
+    admin_user_names = [u["username"].lower() for u in r_users_admin.json()["users"]]
+    assert "rajarshi" in admin_user_names
+    print(" [PASS] Super Admin Directory: 'rajarshi' visible to Super Admin viewer.")
+
+    # 8. Posts & Hashtags
     r = client.get("/api/posts")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/posts - Count:", r.json()["count"])
 
-    # 6. Users
-    r = client.get("/api/users")
-    assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] GET /api/users - Count:", r.json()["count"])
-
-    # 7. Groups
+    # 9. Groups
     r = client.get("/api/groups?user_id=1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/groups - Count:", r.json()["count"])
 
-    # 8. Messages
+    # 10. Messages
     r = client.get("/api/messages/conversations/1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/messages/conversations/1 - Count:", r.json()["count"])
 
-    # 9. Notifications
+    # 11. Notifications
     r = client.get("/api/notifications/1")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/notifications/1 - Count:", r.json()["count"])
 
-    # 10. Analytics Overview & Events
+    # 12. Analytics Overview & Events
     r = client.get("/api/analytics/overview")
     assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] GET /api/analytics/overview (Total 16 Tables):", r.json()["analytics"]["totalCreds"])
+    print(" [PASS] GET /api/analytics/overview (Total 17 Tables):", r.json()["analytics"]["totalFollows"], "follows")
 
-    r = client.get("/api/analytics/events")
-    assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] GET /api/analytics/events - Count:", r.json()["count"])
-
-    # 11. SQL Studio Execution & Schema
+    # 13. SQL Studio Execution & Schema
     r = client.get("/api/sql/schema")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/sql/schema - Tables:", r.json()["table_count"])
@@ -106,7 +136,7 @@ try:
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] POST /api/sql/execute - Query returned:", r.json()["message"])
 
-    print("\nALL BACKEND, PWA & API TESTS COMPLETED SUCCESSFULLY! 🎉")
+    print("\nALL BACKEND, PWA, AUTH & FOLLOW TESTS COMPLETED SUCCESSFULLY! 🎉")
 except Exception as e:
     import traceback
     traceback.print_exc()

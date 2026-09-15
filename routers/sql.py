@@ -160,6 +160,20 @@ ORDER BY fr.score DESC;"""
 FROM Notification n
 JOIN Users u ON u.user_id = n.recipient_id
 ORDER BY n.created_at DESC;"""
+    },
+    {
+        "id": "user-follows-graph",
+        "title": "Social Follows & Graph Connections",
+        "category": "Social Graph",
+        "sql": """SELECT 
+    uf.follow_id,
+    f1.username AS follower,
+    f2.username AS following,
+    uf.created_at
+FROM User_Follow uf
+JOIN Users f1 ON f1.user_id = uf.follower_id
+JOIN Users f2 ON f2.user_id = uf.following_id
+ORDER BY uf.created_at DESC;"""
     }
 ]
 

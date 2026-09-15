@@ -2628,3 +2628,171 @@ input, textarea, select {
         max-width: none;
     }
 }
+
+/* ==========================================================================
+   MANDATORY AUTHENTICATION GATE & LOGIN SCREEN (INSTAGRAM STYLE)
+   ========================================================================== */
+.auth-gate-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--ig-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.auth-gate-card {
+    background: var(--ig-surface);
+    border: 1px solid var(--ig-border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 400px;
+    padding: 32px 28px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.auth-gate-logo {
+    text-align: center;
+}
+
+.auth-gate-logo h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--ig-text-primary);
+}
+
+.auth-gate-logo p {
+    font-size: 13px;
+    color: var(--ig-text-secondary);
+    margin-top: 4px;
+}
+
+.auth-tabs-row {
+    display: flex;
+    border-bottom: 1px solid var(--ig-border);
+    gap: 12px;
+}
+
+.auth-tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ig-text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.auth-tab-btn.active {
+    color: var(--ig-text-primary);
+    border-bottom-color: var(--ig-text-primary);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.auth-input-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ig-text-secondary);
+}
+
+.auth-input {
+    padding: 10px 12px;
+    background: var(--ig-surface-secondary);
+    border: 1px solid var(--ig-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--ig-text-primary);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.auth-input:focus {
+    border-color: var(--ig-border-dark);
+    background: var(--ig-surface);
+}
+
+.auth-error-box {
+    background: var(--ig-red-subtle);
+    border: 1px solid var(--ig-red);
+    color: var(--ig-red);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    display: none;
+}
+
+.auth-notice-box {
+    font-size: 11px;
+    color: var(--ig-text-muted);
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* Follow / Following Buttons */
+.btn-follow {
+    background: var(--ig-blue);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-follow:hover {
+    background: var(--ig-blue-hover);
+}
+
+.btn-following {
+    background: var(--ig-surface-secondary);
+    color: var(--ig-text-primary);
+    border: 1px solid var(--ig-border);
+    font-weight: 600;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s ease, border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-following:hover {
+    background: var(--ig-red-subtle);
+    color: var(--ig-red);
+    border-color: var(--ig-red);
+}
+
+.btn-following:hover::after {
+    content: ' (Unfollow)';
+}
+
+/* Admin Only Nav Hidden by Default for regular users */
+.admin-restricted {
+    display: none !important;
+}

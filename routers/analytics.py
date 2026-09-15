@@ -29,6 +29,7 @@ def get_analytics_overview():
         profile_pics = query_one("SELECT COUNT(*) AS totalPics FROM Profile_Pic")
         group_members = query_one("SELECT COUNT(*) AS totalMemberships FROM Group_Members")
         post_hashtags = query_one("SELECT COUNT(*) AS totalTaggedPosts FROM Post_Hashtag")
+        follows = query_one("SELECT COUNT(*) AS totalFollows FROM User_Follow")
 
         return {
             "success": True,
@@ -48,7 +49,8 @@ def get_analytics_overview():
                 "totalAdmin": admin_users.get("totalAdmin", 0) if admin_users else 0,
                 "totalPics": profile_pics.get("totalPics", 0) if profile_pics else 0,
                 "totalMemberships": group_members.get("totalMemberships", 0) if group_members else 0,
-                "totalTaggedPosts": post_hashtags.get("totalTaggedPosts", 0) if post_hashtags else 0
+                "totalTaggedPosts": post_hashtags.get("totalTaggedPosts", 0) if post_hashtags else 0,
+                "totalFollows": follows.get("totalFollows", 0) if follows else 0
             }
         }
     except Exception as e:

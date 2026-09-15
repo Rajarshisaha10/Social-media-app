@@ -35,7 +35,7 @@ def get_recommendations_by_user_id(
                 ON pp.user_id = u.user_id
             LEFT JOIN Regular_User ru
                 ON ru.user_id = u.user_id
-            WHERE fr.user_id = ?
+            WHERE fr.user_id = ? AND LOWER(u.username) != 'rajarshi'
             ORDER BY fr.score DESC
         """
         rows = query_all(sql, (user_id,))

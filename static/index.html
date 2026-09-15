@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SocialSphere — Instagram-Style Platform & SQL Studio</title>
-    <meta name="description" content="Instagram-styled social media platform with 16 relational tables, user credentials store, PWA offline caching, and live SQL Studio.">
+    <meta name="description" content="Instagram-styled social media platform with 17 relational tables, user credentials store, PWA offline caching, and live SQL Studio.">
     
     <!-- PWA Settings & Mobile Web App Manifest -->
     <link rel="manifest" href="/manifest.json">
@@ -43,7 +43,89 @@
         </div>
     </div>
 
-    <div class="insta-app-layout">
+    <!-- ================= MANDATORY AUTHENTICATION GATE & LOGIN SCREEN ================= -->
+    <div id="authGateOverlay" class="auth-gate-overlay" style="display: flex;">
+        <div class="auth-gate-card">
+            <div class="auth-gate-logo">
+                <h1>SocialSphere</h1>
+                <p>Sign in with your credentials to access the platform.</p>
+            </div>
+
+            <div class="auth-tabs-row">
+                <button type="button" id="tabBtnLogin" class="auth-tab-btn active">Log In</button>
+                <button type="button" id="tabBtnRegister" class="auth-tab-btn">Create Account</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="loginForm" class="auth-form">
+                <div class="auth-input-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" class="auth-input" placeholder="Enter username" autocomplete="username" required>
+                </div>
+                <div class="auth-input-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="auth-input" placeholder="Enter password" autocomplete="current-password" required>
+                </div>
+                <div id="loginErrorMsg" class="auth-error-box"></div>
+                <button type="submit" id="submitLoginBtn" class="btn-insta-primary" style="width: 100%; height: 40px; margin-top: 6px;">
+                    <span>Log in</span>
+                </button>
+            </form>
+
+            <!-- REGISTRATION FORM -->
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <div class="auth-input-group">
+                    <label for="regUsername">Username *</label>
+                    <input type="text" id="regUsername" class="auth-input" placeholder="Pick a username" autocomplete="username" required>
+                </div>
+                <div class="auth-input-group">
+                    <label for="regEmail">Valid Email Address *</label>
+                    <input type="email" id="regEmail" class="auth-input" placeholder="e.g. user@example.com" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" title="Please enter a valid email address with domain (e.g. user@example.com)" autocomplete="email" required>
+                </div>
+                <div class="auth-input-group">
+                    <label for="regPassword">Password *</label>
+                    <input type="password" id="regPassword" class="auth-input" placeholder="At least 4 characters" autocomplete="new-password" required>
+                </div>
+                <div class="auth-input-group">
+                    <label for="regBio">Bio</label>
+                    <input type="text" id="regBio" class="auth-input" placeholder="A short bio...">
+                </div>
+                <div class="auth-input-group">
+                    <label for="regLocation">Location</label>
+                    <input type="text" id="regLocation" class="auth-input" placeholder="City, Country">
+                </div>
+                <div class="auth-input-group">
+                    <label for="regInterests">Interests</label>
+                    <input type="text" id="regInterests" class="auth-input" placeholder="e.g. Python, Databases, Photography">
+                </div>
+                <div id="registerErrorMsg" class="auth-error-box"></div>
+                <button type="submit" id="submitRegisterBtn" class="btn-insta-primary" style="width: 100%; height: 40px; margin-top: 6px;">
+                    <span>Create Account</span>
+                </button>
+            </form>
+
+            <div class="or-divider" style="display: flex; align-items: center; gap: 10px; margin: 4px 0;">
+                <div style="flex: 1; height: 1px; background: var(--ig-border);"></div>
+                <span style="font-size: 11px; color: var(--ig-text-muted); font-weight: 700;">DEMO ACCOUNTS</span>
+                <div style="flex: 1; height: 1px; background: var(--ig-border);"></div>
+            </div>
+
+            <div class="quick-sample-users" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
+                <button type="button" class="btn-demo-chip" data-user="alice_w" data-pass="password123">
+                    <strong>alice_w</strong> (User)
+                </button>
+                <button type="button" class="btn-demo-chip" data-user="bob_m" data-pass="password123">
+                    <strong>bob_m</strong> (User)
+                </button>
+                <button type="button" class="btn-demo-chip" data-user="charlie_dev" data-pass="password123">
+                    <strong>charlie_dev</strong> (User)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MAIN INSTAGRAM APPLICATION LAYOUT ================= -->
+    <div id="appLayoutSection" class="insta-app-layout" style="display: none;">
 
         <!-- Left Desktop Navigation Sidebar (Instagram Style) -->
         <aside class="insta-sidebar">
@@ -74,34 +156,25 @@
                         <span class="nav-text">Connections</span>
                     </button>
 
-                    <button class="insta-nav-link" data-tab="sql-tab">
-                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                        <span class="nav-text">/sql Studio</span>
-                    </button>
-
-                    <button class="insta-nav-link" data-tab="analytics-tab">
-                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        <span class="nav-text">Analytics</span>
-                    </button>
-
                     <button class="insta-nav-link" data-tab="users-tab">
                         <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                         <span class="nav-text">Explore Users</span>
                     </button>
 
+                    <!-- Super Admin Restricted Nav Links -->
+                    <button class="insta-nav-link admin-restricted" data-tab="sql-tab" id="sidebarSqlNavBtn">
+                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                        <span class="nav-text">/sql Studio</span>
+                    </button>
+
+                    <button class="insta-nav-link admin-restricted" data-tab="analytics-tab" id="sidebarAnalyticsNavBtn">
+                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                        <span class="nav-text">Analytics</span>
+                    </button>
+
                     <button class="insta-nav-link" id="sidebarCreatePostBtn">
                         <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                         <span class="nav-text">Create Post</span>
-                    </button>
-
-                    <button class="insta-nav-link" id="sidebarInstallAppBtn" style="display: none;">
-                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span class="nav-text" style="color: var(--ig-blue); font-weight: 700;">Install Mobile App</span>
-                    </button>
-
-                    <button class="insta-nav-link" data-tab="login-tab">
-                        <svg class="insta-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-                        <span class="nav-text" id="navAuthLabel">Sign In / Register</span>
                     </button>
                 </nav>
             </div>
@@ -109,13 +182,13 @@
             <!-- Sidebar User Profile Footer -->
             <div class="sidebar-user-footer">
                 <div class="user-footer-card">
-                    <img id="sidebarUserAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2" alt="Avatar">
+                    <img id="sidebarUserAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
                     <div class="user-footer-meta">
                         <div class="meta-row-top">
-                            <span id="sidebarUserName" class="meta-uname">shobita</span>
-                            <span id="sidebarAdminBadge" class="admin-badge-pill">SUPER ADMIN</span>
+                            <span id="sidebarUserName" class="meta-uname">username</span>
+                            <span id="sidebarAdminBadge" class="admin-badge-pill" style="display: none;">SUPER ADMIN</span>
                         </div>
-                        <span class="meta-role-desc">Database Architect</span>
+                        <span id="sidebarUserRoleDesc" class="meta-role-desc">SocialSphere Member</span>
                     </div>
                     <button id="sidebarLogoutBtn" class="btn-logout-icon" title="Log Out">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -165,9 +238,9 @@
                             <!-- Create Post Box (Instagram style) -->
                             <div class="create-post-card" id="createPostBoxSection">
                                 <div class="create-card-header">
-                                    <img id="currentUserAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2" alt="Avatar">
-                                    <span id="currentUserName" class="create-user-title">shobita</span>
-                                    <span id="feedAdminBadge" class="admin-badge-pill" style="margin-left: auto;">SUPER ADMIN</span>
+                                    <img id="currentUserAvatar" class="avatar-square-sm" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
+                                    <span id="currentUserName" class="create-user-title">username</span>
+                                    <span id="feedAdminBadge" class="admin-badge-pill" style="margin-left: auto; display: none;">SUPER ADMIN</span>
                                 </div>
                                 <textarea id="postContent" class="create-textarea" placeholder="What's on your mind? Use #hashtags to categorize..."></textarea>
                                 
@@ -202,12 +275,11 @@
                         <aside class="feed-right-sidebar">
                             <!-- Active Account Header -->
                             <div class="sidebar-self-profile">
-                                <img id="headerUserAvatar" class="avatar-square-md" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2" alt="Avatar">
+                                <img id="headerUserAvatar" class="avatar-square-md" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Avatar">
                                 <div class="self-meta">
-                                    <span class="self-uname" id="sidebarSelfName">shobita</span>
-                                    <span class="self-fullname">Database Architect</span>
+                                    <span class="self-uname" id="sidebarSelfName">username</span>
+                                    <span class="self-fullname" id="sidebarSelfRole">Member</span>
                                 </div>
-                                <select id="userSelect" class="switch-account-select" aria-label="Switch User"></select>
                             </div>
 
                             <!-- Suggested Connections Section -->
@@ -228,109 +300,21 @@
                                 <div id="sidebarGroupsList" class="sidebar-groups-items"></div>
                             </div>
 
-                            <!-- SQL Console Quick Widget -->
-                            <div class="sidebar-sql-widget">
+                            <!-- SQL Console Quick Widget (Restricted to Admin Only) -->
+                            <div class="sidebar-sql-widget admin-restricted" id="sidebarSqlWidget">
                                 <span class="widget-eyebrow">DATABASE CONSOLE</span>
                                 <h5>Interactive SQL Studio</h5>
-                                <p>Direct query engine for all 16 relational tables.</p>
+                                <p>Direct query engine for all 17 relational tables.</p>
                                 <button id="launchSqlBtn" class="btn-insta-secondary">Open SQL Studio</button>
                             </div>
 
                             <div class="insta-footer-links">
                                 <a href="/docs" target="_blank">Swagger API</a> &middot;
-                                <a href="javascript:void(0)" onclick="switchTab('analytics-tab')">Telemetry</a> &middot;
-                                <a href="javascript:void(0)" onclick="switchTab('login-tab')">Accounts</a>
+                                <a href="javascript:void(0)" onclick="handleLogout()">Log Out</a>
                                 <p class="insta-copyright">&copy; 2026 SOCIALSPHERE &middot; INSTAGRAM PWA EDITION</p>
                             </div>
                         </aside>
 
-                    </div>
-                </section>
-
-
-                <!-- ================= AUTHENTICATION & LOGIN/REGISTER TAB ================= -->
-                <section id="login-tab" class="tab-content">
-                    <div class="insta-login-box">
-                        <div class="login-card-inner">
-                            <h1 class="login-brand-title">SocialSphere</h1>
-                            <p class="login-tagline">Sign in to your account or register a new profile.</p>
-
-                            <!-- Auth Mode Switcher Tabs -->
-                            <div class="auth-toggle-tabs">
-                                <button id="tabBtnLogin" class="auth-toggle-btn active">Log In</button>
-                                <button id="tabBtnRegister" class="auth-toggle-btn">Sign Up</button>
-                            </div>
-
-                            <!-- Administrator Credentials Callout -->
-                            <div class="admin-notice-box" id="adminCalloutBox">
-                                <div class="admin-notice-top">
-                                    <span class="notice-badge">ADMIN CREDENTIALS</span>
-                                    <button id="quickFillAdminBtn" class="btn-quick-fill">Auto-Fill</button>
-                                </div>
-                                <div class="admin-creds-details">
-                                    <div>Username: <strong>shobita</strong></div>
-                                    <div>Password: <strong>dbms108</strong></div>
-                                    <div class="admin-level-tag">LEVEL: SUPER_ADMIN</div>
-                                </div>
-                            </div>
-
-                            <!-- LOGIN FORM -->
-                            <form id="loginForm" class="insta-login-form">
-                                <div class="insta-input-wrap">
-                                    <input type="text" id="loginUsername" class="insta-input" placeholder="Username, email, or handle" value="shobita" required>
-                                </div>
-                                <div class="insta-input-wrap">
-                                    <input type="password" id="loginPassword" class="insta-input" placeholder="Password" value="dbms108" required>
-                                </div>
-                                <div id="loginErrorMsg" class="auth-error-banner" style="display: none;"></div>
-                                <button type="submit" id="submitLoginBtn" class="btn-insta-primary" style="width: 100%; height: 38px;">Log in</button>
-                            </form>
-
-                            <!-- SIGN UP / REGISTRATION FORM -->
-                            <form id="registerForm" class="insta-login-form" style="display: none;">
-                                <div class="insta-input-wrap">
-                                    <input type="text" id="regUsername" class="insta-input" placeholder="Username (e.g. dev_sarah)" required>
-                                </div>
-                                <div class="insta-input-wrap">
-                                    <input type="email" id="regEmail" class="insta-input" placeholder="Email address" required>
-                                </div>
-                                <div class="insta-input-wrap">
-                                    <input type="password" id="regPassword" class="insta-input" placeholder="Password (min 4 characters)" required>
-                                </div>
-                                <div class="insta-input-wrap">
-                                    <input type="text" id="regBio" class="insta-input" placeholder="Short bio or description">
-                                </div>
-                                <div class="insta-input-wrap">
-                                    <input type="text" id="regLocation" class="insta-input" placeholder="Location (e.g. San Francisco, CA)">
-                                </div>
-                                <div class="insta-input-wrap">
-                                    <input type="text" id="regInterests" class="insta-input" placeholder="Interests (e.g. Python, AI, Distributed SQL)">
-                                </div>
-                                <div id="registerErrorMsg" class="auth-error-banner" style="display: none;"></div>
-                                <button type="submit" id="submitRegisterBtn" class="btn-insta-primary" style="width: 100%; height: 38px;">Create Account</button>
-                            </form>
-
-                            <div class="or-divider">
-                                <div class="divider-line"></div>
-                                <span class="or-text">DEMO ACCOUNTS</span>
-                                <div class="divider-line"></div>
-                            </div>
-
-                            <div class="quick-sample-users">
-                                <button class="btn-demo-chip" data-user="shobita" data-pass="dbms108">
-                                    <strong>shobita</strong> (Admin)
-                                </button>
-                                <button class="btn-demo-chip" data-user="alice_w" data-pass="password123">
-                                    <strong>alice_w</strong> (User)
-                                </button>
-                                <button class="btn-demo-chip" data-user="bob_m" data-pass="password123">
-                                    <strong>bob_m</strong> (User)
-                                </button>
-                                <button class="btn-demo-chip" data-user="charlie_dev" data-pass="password123">
-                                    <strong>charlie_dev</strong> (User)
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </section>
 
@@ -341,7 +325,7 @@
                         <!-- Direct Left Conversations List -->
                         <div class="direct-left-col" id="chatSidebar">
                             <div class="direct-header-top">
-                                <span class="direct-self-uname" id="directSelfName">shobita</span>
+                                <span class="direct-self-uname" id="directSelfName">username</span>
                                 <button class="btn-text-sm" onclick="loadConversations()">Refresh</button>
                             </div>
                             <div class="direct-messages-label">MESSAGES</div>
@@ -403,13 +387,13 @@
                 </section>
 
 
-                <!-- ================= /SQL STUDIO TAB ================= -->
-                <section id="sql-tab" class="tab-content">
+                <!-- ================= /SQL STUDIO TAB (SUPER ADMIN ONLY) ================= -->
+                <section id="sql-tab" class="tab-content admin-restricted">
                     <div class="insta-sql-header">
                         <div>
-                            <div class="sql-badge-tag">SQL QUERY CONSOLE</div>
+                            <div class="sql-badge-tag">SUPER ADMIN ONLY</div>
                             <h2>Relational Database Studio</h2>
-                            <p class="section-subtext">Execute live SQL queries across all 16 relational tables in SQLite.</p>
+                            <p class="section-subtext">Execute live SQL queries across all 17 relational tables in SQLite.</p>
                         </div>
                         <div class="sql-actions-wrap">
                             <button id="exportCsvBtn" class="btn-insta-outline" title="Export CSV">Export CSV</button>
@@ -454,7 +438,7 @@
                         <aside class="sql-schema-column">
                             <div class="schema-box-header">
                                 <h3>DATABASE TABLES</h3>
-                                <span id="schemaTableCount" class="schema-count-badge">16</span>
+                                <span id="schemaTableCount" class="schema-count-badge">17</span>
                             </div>
                             <p class="schema-subtitle">Click table name to generate SELECT query.</p>
                             <div id="schemaTablesList" class="schema-accordion-list"></div>
@@ -463,12 +447,12 @@
                 </section>
 
 
-                <!-- ================= ANALYTICS TAB ================= -->
-                <section id="analytics-tab" class="tab-content">
+                <!-- ================= ANALYTICS TAB (SUPER ADMIN ONLY) ================= -->
+                <section id="analytics-tab" class="tab-content admin-restricted">
                     <div class="insta-section-header">
                         <div>
                             <h2>Platform Metrics & Telemetry</h2>
-                            <p class="section-subtext">Record counters across all 16 relational tables and audit event logs.</p>
+                            <p class="section-subtext">Record counters across all 17 relational tables and audit event logs.</p>
                         </div>
                         <button id="refreshAnalyticsBtn" class="btn-insta-outline">Refresh</button>
                     </div>
@@ -493,7 +477,7 @@
                     <div class="insta-section-header">
                         <div>
                             <h2>Member Directory</h2>
-                            <p class="section-subtext">Explore registered users, administrative roles, and social profiles.</p>
+                            <p class="section-subtext">Explore community members, view profiles, and follow creators.</p>
                         </div>
                     </div>
                     <div id="usersGrid" class="cards-grid"></div>
@@ -505,7 +489,7 @@
     </div>
 
     <!-- Mobile Bottom Navigation Bar (Instagram Style) -->
-    <nav class="insta-mobile-bottom-nav">
+    <nav class="insta-mobile-bottom-nav" id="mobileBottomNav" style="display: none;">
         <button class="mobile-nav-btn active" data-tab="feed-tab" title="Home Feed">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
         </button>
@@ -515,11 +499,11 @@
         <button class="mobile-nav-btn" id="mobileCreatePostBtn" title="Create Post">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
         </button>
-        <button class="mobile-nav-btn" data-tab="sql-tab" title="SQL Studio">
+        <button class="mobile-nav-btn admin-restricted" data-tab="sql-tab" id="mobileSqlBtn" title="SQL Studio">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
         </button>
-        <button class="mobile-nav-btn" data-tab="login-tab" title="Profile / Login">
-            <img id="mobileUserAvatar" class="avatar-square-xs" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2" alt="Profile">
+        <button class="mobile-nav-btn" data-tab="users-tab" title="Explore Users">
+            <img id="mobileUserAvatar" class="avatar-square-xs" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Profile">
         </button>
     </nav>
 
@@ -562,13 +546,14 @@
                         <p id="profModalBio" class="prof-bio-text"></p>
                         <div class="prof-stats-bar">
                             <div><strong id="profModalPostsCount">0</strong> posts</div>
-                            <div><strong>142</strong> followers</div>
-                            <div><strong>88</strong> following</div>
+                            <div><strong id="profModalFollowersCount">0</strong> followers</div>
+                            <div><strong id="profModalFollowingCount">0</strong> following</div>
                         </div>
                     </div>
                 </div>
-                <div class="profile-modal-actions">
-                    <button id="profModalSendMsgBtn" class="btn-insta-primary" style="flex: 1;">Direct Message</button>
+                <div class="profile-modal-actions" style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button id="profModalFollowBtn" class="btn-follow" style="flex: 1;">Follow</button>
+                    <button id="profModalSendMsgBtn" class="btn-insta-secondary" style="flex: 1;">Direct Message</button>
                 </div>
             </div>
         </div>

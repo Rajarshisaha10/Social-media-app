@@ -29,14 +29,14 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
     }
   }, [user?.user_id]);
 
-  // Initial load + auto-refresh every 10 seconds
+  // Initial load + silent auto-refresh every 10 seconds
   useEffect(() => {
     let mounted = true;
     async function loadData(isInitial = false) {
-      if (isInitial) setLoading(true);
+      if (isInitial && posts.length === 0) setLoading(true);
       try {
         const [postsRes, tagsRes, recsRes, groupsRes] = await Promise.allSettled([
-          api.getPosts({ viewerId: user?.user_id }),
+          api.getPosts({ tag: activeTag, viewerId: user?.user_id }),
           api.getHashtags(),
           user?.user_id ? api.getRecommendations(user.user_id) : Promise.resolve(null),
           api.getGroups(user?.user_id),
@@ -61,15 +61,27 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
       }
     }
 
-    loadData(true);
+    loadData(posts.length === 0);
     const interval = setInterval(() => loadData(false), 10000);
     return () => { mounted = false; clearInterval(interval); };
-  }, [user?.user_id]);
+  }, [user?.user_id, activeTag]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchPosts(activeTag);
-    setRefreshing(false);
+    try {
+      const [postsRes, tagsRes] = await Promise.allSettled([
+        api.getPosts({ tag: activeTag, viewerId: user?.user_id }),
+        api.getHashtags(),
+      ]);
+      if (postsRes.status === 'fulfilled' && postsRes.value?.posts) {
+        setPosts(postsRes.value.posts);
+      }
+      if (tagsRes.status === 'fulfilled' && tagsRes.value?.hashtags) {
+        setHashtags(tagsRes.value.hashtags);
+      }
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleTagFilter = (tag) => {
@@ -188,8 +200,16 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
           )}
         </div>
 
+        {/* Top Reloading Markup: Visible indicator while preserving all screen content */}
+        {refreshing && (
+          <div className="feed-reloading-badge">
+            <RefreshCw size={13} className="animate-spin" />
+            <span>Reloading latest updates...</span>
+          </div>
+        )}
+
         {/* Posts Feed Stream */}
-        {loading ? (
+        {loading && posts.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {[1, 2, 3].map((n) => (
               <div

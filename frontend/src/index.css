@@ -1339,3 +1339,35 @@ input, textarea, select {
     border-radius: var(--radius-md);
   }
 }
+
+/* Feed Top Reloading Badge (visible top indicator without losing screen content) */
+.feed-reloading-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--blue-light);
+  color: var(--blue-primary);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 4px auto 8px;
+  width: fit-content;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

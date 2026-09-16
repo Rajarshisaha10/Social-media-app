@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Flame, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
@@ -20,40 +20,59 @@ function timeAgo(dateStr) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function parseReactionCounts(postData) {
+  const counts = { LIKE: 0, LOVE: 0, FIRE: 0 };
+  if (postData.reactions && Array.isArray(postData.reactions)) {
+    postData.reactions.forEach((r) => {
+      const type = (r.reaction_type || '').toUpperCase();
+      if (counts[type] !== undefined) counts[type]++;
+    });
+  } else if (postData.likes_count !== undefined) {
+    counts.LIKE = postData.likes_count || 0;
+  }
+  return counts;
+}
+
+function parseUserReactions(postData, currentUserId) {
+  const set = new Set();
+  if (postData.reactions && Array.isArray(postData.reactions) && currentUserId) {
+    postData.reactions.forEach((r) => {
+      if (r.user_id === currentUserId) {
+        set.add(r.reaction_type?.toUpperCase());
+      }
+    });
+  }
+  return set;
+}
+
 export default function PostCard({ post, onTagClick, onUserClick }) {
   const { user } = useAuth();
 
   // Optimistic reactions state
-  const [reactions, setReactions] = useState(() => {
-    const counts = { LIKE: 0, LOVE: 0, FIRE: 0 };
-    if (post.reactions && Array.isArray(post.reactions)) {
-      post.reactions.forEach((r) => {
-        const type = (r.reaction_type || '').toUpperCase();
-        if (counts[type] !== undefined) counts[type]++;
-      });
-    } else if (post.likes_count !== undefined) {
-      counts.LIKE = post.likes_count || 0;
-    }
-    return counts;
-  });
-
-  const [userReactions, setUserReactions] = useState(() => {
-    const set = new Set();
-    if (post.reactions && Array.isArray(post.reactions) && user?.user_id) {
-      post.reactions.forEach((r) => {
-        if (r.user_id === user.user_id) {
-          set.add(r.reaction_type?.toUpperCase());
-        }
-      });
-    }
-    return set;
-  });
+  const [reactions, setReactions] = useState(() => parseReactionCounts(post));
+  const [userReactions, setUserReactions] = useState(() => parseUserReactions(post, user?.user_id));
 
   // Comments state
   const [comments, setComments] = useState(post.comments || []);
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Silently sync reactions, like counts, and comments whenever updated data arrives from the 10-sec poll or refresh
+  useEffect(() => {
+    setReactions(parseReactionCounts(post));
+    setUserReactions(parseUserReactions(post, user?.user_id));
+
+    if (post.comments && Array.isArray(post.comments)) {
+      setComments((prev) => {
+        // Preserve any pending optimistic comments that have not resolved yet
+        const pending = prev.filter((c) => String(c.comment_id).startsWith('temp-'));
+        const serverCommentIds = new Set(post.comments.map((c) => c.comment_id));
+        const unresolvedPending = pending.filter((c) => !serverCommentIds.has(c.comment_id));
+        return [...post.comments, ...unresolvedPending];
+      });
+    }
+  }, [post.reactions, post.reaction_count, post.likes_count, post.comments, post.comment_count, user?.user_id]);
 
   // 0ms Optimistic Reaction Toggle
   const handleToggleReaction = async (type) => {

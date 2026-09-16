@@ -119,6 +119,30 @@ try:
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/posts - Count:", r.json()["count"])
 
+    # 8b. Post Creation & Deletion
+    r_create_post = client.post("/api/posts", json={
+        "user_id": new_user_id,
+        "content": "Test post for deletion #deleteTest"
+    })
+    assert r_create_post.status_code == 200 and r_create_post.json()["success"]
+    created_post_id = r_create_post.json()["post_id"]
+    print(" [PASS] POST /api/posts (Created temporary post):", created_post_id)
+
+    # Permission check: non-author cannot delete
+    r_del_unauth = client.delete(f"/api/posts/{created_post_id}?user_id=2")
+    assert r_del_unauth.status_code == 403
+    print(" [PASS] DELETE /api/posts/{id} (Unauthorized rejected with 403)")
+
+    # Author deletion succeeds
+    r_del_auth = client.delete(f"/api/posts/{created_post_id}?user_id={new_user_id}")
+    assert r_del_auth.status_code == 200 and r_del_auth.json()["success"]
+    print(" [PASS] DELETE /api/posts/{id} (Author deleted post successfully)")
+
+    # Deleting already deleted post returns 404
+    r_del_gone = client.delete(f"/api/posts/{created_post_id}?user_id={new_user_id}")
+    assert r_del_gone.status_code == 404
+    print(" [PASS] DELETE /api/posts/{id} (Already deleted post returns 404)")
+
     # 9. Groups
     r = client.get("/api/groups?user_id=1")
     assert r.status_code == 200 and r.json()["success"]

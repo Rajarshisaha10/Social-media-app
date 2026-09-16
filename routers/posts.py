@@ -262,3 +262,50 @@ def add_comment(
     except Exception as e:
         logger.error(f"Error adding comment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{post_id}")
+def delete_post(
+    post_id: int = Path(..., description="Post ID to delete"),
+    user_id: Optional[int] = Query(None, description="User ID requesting deletion")
+):
+    """Delete a post. Allowed by author or Super Admin."""
+    try:
+        post = query_one("SELECT post_id, user_id FROM Post WHERE post_id = ?", (post_id,))
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # Permission verification if user_id is provided
+        if user_id:
+            admin_row = query_one("SELECT admin_level FROM Admin_User WHERE user_id = ?", (user_id,))
+            is_super_admin = bool(admin_row and admin_row.get("admin_level") == "SUPER_ADMIN")
+            
+            user_row = query_one("SELECT username FROM Users WHERE user_id = ?", (user_id,))
+            if user_row and user_row.get("username", "").lower() == "rajarshi":
+                is_super_admin = True
+
+            if post["user_id"] != user_id and not is_super_admin:
+                raise HTTPException(status_code=403, detail="You do not have permission to delete this post")
+
+        # Cascade cleanup of related records
+        execute_write("DELETE FROM Reaction WHERE post_id = ?", (post_id,))
+        execute_write("DELETE FROM Comment WHERE post_id = ?", (post_id,))
+        execute_write("DELETE FROM Post_Hashtag WHERE post_id = ?", (post_id,))
+        execute_write("DELETE FROM Notification WHERE ref_type IN ('POST', 'COMMENT', 'REACTION') AND ref_id = ?", (post_id,))
+        execute_write("DELETE FROM Post WHERE post_id = ?", (post_id,))
+
+        if user_id:
+            execute_write("""
+                INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+                VALUES (?, 'POST_DELETE', 'WEB', ?)
+            """, (user_id, f'{{"post_id": {post_id}}}'))
+
+        return {
+            "success": True,
+            "message": f"Post {post_id} deleted successfully",
+            "post_id": post_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

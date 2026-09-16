@@ -91,6 +91,11 @@ export const api = {
       body: JSON.stringify({ user_id: userId, content }),
     }),
 
+  deletePost: ({ postId, userId }) =>
+    request(`/api/posts/${postId}${userId ? `?user_id=${userId}` : ''}`, {
+      method: 'DELETE',
+    }),
+
   getHashtags: () => request('/api/analytics/hashtags'),
 
   // Communities / Groups

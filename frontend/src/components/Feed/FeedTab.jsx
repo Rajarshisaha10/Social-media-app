@@ -126,6 +126,20 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
     }
   };
 
+  // Optimistic post deletion
+  const handleDeletePost = async (postId) => {
+    const originalPosts = posts;
+    setPosts((prev) => prev.filter((p) => p.post_id !== postId));
+
+    try {
+      await api.deletePost({ postId, userId: user?.user_id });
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      alert('Could not delete post: ' + (err.message || 'Server error'));
+      setPosts(originalPosts);
+    }
+  };
+
   return (
     <div className="feed-layout">
       <div className="feed-column">
@@ -237,6 +251,7 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
                 post={post}
                 onTagClick={handleTagFilter}
                 onUserClick={onUserClick}
+                onDeletePost={handleDeletePost}
               />
             ))}
           </div>

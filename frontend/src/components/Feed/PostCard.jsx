@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Flame, MessageCircle, Send } from 'lucide-react';
+import { Heart, Flame, MessageCircle, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 
@@ -45,8 +45,9 @@ function parseUserReactions(postData, currentUserId) {
   return set;
 }
 
-export default function PostCard({ post, onTagClick, onUserClick }) {
-  const { user } = useAuth();
+export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }) {
+  const { user, isSuperAdmin } = useAuth();
+  const [deleting, setDeleting] = useState(false);
 
   // Optimistic reactions state
   const [reactions, setReactions] = useState(() => parseReactionCounts(post));
@@ -57,6 +58,27 @@ export default function PostCard({ post, onTagClick, onUserClick }) {
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  const canDelete = Boolean(user && (user.user_id === post.user_id || isSuperAdmin));
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (deleting) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+
+    setDeleting(true);
+    try {
+      if (onDeletePost) {
+        await onDeletePost(post.post_id);
+      } else {
+        await api.deletePost({ postId: post.post_id, userId: user?.user_id });
+      }
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      alert('Could not delete post: ' + (err.message || 'Server error'));
+      setDeleting(false);
+    }
+  };
 
   // Silently sync reactions, like counts, and comments whenever updated data arrives from the 10-sec poll or refresh
   useEffect(() => {
@@ -200,6 +222,18 @@ export default function PostCard({ post, onTagClick, onUserClick }) {
             </span>
           </div>
         </div>
+
+        {canDelete && (
+          <button
+            type="button"
+            className="post-delete-btn"
+            onClick={handleDelete}
+            disabled={deleting}
+            title={isSuperAdmin && user?.user_id !== post.user_id ? "Delete post (Super Admin)" : "Delete post"}
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </header>
 
       {post.content && (

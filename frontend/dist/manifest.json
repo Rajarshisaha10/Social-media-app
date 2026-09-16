@@ -1,48 +1,72 @@
 {
+  "id": "socialsphere-pwa",
   "name": "SocialSphere — Social & SQL Studio",
   "short_name": "SocialSphere",
-  "description": "Instagram-style social media platform with direct messaging, stories tray, and live SQLite database studio.",
-  "start_url": "/",
+  "description": "High-performance Instagram-style social media platform and live database studio.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
-  "theme_color": "#ffffff",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait-primary",
+  "background_color": "#fdf8f3",
+  "theme_color": "#ffffff",
+  "categories": [
+    "social",
+    "productivity",
+    "utilities"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/static/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/static/icon-512.png",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/static/apple-touch-icon.png",
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "categories": ["social", "productivity", "utilities"],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "Home Feed",
       "url": "/?tab=feed",
-      "description": "View social feed and stories"
+      "description": "View social feed, stories, and posts"
     },
     {
       "name": "Messages",
       "url": "/?tab=messages",
-      "description": "Open direct chat messages"
+      "description": "Open direct chat conversations"
     },
     {
       "name": "SQL Studio",
       "url": "/sql",
-      "description": "Execute database queries"
+      "description": "Run live database queries"
     }
   ]
 }

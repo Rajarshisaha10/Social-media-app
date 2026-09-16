@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 import uvicorn
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -106,13 +106,17 @@ def get_spa_index():
         return legacy_index
     return None
 
-# PWA Service Worker & Manifest Routes
+# PWA Service Worker, Manifest & Root Icon Routes
 @app.get("/manifest.json")
 def serve_manifest():
     for base in [frontend_dist, static_dir]:
         manifest_file = os.path.join(base, "manifest.json")
         if os.path.exists(manifest_file):
-            return FileResponse(manifest_file, media_type="application/manifest+json")
+            return FileResponse(
+                manifest_file,
+                media_type="application/manifest+json",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
     raise HTTPException(status_code=404, detail="Manifest not found")
 
 @app.get("/sw.js")
@@ -123,9 +127,26 @@ def serve_service_worker():
             return FileResponse(
                 sw_file,
                 media_type="application/javascript",
-                headers={"Service-Worker-Allowed": "/"}
+                headers={
+                    "Service-Worker-Allowed": "/",
+                    "Cache-Control": "no-cache, no-store, must-revalidate"
+                }
             )
     raise HTTPException(status_code=404, detail="Service worker not found")
+
+@app.get("/favicon.ico")
+@app.get("/favicon.svg")
+@app.get("/icon-192.png")
+@app.get("/icon-512.png")
+@app.get("/apple-touch-icon.png")
+@app.get("/icons.svg")
+def serve_pwa_icon(request: Request):
+    filename = request.url.path.lstrip("/")
+    for base in [frontend_dist, static_dir]:
+        filepath = os.path.join(base, filename)
+        if os.path.exists(filepath):
+            return FileResponse(filepath)
+    raise HTTPException(status_code=404, detail=f"{filename} not found")
 
 @app.get("/")
 def serve_ui():

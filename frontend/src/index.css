@@ -270,13 +270,15 @@ input, textarea, select {
   overflow-x: hidden;
 }
 
-/* Mobile Header & Bottom Nav */
+/* Mobile Header & Bottom Nav with Native Safe Area Insets */
 .mobile-header {
   display: none;
-  height: var(--header-height-mobile);
+  height: calc(var(--header-height-mobile) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-default);
-  padding: 0 16px;
+  padding-left: 16px;
+  padding-right: 16px;
   align-items: center;
   justify-content: space-between;
   position: sticky;
@@ -287,7 +289,8 @@ input, textarea, select {
 
 .mobile-bottom-nav {
   display: none;
-  height: var(--bottom-nav-height);
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--bg-surface);
   border-top: 1px solid var(--border-default);
   position: fixed;
@@ -297,7 +300,8 @@ input, textarea, select {
   z-index: 30;
   justify-content: space-around;
   align-items: center;
-  padding: 0 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .mobile-nav-item {

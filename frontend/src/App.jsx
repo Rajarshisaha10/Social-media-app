@@ -14,6 +14,7 @@ import UserProfileModal from './components/Modals/UserProfileModal';
 import StoryViewerModal from './components/Modals/StoryViewerModal';
 import NotificationsModal from './components/Modals/NotificationsModal';
 import CreateGroupModal from './components/Modals/CreateGroupModal';
+import InstallAppPrompt from './components/InstallAppPrompt';
 
 export default function App() {
   const { user, isSuperAdmin } = useAuth();
@@ -135,6 +136,9 @@ export default function App() {
           // If in groups tab, user will see newly created group
         }}
       />
+
+      {/* Mobile App Install Prompt */}
+      <InstallAppPrompt />
     </div>
   );
 }

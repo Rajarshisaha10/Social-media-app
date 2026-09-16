@@ -50,7 +50,13 @@ try:
 
     r = client.get("/sw.js")
     assert r.status_code == 200, f"Service worker failed: {r.text}"
-    print(" [PASS] GET /sw.js (PWA Service Worker served)")
+    assert "Service-Worker-Allowed" in r.headers
+    print(" [PASS] GET /sw.js (PWA Service Worker served with Service-Worker-Allowed header)")
+
+    for icon_path in ["/icon-192.png", "/icon-512.png", "/favicon.svg"]:
+        r = client.get(icon_path)
+        assert r.status_code == 200, f"{icon_path} failed: {r.status_code}"
+        print(f" [PASS] GET {icon_path} (PWA Icon served)")
 
     # 4. Authentication: Login with Super Admin rajarshi
     r = client.post("/api/users/login", json={"username": "rajarshi", "password": "dbms108"})

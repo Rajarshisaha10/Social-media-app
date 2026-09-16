@@ -29,11 +29,11 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
     }
   }, [user?.user_id]);
 
-  // Initial load
+  // Initial load + auto-refresh every 10 seconds
   useEffect(() => {
     let mounted = true;
-    async function loadData() {
-      setLoading(true);
+    async function loadData(isInitial = false) {
+      if (isInitial) setLoading(true);
       try {
         const [postsRes, tagsRes, recsRes, groupsRes] = await Promise.allSettled([
           api.getPosts({ viewerId: user?.user_id }),
@@ -57,12 +57,13 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
           setCommunities(groupsRes.value.groups);
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted && isInitial) setLoading(false);
       }
     }
 
-    loadData();
-    return () => { mounted = false; };
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 10000);
+    return () => { mounted = false; clearInterval(interval); };
   }, [user?.user_id]);
 
   const handleRefresh = async () => {

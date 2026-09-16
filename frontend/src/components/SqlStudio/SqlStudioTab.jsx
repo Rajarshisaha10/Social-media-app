@@ -30,14 +30,16 @@ export default function SqlStudioTab() {
   const [error, setError] = useState(null);
   const [expandedTable, setExpandedTable] = useState(null);
   const [activeView, setActiveView] = useState('editor'); // 'editor' | 'dictionary'
+  const [dbEngine, setDbEngine] = useState('DATABASE');
 
-  // Load presets and schema on mount
+  // Load presets, schema, and engine info on mount
   useEffect(() => {
     async function loadMeta() {
       try {
-        const [presetsData, schemaData] = await Promise.all([
+        const [presetsData, schemaData, infoData] = await Promise.all([
           api.getSqlPresets(),
           api.getSqlSchema(),
+          fetch(`${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : ''}/api/info`).then(r => r.json()).catch(() => null),
         ]);
         if (presetsData?.presets) setPresets(presetsData.presets);
         if (schemaData?.tables) {
@@ -46,6 +48,7 @@ export default function SqlStudioTab() {
             setExpandedTable(schemaData.tables[0].name || schemaData.tables[0].table_name);
           }
         }
+        if (infoData?.database) setDbEngine(infoData.database);
       } catch (err) {
         console.error('Failed to load SQL metadata:', err);
       }
@@ -122,7 +125,7 @@ export default function SqlStudioTab() {
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--blue-light)', color: 'var(--blue-primary)', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: 'var(--radius-full)', letterSpacing: '0.5px', marginBottom: '6px' }}>
             <Server size={13} />
-            <span>SQLITE 3 DATABASE CONSOLE</span>
+            <span>{dbEngine} DATABASE CONSOLE</span>
           </div>
           <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Database & SQL Studio</h2>
           <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -220,7 +223,7 @@ export default function SqlStudioTab() {
           </div>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>DATABASE ENGINE</div>
-            <div style={{ fontSize: '18px', fontWeight: 800 }}>SQLite (social_media.db)</div>
+            <div style={{ fontSize: '18px', fontWeight: 800 }}>{dbEngine}</div>
           </div>
         </div>
       </div>
@@ -398,7 +401,7 @@ export default function SqlStudioTab() {
           <div className="aside-card">
             <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Complete 17-Table Schema Introspection</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Complete breakdown of every relational table, column definition, primary keys, and data types stored in SQLite.
+              Complete breakdown of every relational table, column definition, primary keys, and data types stored in {dbEngine}.
             </p>
           </div>
 

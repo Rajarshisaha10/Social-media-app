@@ -3,6 +3,23 @@ import { Heart, Flame, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 
+function timeAgo(dateStr) {
+  if (!dateStr) return 'Just now';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)}w ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function PostCard({ post, onTagClick, onUserClick }) {
   const { user } = useAuth();
 
@@ -160,7 +177,7 @@ export default function PostCard({ post, onTagClick, onUserClick }) {
               )}
             </div>
             <span className="post-timestamp">
-              {post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Just now'}
+              {timeAgo(post.created_at || post.created_date)}
             </span>
           </div>
         </div>

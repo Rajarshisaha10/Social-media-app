@@ -1,8 +1,16 @@
 import React from 'react';
 
 export default function StoriesTray({ users, onSelectStory }) {
-  // Take users who have avatars as demo stories
-  const storyUsers = users.slice(0, 10);
+  // Deduplicate users by user_id — 1 story bubble per person
+  const seen = new Set();
+  const uniqueUsers = [];
+  for (const u of users) {
+    if (!seen.has(u.user_id)) {
+      seen.add(u.user_id);
+      uniqueUsers.push(u);
+    }
+  }
+  const storyUsers = uniqueUsers.slice(0, 10);
 
   return (
     <div className="stories-card">

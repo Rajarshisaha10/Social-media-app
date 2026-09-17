@@ -73,25 +73,27 @@ def list_posts(
             """
             posts = query_all(posts_sql)
 
-        for post in posts:
-            post_id = post["post_id"]
-            # Fetch reactions with reaction_type breakdown
-            reactions = query_all("""
+        if posts:
+            post_ids = [p["post_id"] for p in posts]
+            placeholders = ",".join(["?"] * len(post_ids))
+
+            # Batch fetch reactions in 1 single query
+            all_reactions = query_all(f"""
                 SELECT
+                    r.post_id,
                     r.reaction_id,
                     r.reaction_type,
                     r.user_id,
                     u.username
                 FROM Reaction r
                 JOIN Users u ON u.user_id = r.user_id
-                WHERE r.post_id = ?
-            """, (post_id,))
-            post["reactions"] = reactions
-            post["reaction_count"] = len(reactions)
+                WHERE r.post_id IN ({placeholders})
+            """, tuple(post_ids))
 
-            # Fetch comments
-            comments = query_all("""
+            # Batch fetch comments in 1 single query
+            all_comments = query_all(f"""
                 SELECT
+                    c.post_id,
                     c.comment_id,
                     c.user_id,
                     c.reply_to,
@@ -102,20 +104,42 @@ def list_posts(
                 FROM Comment c
                 JOIN Users u ON u.user_id = c.user_id
                 LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
-                WHERE c.post_id = ?
+                WHERE c.post_id IN ({placeholders})
                 ORDER BY c.comment_id ASC
-            """, (post_id,))
-            post["comments"] = comments
-            post["comment_count"] = len(comments)
+            """, tuple(post_ids))
 
-            # Fetch hashtags
-            hashtags = query_all("""
-                SELECT h.tag, h.category
+            # Batch fetch hashtags in 1 single query
+            all_hashtags = query_all(f"""
+                SELECT ph.post_id, h.tag, h.category
                 FROM Post_Hashtag ph
                 JOIN Hashtag h ON h.hashtag_id = ph.hashtag_id
-                WHERE ph.post_id = ?
-            """, (post_id,))
-            post["hashtags"] = [h["tag"] for h in hashtags]
+                WHERE ph.post_id IN ({placeholders})
+            """, tuple(post_ids))
+
+            # Map results to posts in-memory
+            from collections import defaultdict
+            reactions_by_post = defaultdict(list)
+            for r in all_reactions:
+                reactions_by_post[r["post_id"]].append(r)
+
+            comments_by_post = defaultdict(list)
+            for c in all_comments:
+                comments_by_post[c["post_id"]].append(c)
+
+            hashtags_by_post = defaultdict(list)
+            for h in all_hashtags:
+                hashtags_by_post[h["post_id"]].append(h["tag"])
+
+            for post in posts:
+                pid = post["post_id"]
+                reacs = reactions_by_post.get(pid, [])
+                comms = comments_by_post.get(pid, [])
+                tags = hashtags_by_post.get(pid, [])
+                post["reactions"] = reacs
+                post["reaction_count"] = len(reacs)
+                post["comments"] = comms
+                post["comment_count"] = len(comms)
+                post["hashtags"] = tags
 
         return {
             "success": True,

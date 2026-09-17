@@ -97,6 +97,7 @@ def get_engine() -> str:
             maxshared=10,
             maxconnections=50,
             blocking=True,
+            ping=7,
             host=DB_HOST,
             port=DB_PORT,
             user=DB_USER,
@@ -427,21 +428,23 @@ def init_db():
     """Initialize database tables and seed defaults if empty."""
     engine = get_engine()
     if engine == "mysql":
-        schema_file = os.path.join(os.path.dirname(__file__), "schema_mysql.sql")
-        if os.path.exists(schema_file):
-            with get_db() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
-                    with open(schema_file, "r", encoding="utf-8") as f:
-                        statements = f.read().split(";")
-                        for stmt in statements:
-                            cleaned = stmt.strip()
-                            lines = [l for l in cleaned.splitlines() if not l.strip().startswith("--")]
-                            stmt_no_comments = "\n".join(lines).strip()
-                            if stmt_no_comments:
-                                cursor.execute(stmt_no_comments)
-                    cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
-                conn.commit()
+        table_check = query_one("SHOW TABLES LIKE 'Users'")
+        if not table_check:
+            schema_file = os.path.join(os.path.dirname(__file__), "schema_mysql.sql")
+            if os.path.exists(schema_file):
+                with get_db() as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
+                        with open(schema_file, "r", encoding="utf-8") as f:
+                            statements = f.read().split(";")
+                            for stmt in statements:
+                                cleaned = stmt.strip()
+                                lines = [l for l in cleaned.splitlines() if not l.strip().startswith("--")]
+                                stmt_no_comments = "\n".join(lines).strip()
+                                if stmt_no_comments:
+                                    cursor.execute(stmt_no_comments)
+                        cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
+                    conn.commit()
 
         user_count = query_one("SELECT COUNT(*) AS count FROM Users")
         if not user_count or user_count["count"] == 0:

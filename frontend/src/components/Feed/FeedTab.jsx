@@ -30,11 +30,13 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
     }
   }, [user?.user_id]);
 
-  // Initial load + silent auto-refresh every 10 seconds
+  // Initial load + silent post refresh when tab is visible
   useEffect(() => {
     let mounted = true;
-    async function loadData(isInitial = false) {
-      if (isInitial && posts.length === 0) setLoading(true);
+
+    // Full load: posts, hashtags, recommendations, groups
+    async function loadAllData() {
+      if (posts.length === 0) setLoading(true);
       try {
         const [postsRes, tagsRes, recsRes, groupsRes] = await Promise.allSettled([
           api.getPosts({ tag: activeTag, viewerId: user?.user_id }),
@@ -58,13 +60,29 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
           setCommunities(groupsRes.value.groups);
         }
       } finally {
-        if (mounted && isInitial) setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
 
-    loadData(posts.length === 0);
-    const interval = setInterval(() => loadData(false), 10000);
-    return () => { mounted = false; clearInterval(interval); };
+    loadAllData();
+
+    // Silent periodic refresh strictly for new posts (every 25s, only when tab is active)
+    const interval = setInterval(async () => {
+      if (!mounted || document.hidden) return;
+      try {
+        const postsRes = await api.getPosts({ tag: activeTag, viewerId: user?.user_id });
+        if (mounted && postsRes?.posts) {
+          setPosts(postsRes.posts);
+        }
+      } catch {
+        // Silent catch for background refresh
+      }
+    }, 25000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [user?.user_id, activeTag]);
 
   const handleRefresh = async () => {

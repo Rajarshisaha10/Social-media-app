@@ -70,14 +70,20 @@ uvicorn main:app --host 127.0.0.1 --port 5000 --reload
 
 ---
 
-## ☁️ Deployment on Render
+## ☁️ Cloud Deployment
 
-This repository is pre-configured for seamless deployment to **[Render](https://render.com)**.
-
-### Option A: 1-Click / Blueprint Deployment (`render.yaml`)
-1. Push this repository to GitHub or GitLab.
+### 1. Render Deployment (`render.yaml`)
+This repository is pre-configured for automated 1-click deployment on **[Render](https://render.com)**.
+1. Push this repository to your GitHub account.
 2. In the Render Dashboard, click **New +** -> **Blueprint**.
-3. Connect your repository. Render will automatically detect `render.yaml` and configure the web service.
+3. Connect your repository. Render will automatically detect [`render.yaml`](file:///c:/Users/rajar/Desktop/coding/social-media-backend/render.yaml) and deploy the web service with multi-worker concurrency and PWA caching.
+
+### 2. Klouds Deployment (`klouds.yaml`)
+Pre-configured for **[Klouds.online](https://klouds.online)** fullstack deployment with managed MySQL 8.0:
+1. Connect your repository in Klouds.
+2. Klouds automatically reads [`klouds.yaml`](file:///c:/Users/rajar/Desktop/coding/social-media-backend/klouds.yaml) to provision:
+   - **Backend**: FastAPI web service with Uvicorn.
+   - **Database**: Managed MySQL 8.0 with credentials auto-wired.
 
 ### Option B: Manual Web Service Setup
 1. In Render, click **New +** -> **Web Service**.

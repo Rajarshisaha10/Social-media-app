@@ -13,44 +13,47 @@ router = APIRouter(
 def get_analytics_overview():
     """GET overall platform analytics across all 16 entity tables."""
     try:
-        users = query_one("SELECT COUNT(*) AS totalUsers FROM Users")
-        creds = query_one("SELECT COUNT(*) AS totalCreds FROM User_Credentials")
-        posts = query_one("SELECT COUNT(*) AS totalPosts FROM Post")
-        comments = query_one("SELECT COUNT(*) AS totalComments FROM Comment")
-        reactions = query_one("SELECT COUNT(*) AS totalReactions FROM Reaction")
-        messages = query_one("SELECT COUNT(*) AS totalMessages FROM Message")
-        groups = query_one("SELECT COUNT(*) AS totalGroups FROM Community_Group")
-        recommendations = query_one("SELECT COUNT(*) AS totalRecommendations FROM Friend_Recommendation")
-        notifications = query_one("SELECT COUNT(*) AS totalNotifications FROM Notification")
-        events = query_one("SELECT COUNT(*) AS totalEvents FROM Event_Analysis")
-        hashtags = query_one("SELECT COUNT(*) AS totalHashtags FROM Hashtag")
-        regular_users = query_one("SELECT COUNT(*) AS totalRegular FROM Regular_User")
-        admin_users = query_one("SELECT COUNT(*) AS totalAdmin FROM Admin_User")
-        profile_pics = query_one("SELECT COUNT(*) AS totalPics FROM Profile_Pic")
-        group_members = query_one("SELECT COUNT(*) AS totalMemberships FROM Group_Members")
-        post_hashtags = query_one("SELECT COUNT(*) AS totalTaggedPosts FROM Post_Hashtag")
-        follows = query_one("SELECT COUNT(*) AS totalFollows FROM User_Follow")
+        counts = query_one("""
+            SELECT
+                (SELECT COUNT(*) FROM Users) AS totalUsers,
+                (SELECT COUNT(*) FROM User_Credentials) AS totalCreds,
+                (SELECT COUNT(*) FROM Post) AS totalPosts,
+                (SELECT COUNT(*) FROM Comment) AS totalComments,
+                (SELECT COUNT(*) FROM Reaction) AS totalReactions,
+                (SELECT COUNT(*) FROM Message) AS totalMessages,
+                (SELECT COUNT(*) FROM Community_Group) AS totalGroups,
+                (SELECT COUNT(*) FROM Friend_Recommendation) AS totalRecommendations,
+                (SELECT COUNT(*) FROM Notification) AS totalNotifications,
+                (SELECT COUNT(*) FROM Event_Analysis) AS totalEvents,
+                (SELECT COUNT(*) FROM Hashtag) AS totalHashtags,
+                (SELECT COUNT(*) FROM Regular_User) AS totalRegular,
+                (SELECT COUNT(*) FROM Admin_User) AS totalAdmin,
+                (SELECT COUNT(*) FROM Profile_Pic) AS totalPics,
+                (SELECT COUNT(*) FROM Group_Members) AS totalMemberships,
+                (SELECT COUNT(*) FROM Post_Hashtag) AS totalTaggedPosts,
+                (SELECT COUNT(*) FROM User_Follow) AS totalFollows
+        """) or {}
 
         return {
             "success": True,
             "analytics": {
-                "totalUsers": users.get("totalUsers", 0) if users else 0,
-                "totalCreds": creds.get("totalCreds", 0) if creds else 0,
-                "totalPosts": posts.get("totalPosts", 0) if posts else 0,
-                "totalComments": comments.get("totalComments", 0) if comments else 0,
-                "totalReactions": reactions.get("totalReactions", 0) if reactions else 0,
-                "totalMessages": messages.get("totalMessages", 0) if messages else 0,
-                "totalGroups": groups.get("totalGroups", 0) if groups else 0,
-                "totalRecommendations": recommendations.get("totalRecommendations", 0) if recommendations else 0,
-                "totalNotifications": notifications.get("totalNotifications", 0) if notifications else 0,
-                "totalEvents": events.get("totalEvents", 0) if events else 0,
-                "totalHashtags": hashtags.get("totalHashtags", 0) if hashtags else 0,
-                "totalRegular": regular_users.get("totalRegular", 0) if regular_users else 0,
-                "totalAdmin": admin_users.get("totalAdmin", 0) if admin_users else 0,
-                "totalPics": profile_pics.get("totalPics", 0) if profile_pics else 0,
-                "totalMemberships": group_members.get("totalMemberships", 0) if group_members else 0,
-                "totalTaggedPosts": post_hashtags.get("totalTaggedPosts", 0) if post_hashtags else 0,
-                "totalFollows": follows.get("totalFollows", 0) if follows else 0
+                "totalUsers": counts.get("totalUsers", 0),
+                "totalCreds": counts.get("totalCreds", 0),
+                "totalPosts": counts.get("totalPosts", 0),
+                "totalComments": counts.get("totalComments", 0),
+                "totalReactions": counts.get("totalReactions", 0),
+                "totalMessages": counts.get("totalMessages", 0),
+                "totalGroups": counts.get("totalGroups", 0),
+                "totalRecommendations": counts.get("totalRecommendations", 0),
+                "totalNotifications": counts.get("totalNotifications", 0),
+                "totalEvents": counts.get("totalEvents", 0),
+                "totalHashtags": counts.get("totalHashtags", 0),
+                "totalRegular": counts.get("totalRegular", 0),
+                "totalAdmin": counts.get("totalAdmin", 0),
+                "totalPics": counts.get("totalPics", 0),
+                "totalMemberships": counts.get("totalMemberships", 0),
+                "totalTaggedPosts": counts.get("totalTaggedPosts", 0),
+                "totalFollows": counts.get("totalFollows", 0)
             }
         }
     except Exception as e:

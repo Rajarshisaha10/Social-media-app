@@ -49,6 +49,15 @@ export default function RightSidebar({
                 <div
                   className="user-snippet-left"
                   onClick={() => onUserClick?.(su.user_id)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View profile for ${su.username}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onUserClick?.(su.user_id);
+                    }
+                  }}
                   style={{ cursor: 'pointer' }}
                 >
                   <img
@@ -70,6 +79,7 @@ export default function RightSidebar({
                   type="button"
                   className={`btn-follow ${isFollowing ? 'following' : ''}`}
                   onClick={() => toggleFollow(su.user_id)}
+                  aria-label={isFollowing ? `Unfollow ${su.username}` : `Follow ${su.username}`}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>

@@ -1,9 +1,10 @@
 import re
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Depends, status
 from db import query_all, query_one, execute_write
+from auth import get_current_user, get_optional_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -13,22 +14,25 @@ router = APIRouter(
 )
 
 class CreatePostRequest(BaseModel):
-    user_id: int
     content: str
     url: Optional[str] = None
     visibility: Optional[str] = "PUBLIC"
+    user_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
 
 class ReactPostRequest(BaseModel):
-    user_id: int
     reaction_type: str = "LIKE"
+    user_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
 
 class CreateCommentRequest(BaseModel):
-    user_id: int
     content: str
     reply_to: Optional[int] = None
+    user_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
 
 @router.get("")
-def list_posts(tag: Optional[str] = Query(None, description="Filter posts by hashtag")):
+def list_posts(
+    tag: Optional[str] = Query(None, description="Filter posts by hashtag"),
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
+):
     """Get social media feed posts with author profiles, reaction counts, comments, and hashtags."""
     try:
         if tag:
@@ -124,17 +128,17 @@ def list_posts(tag: Optional[str] = Query(None, description="Filter posts by has
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("")
-def create_post(payload: CreatePostRequest):
-    """Create a new post and automatically parse & link hashtags."""
+def create_post(
+    payload: CreatePostRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Create a new post. Acting author identity is derived strictly from verified JWT token."""
     try:
-        user = query_one("SELECT user_id, username FROM Users WHERE user_id = ?", (payload.user_id,))
-        if not user:
-            raise HTTPException(status_code=400, detail=f"User {payload.user_id} does not exist.")
-
+        user_id = current_user["user_id"]
         post_id = execute_write("""
             INSERT INTO Post (user_id, content, url, visibility)
             VALUES (?, ?, ?, ?)
-        """, (payload.user_id, payload.content, payload.url, payload.visibility))
+        """, (user_id, payload.content, payload.url, payload.visibility))
 
         # Extract hashtags from content (e.g. #python #tech)
         tags = set(re.findall(r'#([a-zA-Z0-9_]+)', payload.content))
@@ -149,16 +153,19 @@ def create_post(payload: CreatePostRequest):
                     VALUES (?, 'General')
                 """, (tag_clean,))
 
-            execute_write("""
-                INSERT IGNORE INTO Post_Hashtag (post_id, hashtag_id)
-                VALUES (?, ?)
-            """, (post_id, hashtag_id))
+            try:
+                execute_write("""
+                    INSERT INTO Post_Hashtag (post_id, hashtag_id)
+                    VALUES (?, ?)
+                """, (post_id, hashtag_id))
+            except Exception:
+                pass  # Ignore duplicate hashtag mapping
 
         # Log event in Event_Analysis
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
             VALUES (?, 'POST_CREATE', 'WEB', ?)
-        """, (payload.user_id, f'{{"post_id": {post_id}, "tags_count": {len(tags)}}}'))
+        """, (user_id, f'{{"post_id": {post_id}, "tags_count": {len(tags)}}}'))
 
         return {
             "success": True,
@@ -175,14 +182,16 @@ def create_post(payload: CreatePostRequest):
 @router.post("/{post_id}/react")
 def react_to_post(
     post_id: int = Path(...),
-    payload: ReactPostRequest = ...
+    payload: ReactPostRequest = ...,
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """Add or toggle reaction on a post."""
+    """Add or toggle reaction on a post. Acting user is derived strictly from verified JWT token."""
     try:
+        user_id = current_user["user_id"]
         existing = query_one("""
             SELECT reaction_id, reaction_type FROM Reaction
             WHERE post_id = ? AND user_id = ?
-        """, (post_id, payload.user_id))
+        """, (post_id, user_id))
 
         if existing:
             if existing["reaction_type"] == payload.reaction_type:
@@ -198,14 +207,13 @@ def react_to_post(
             execute_write("""
                 INSERT INTO Reaction (post_id, user_id, reaction_type)
                 VALUES (?, ?, ?)
-            """, (post_id, payload.user_id, payload.reaction_type))
+            """, (post_id, user_id, payload.reaction_type))
             action = "added"
 
             # Notify post owner if it's not self-reaction
             post_info = query_one("SELECT user_id FROM Post WHERE post_id = ?", (post_id,))
-            if post_info and post_info["user_id"] != payload.user_id:
-                sender = query_one("SELECT username FROM Users WHERE user_id = ?", (payload.user_id,))
-                sender_name = sender["username"] if sender else "Someone"
+            if post_info and post_info["user_id"] != user_id:
+                sender_name = current_user.get("username", "Someone")
                 execute_write("""
                     INSERT INTO Notification (recipient_id, content, ref_id, ref_type)
                     VALUES (?, ?, ?, 'REACTION')
@@ -215,7 +223,7 @@ def react_to_post(
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
             VALUES (?, 'REACT_POST', 'WEB', ?)
-        """, (payload.user_id, f'{{"post_id": {post_id}, "action": "{action}", "type": "{payload.reaction_type}"}}'))
+        """, (user_id, f'{{"post_id": {post_id}, "action": "{action}", "type": "{payload.reaction_type}"}}'))
 
         return {
             "success": True,
@@ -229,20 +237,21 @@ def react_to_post(
 @router.post("/{post_id}/comments")
 def add_comment(
     post_id: int = Path(...),
-    payload: CreateCommentRequest = ...
+    payload: CreateCommentRequest = ...,
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """Add a comment or reply to a post."""
+    """Add a comment or reply to a post. Acting commenter is derived strictly from verified JWT token."""
     try:
+        user_id = current_user["user_id"]
         comment_id = execute_write("""
             INSERT INTO Comment (post_id, user_id, reply_to, content)
             VALUES (?, ?, ?, ?)
-        """, (post_id, payload.user_id, payload.reply_to, payload.content))
+        """, (post_id, user_id, payload.reply_to, payload.content))
 
         # Notify post owner
         post_info = query_one("SELECT user_id FROM Post WHERE post_id = ?", (post_id,))
-        if post_info and post_info["user_id"] != payload.user_id:
-            sender = query_one("SELECT username FROM Users WHERE user_id = ?", (payload.user_id,))
-            sender_name = sender["username"] if sender else "Someone"
+        if post_info and post_info["user_id"] != user_id:
+            sender_name = current_user.get("username", "Someone")
             execute_write("""
                 INSERT INTO Notification (recipient_id, content, ref_id, ref_type)
                 VALUES (?, ?, ?, 'COMMENT')
@@ -252,7 +261,7 @@ def add_comment(
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
             VALUES (?, 'COMMENT_POST', 'WEB', ?)
-        """, (payload.user_id, f'{{"post_id": {post_id}, "comment_id": {comment_id}}}'))
+        """, (user_id, f'{{"post_id": {post_id}, "comment_id": {comment_id}}}'))
 
         return {
             "success": True,
@@ -266,25 +275,26 @@ def add_comment(
 @router.delete("/{post_id}")
 def delete_post(
     post_id: int = Path(..., description="Post ID to delete"),
-    user_id: Optional[int] = Query(None, description="User ID requesting deletion")
+    user_id: Optional[int] = Query(None, description="Deprecated user param"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """Delete a post. Allowed by author or Super Admin."""
+    """Delete a post. Allowed only by verified post author or Super Admin."""
     try:
         post = query_one("SELECT post_id, user_id FROM Post WHERE post_id = ?", (post_id,))
         if not post:
             raise HTTPException(status_code=404, detail="Post not found")
 
-        # Permission verification if user_id is provided
-        if user_id:
-            admin_row = query_one("SELECT admin_level FROM Admin_User WHERE user_id = ?", (user_id,))
-            is_super_admin = bool(admin_row and admin_row.get("admin_level") == "SUPER_ADMIN")
-            
-            user_row = query_one("SELECT username FROM Users WHERE user_id = ?", (user_id,))
-            if user_row and user_row.get("username", "").lower() == "rajarshi":
-                is_super_admin = True
+        caller_id = current_user["user_id"]
+        is_super_admin = (
+            current_user.get("admin_level") == "SUPER_ADMIN"
+            or current_user.get("username", "").lower() == "rajarshi"
+        )
 
-            if post["user_id"] != user_id and not is_super_admin:
-                raise HTTPException(status_code=403, detail="You do not have permission to delete this post")
+        if post["user_id"] != caller_id and not is_super_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to delete this post."
+            )
 
         # Cascade cleanup of related records
         execute_write("DELETE FROM Reaction WHERE post_id = ?", (post_id,))
@@ -293,11 +303,10 @@ def delete_post(
         execute_write("DELETE FROM Notification WHERE ref_type IN ('POST', 'COMMENT', 'REACTION') AND ref_id = ?", (post_id,))
         execute_write("DELETE FROM Post WHERE post_id = ?", (post_id,))
 
-        if user_id:
-            execute_write("""
-                INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
-                VALUES (?, 'POST_DELETE', 'WEB', ?)
-            """, (user_id, f'{{"post_id": {post_id}}}'))
+        execute_write("""
+            INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+            VALUES (?, 'POST_DELETE', 'WEB', ?)
+        """, (caller_id, f'{{"post_id": {post_id}}}'))
 
         return {
             "success": True,

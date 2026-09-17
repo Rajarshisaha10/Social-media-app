@@ -87,6 +87,27 @@ export default function MessagesTab({ initialPartnerId = null }) {
     }
   };
 
+  // Poll for new incoming messages every 4 seconds when an active thread is open
+  useEffect(() => {
+    if (!activePartner?.partner_id || !user?.user_id) return;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.getChatThread(user.user_id, activePartner.partner_id);
+        if (data?.messages) {
+          setMessages((prev) => {
+            const pending = prev.filter((m) => String(m.message_id).startsWith('temp-'));
+            const serverMsgIds = new Set(data.messages.map((m) => m.message_id));
+            const unresolvedPending = pending.filter((m) => !serverMsgIds.has(m.message_id));
+            return [...data.messages, ...unresolvedPending];
+          });
+        }
+      } catch {
+        // silent polling error
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [activePartner?.partner_id, user?.user_id]);
+
   // Scroll to bottom when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -214,22 +235,33 @@ export default function MessagesTab({ initialPartnerId = null }) {
 
         <div className="conversations-list">
           {loadingConvs ? (
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="skeleton" style={{ height: '56px', borderRadius: 'var(--radius-sm)' }} />
+                <div key={n} className="skeleton-convo-row">
+                  <div className="skeleton skeleton-avatar" style={{ width: 42, height: 42 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="skeleton skeleton-bar" style={{ width: 110, height: 13 }} />
+                    <div className="skeleton skeleton-bar" style={{ width: 160, height: 11 }} />
+                  </div>
+                </div>
               ))}
             </div>
           ) : conversations.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <MessageSquare size={32} style={{ margin: '0 auto 8px', display: 'block' }} />
-              <p style={{ fontSize: '13px' }}>No active conversations yet.</p>
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-full)', background: 'var(--blue-light)', color: 'var(--blue-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                <MessageSquare size={22} />
+              </div>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>No messages yet — start a conversation</h4>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', maxWidth: '240px', lineHeight: '1.45' }}>
+                Direct message any member to discuss projects, ideas, or collaborate.
+              </p>
               <button
                 type="button"
                 className="btn-primary"
                 onClick={() => setShowNewChat(true)}
-                style={{ marginTop: '12px', fontSize: '12px', padding: '6px 14px' }}
+                style={{ marginTop: '8px', fontSize: '12.5px', padding: '7px 16px' }}
               >
-                Start a Chat
+                Start a Conversation
               </button>
             </div>
           ) : (
@@ -245,6 +277,7 @@ export default function MessagesTab({ initialPartnerId = null }) {
                   type="button"
                   className={`conversation-item ${activePartner?.partner_id === partnerId ? 'active' : ''}`}
                   onClick={() => selectConversation(c)}
+                  aria-label={`Chat with ${partnerUsername}`}
                 >
                   <img
                     src={profilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
@@ -293,9 +326,10 @@ export default function MessagesTab({ initialPartnerId = null }) {
             <div className="chat-header">
               <button
                 type="button"
-                className="btn-text-sm"
+                className="btn-text-sm chat-back-btn"
                 onClick={() => setActivePartner(null)}
-                style={{ display: 'none' }} // Handled via responsive CSS
+                title="Back to conversations"
+                aria-label="Back to conversations"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -312,23 +346,40 @@ export default function MessagesTab({ initialPartnerId = null }) {
 
             <div className="chat-stream">
               {loadingThread ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {[1, 2, 3].map((n) => (
                     <div
                       key={n}
-                      className="skeleton"
                       style={{
-                        height: '42px',
-                        width: '60%',
                         alignSelf: n % 2 === 0 ? 'flex-end' : 'flex-start',
-                        borderRadius: 'var(--radius-lg)',
+                        width: n === 1 ? '55%' : n === 2 ? '42%' : '65%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
                       }}
-                    />
+                    >
+                      <div
+                        className="skeleton"
+                        style={{
+                          height: '40px',
+                          borderRadius: 'var(--radius-md)',
+                          borderBottomRightRadius: n % 2 === 0 ? '4px' : 'var(--radius-md)',
+                          borderBottomLeftRadius: n % 2 !== 0 ? '4px' : 'var(--radius-md)',
+                        }}
+                      />
+                      <div className="skeleton skeleton-bar" style={{ width: 40, height: 8, alignSelf: n % 2 === 0 ? 'flex-end' : 'flex-start' }} />
+                    </div>
                   ))}
                 </div>
               ) : messages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', margin: 'auto' }}>
-                  <p>Send a message to start the conversation with {activePartner.partner_username}.</p>
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', margin: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-full)', background: 'var(--blue-light)', color: 'var(--blue-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MessageSquare size={20} />
+                  </div>
+                  <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Say hello to {activePartner.partner_username}</h4>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '280px', lineHeight: '1.45' }}>
+                    Kick off your thread with a quick introduction or collaboration question.
+                  </p>
                 </div>
               ) : (
                 messages.map((m) => {
@@ -342,9 +393,14 @@ export default function MessagesTab({ initialPartnerId = null }) {
                       <div className={`chat-bubble ${isMine ? 'sent' : 'received'}`}>
                         {m.content}
                       </div>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', padding: '0 4px' }}>
-                        {timeStr ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', padding: '0 4px', fontSize: '10px', color: 'var(--text-muted)' }}>
+                        <span>{timeStr ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        {isMine && (
+                          <span style={{ color: 'var(--blue-primary)', fontWeight: 700, fontSize: '11px', letterSpacing: '-1px' }} title="Delivered">
+                            ✓✓
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })
@@ -360,11 +416,14 @@ export default function MessagesTab({ initialPartnerId = null }) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 autoFocus
+                aria-label="Write a message"
               />
               <button
                 type="submit"
                 className="btn-primary"
                 disabled={!text.trim()}
+                title="Send message"
+                aria-label="Send message"
                 style={{ padding: '8px 16px', borderRadius: 'var(--radius-full)' }}
               >
                 <Send size={15} />
@@ -372,11 +431,13 @@ export default function MessagesTab({ initialPartnerId = null }) {
             </form>
           </>
         ) : (
-          <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-secondary)', padding: '20px' }}>
-            <MessageSquare size={48} style={{ margin: '0 auto 12px', color: 'var(--blue-primary)' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Your Conversations</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px' }}>
-              Select a chat from the left or click "New Chat" to message any member.
+          <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-secondary)', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-full)', background: 'var(--blue-light)', color: 'var(--blue-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+              <MessageSquare size={26} />
+            </div>
+            <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)' }}>Your Direct Messages</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '320px', lineHeight: '1.45' }}>
+              Select an existing chat from the left or click "New Chat" to message any member in the community.
             </p>
           </div>
         )}

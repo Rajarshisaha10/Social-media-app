@@ -8,14 +8,18 @@ import pymysql
 import pymysql.cursors
 from dbutils.pooled_db import PooledDB
 
-load_dotenv()
-
 logger = logging.getLogger(__name__)
+
+ENV = os.getenv("ENV", os.getenv("ENVIRONMENT", "development")).lower()
+IS_PRODUCTION = ENV == "production"
+
+if not IS_PRODUCTION:
+    load_dotenv()
 
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_PORT = int(os.getenv("DB_PORT", "3306"))
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "raju@123")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME", "social_media")
 
 # Fallback: Parse DATABASE_URL if supplied by cloud platform
@@ -36,6 +40,25 @@ if DATABASE_URL:
             DB_NAME = parsed.path.lstrip("/").split("?")[0]
     except Exception as e:
         logger.warning(f"Failed to parse DATABASE_URL: {e}")
+
+# In production mode, fail fast immediately if database credentials are not explicitly supplied
+if IS_PRODUCTION:
+    missing_vars = []
+    if not DB_USER:
+        missing_vars.append("DB_USER")
+    if not DB_PASSWORD:
+        missing_vars.append("DB_PASSWORD")
+    if not DB_NAME:
+        missing_vars.append("DB_NAME")
+    if missing_vars and not DATABASE_URL:
+        raise RuntimeError(
+            f"CRITICAL CONFIGURATION ERROR: Missing required database credentials in production mode: {', '.join(missing_vars)}. "
+            "Never fall back to guessable default credentials in production."
+        )
+
+# In non-production, ensure variables are strings rather than None
+DB_USER = DB_USER or ""
+DB_PASSWORD = DB_PASSWORD or ""
 
 SQLITE_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "social_media.db"))
 

@@ -13,11 +13,21 @@ export default function StoryViewerModal({ storyUser, onClose }) {
   if (!storyUser) return null;
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '400px', height: '620px', padding: 0, overflow: 'hidden', background: '#000', position: 'relative' }}
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          height: 'min(620px, 86dvh)',
+          maxHeight: '620px',
+          padding: 0,
+          overflow: 'hidden',
+          background: '#000',
+          position: 'relative',
+          borderRadius: 'var(--radius-xl)',
+        }}
       >
         {/* Progress Bar */}
         <div style={{ position: 'absolute', top: '10px', left: '10px', right: '10px', height: '3px', background: 'rgba(255,255,255,0.3)', borderRadius: '4px', zIndex: 10, overflow: 'hidden' }}>
@@ -45,7 +55,9 @@ export default function StoryViewerModal({ storyUser, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            style={{ color: '#fff', padding: '4px' }}
+            style={{ color: '#fff', padding: '6px', borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Close story"
+            aria-label="Close story"
           >
             <X size={20} />
           </button>

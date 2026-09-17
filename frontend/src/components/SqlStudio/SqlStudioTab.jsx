@@ -15,12 +15,15 @@ import {
   Server,
   Activity,
   Code2,
+  Copy,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 export default function SqlStudioTab() {
   const { user } = useAuth();
+  const toast = useToast();
   const [query, setQuery] = useState('SELECT * FROM Users LIMIT 10;');
   const [presets, setPresets] = useState([]);
   const [schema, setSchema] = useState([]);
@@ -104,6 +107,7 @@ export default function SqlStudioTab() {
     a.download = `query_result_${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success('Exported to CSV! 📊');
   };
 
   // JSON Export
@@ -116,6 +120,18 @@ export default function SqlStudioTab() {
     a.download = `query_result_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success('Exported to JSON! 📄');
+  };
+
+  // Copy JSON to Clipboard
+  const copyJson = async () => {
+    if (!results?.rows || results.rows.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(results.rows, null, 2));
+      toast.success('Query output copied as JSON! 📋');
+    } catch {
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   return (
@@ -275,14 +291,14 @@ export default function SqlStudioTab() {
 
               {/* Results Card */}
               <div className="sql-results-card">
-                <div style={{ padding: '10px 16px', background: 'var(--bg-surface-secondary)', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                    QUERY OUTPUT
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ padding: '10px 16px', background: 'var(--bg-surface-secondary)', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                      QUERY OUTPUT
+                    </span>
                     {executionTime && (
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--blue-primary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <Clock size={12} />
+                      <span className="pro-badge-fast" title="Engine query latency">
+                        <Clock size={11} />
                         <span>{executionTime}</span>
                       </span>
                     )}
@@ -290,6 +306,29 @@ export default function SqlStudioTab() {
                       {results?.rows ? `${results.rows.length} rows returned` : 'No results'}
                     </span>
                   </div>
+
+                  {results?.rows && results.rows.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        className="pro-btn"
+                        onClick={copyJson}
+                        title="Copy query rows as JSON"
+                      >
+                        <Copy size={13} />
+                        <span>Copy JSON</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="pro-btn"
+                        onClick={exportCsv}
+                        title="Export rows as CSV file"
+                      >
+                        <Download size={13} />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {error ? (
@@ -409,7 +448,7 @@ export default function SqlStudioTab() {
             {schema.map((tbl) => {
               const name = tbl.name || tbl.table_name;
               return (
-                <div key={name} className="aside-card animate-fade-in" style={{ padding: '16px' }}>
+                <div key={name} className="aside-card" style={{ padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', marginBottom: '8px' }}>
                     <div>
                       <h4 style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>

@@ -38,15 +38,15 @@ export default function NotificationsModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Bell size={18} color="var(--blue-primary)" />
             <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Notifications</h3>
           </div>
-          <button type="button" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
-            <X size={20} />
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close notifications">
+            <X size={18} />
           </button>
         </div>
 
@@ -54,12 +54,33 @@ export default function NotificationsModal({ isOpen, onClose }) {
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[1, 2, 3].map((n) => (
-                <div key={n} className="skeleton" style={{ height: '54px', borderRadius: 'var(--radius-sm)' }} />
+                <div key={n} className="skeleton-notif-row">
+                  <div className="skeleton skeleton-avatar" style={{ width: 32, height: 32 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="skeleton skeleton-bar" style={{ width: '85%', height: 12 }} />
+                    <div className="skeleton skeleton-bar" style={{ width: '45%', height: 10 }} />
+                  </div>
+                  <div className="skeleton" style={{ width: 24, height: 24, borderRadius: 'var(--radius-sm)' }} />
+                </div>
               ))}
             </div>
           ) : notifications.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
-              <p style={{ fontSize: '13px' }}>You're all caught up! No unread notifications.</p>
+            <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-full)', background: 'var(--blue-light)', color: 'var(--blue-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                <Bell size={20} />
+              </div>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>No unread notifications right now</h4>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '320px', lineHeight: '1.45' }}>
+                When members like your posts, comment on your updates, or connect with you, you'll see alerts here.
+              </p>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onClose}
+                style={{ marginTop: '12px', fontSize: '12.5px', padding: '6px 16px' }}
+              >
+                Back to Feed
+              </button>
             </div>
           ) : (
             notifications.map((notif) => (
@@ -85,7 +106,16 @@ export default function NotificationsModal({ isOpen, onClose }) {
                   type="button"
                   onClick={() => handleDismiss(notif.notification_id)}
                   title="Mark read"
-                  style={{ color: 'var(--text-muted)', padding: '4px', marginLeft: '8px' }}
+                  aria-label="Mark notification as read"
+                  style={{
+                    color: 'var(--text-muted)',
+                    padding: '6px',
+                    marginLeft: '8px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
                   <Check size={16} />
                 </button>

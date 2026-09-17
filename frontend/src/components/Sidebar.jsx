@@ -9,11 +9,15 @@ import {
   LogOut,
   UserCheck,
   Terminal,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost }) {
   const { user, logout, isSuperAdmin, unreadNotifCount, unreadMsgCount } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
 
   return (
     <aside className="app-sidebar">
@@ -81,6 +85,22 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost }) {
       </div>
 
       <div className="sidebar-footer">
+        {/* Modern Theme Switcher */}
+        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Theme
+          </span>
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to Warm Cream Light Mode' : 'Switch to Midnight Obsidian Dark Mode'}
+            aria-label="Toggle Color Theme"
+          >
+            {isDark ? <Sun size={14} color="var(--gold-accent)" /> : <Moon size={14} color="var(--blue-primary)" />}
+            <span>{isDark ? 'Dark' : 'Light'}</span>
+          </button>
+        </div>
+
         <div className="user-profile-bar">
           <img
             src={user?.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}

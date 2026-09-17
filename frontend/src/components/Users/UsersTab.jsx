@@ -81,7 +81,7 @@ export default function UsersTab({ onUserClick }) {
             return (
               <div
                 key={member.user_id}
-                className="aside-card animate-fade-in"
+                className="aside-card"
                 style={{ alignItems: 'center', textAlign: 'center', padding: '20px' }}
               >
                 <img

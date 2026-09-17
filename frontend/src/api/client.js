@@ -1,13 +1,32 @@
 // API Client for SocialSphere Backend
 const BASE_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : '';
 
+let authToken = localStorage.getItem('socialsphere_token') || '';
+
+export const setAuthToken = (token) => {
+  authToken = token || '';
+  if (token) {
+    localStorage.setItem('socialsphere_token', token);
+  } else {
+    localStorage.removeItem('socialsphere_token');
+  }
+};
+
+export const getAuthToken = () => authToken;
+
 async function request(endpoint, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
   const config = {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   };
 
   try {
@@ -38,6 +57,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  getCurrentUser: () => request('/api/users/me'),
+
   logout: (userId) =>
     request('/api/users/logout', {
       method: 'POST',
@@ -54,13 +75,13 @@ export const api = {
   followUser: (targetUserId, callerId) =>
     request(`/api/users/${targetUserId}/follow`, {
       method: 'POST',
-      body: JSON.stringify({ caller_id: callerId }),
+      body: JSON.stringify(callerId ? { caller_id: callerId } : {}),
     }),
 
   unfollowUser: (targetUserId, callerId) =>
     request(`/api/users/${targetUserId}/unfollow`, {
       method: 'POST',
-      body: JSON.stringify({ caller_id: callerId }),
+      body: JSON.stringify(callerId ? { caller_id: callerId } : {}),
     }),
 
   // Posts
@@ -76,7 +97,7 @@ export const api = {
   createPost: ({ userId, content, imageUrl }) =>
     request('/api/posts', {
       method: 'POST',
-      body: JSON.stringify({ user_id: userId, content, image_url: imageUrl }),
+      body: JSON.stringify({ user_id: userId, content, url: imageUrl }),
     }),
 
   reactToPost: ({ postId, userId, reactionType }) =>
@@ -108,8 +129,8 @@ export const api = {
       body: JSON.stringify({
         group_name: name,
         description,
-        privacy,
-        creator_id: creatorId,
+        privacy_setting: privacy,
+        user_id: creatorId,
       }),
     }),
 
@@ -121,10 +142,10 @@ export const api = {
 
   // Messages
   getConversations: (userId) =>
-    request(`/api/messages/conversations/${userId}`),
+    request(userId ? `/api/messages/conversations/${userId}` : '/api/messages/conversations'),
 
   getChatThread: (u1, u2) =>
-    request(`/api/messages/thread/${u1}/${u2}`),
+    request(u2 !== undefined ? `/api/messages/thread/${u1}/${u2}` : `/api/messages/thread/${u1}`),
 
   sendMessage: ({ senderId, receiverId, content }) =>
     request('/api/messages', {
@@ -138,15 +159,15 @@ export const api = {
 
   // Recommendations
   getRecommendations: (userId) =>
-    request(`/api/recommendations/${userId}`),
+    request(userId ? `/api/recommendations/${userId}` : '/api/recommendations'),
 
   // Notifications
   getNotifications: (userId) =>
-    request(`/api/notifications/${userId}`),
+    request(userId ? `/api/notifications/${userId}` : '/api/notifications'),
 
   dismissNotification: (notifId) =>
-    request(`/api/notifications/${notifId}/dismiss`, {
-      method: 'POST',
+    request(`/api/notifications/${notifId}`, {
+      method: 'DELETE',
     }),
 
   // SQL Studio (Admin)

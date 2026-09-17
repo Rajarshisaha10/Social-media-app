@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api } from '../api/client';
+import { api, setAuthToken } from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -72,6 +72,9 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await api.login(username, password);
     if (res?.success && res.user) {
+      if (res.access_token || res.token) {
+        setAuthToken(res.access_token || res.token);
+      }
       const userWithTime = {
         ...res.user,
         login_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -85,6 +88,9 @@ export function AuthProvider({ children }) {
   const register = async (payload) => {
     const res = await api.register(payload);
     if (res?.success && res.user) {
+      if (res.access_token || res.token) {
+        setAuthToken(res.access_token || res.token);
+      }
       const userWithTime = {
         ...res.user,
         login_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -103,6 +109,7 @@ export function AuthProvider({ children }) {
         console.warn('Logout API failed:', err);
       }
     }
+    setAuthToken(null);
     setUser(null);
     localStorage.removeItem('socialsphere_user');
     setFollowingSet(new Set());

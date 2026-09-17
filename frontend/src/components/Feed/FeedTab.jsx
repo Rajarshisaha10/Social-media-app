@@ -225,23 +225,81 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
         {/* Posts Feed Stream */}
         {loading && posts.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="skeleton"
-                style={{ height: '360px', width: '100%', borderRadius: 'var(--radius-lg)' }}
-              />
+            {[1, 2].map((n) => (
+              <div key={n} className="skeleton-post-card">
+                <div className="skeleton-post-header">
+                  <div className="skeleton skeleton-avatar" style={{ width: 38, height: 38 }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="skeleton skeleton-bar" style={{ width: 110, height: 13 }} />
+                    <div className="skeleton skeleton-bar" style={{ width: 60, height: 10 }} />
+                  </div>
+                </div>
+                <div className="skeleton-post-content">
+                  <div className="skeleton skeleton-bar" style={{ width: '100%', height: 14 }} />
+                  <div className="skeleton skeleton-bar" style={{ width: '78%', height: 14 }} />
+                </div>
+                <div className="skeleton skeleton-post-media" />
+                <div className="skeleton-post-actions">
+                  <div className="skeleton" style={{ width: 60, height: 28, borderRadius: 'var(--radius-full)' }} />
+                  <div className="skeleton" style={{ width: 60, height: 28, borderRadius: 'var(--radius-full)' }} />
+                  <div className="skeleton" style={{ width: 60, height: 28, borderRadius: 'var(--radius-full)' }} />
+                </div>
+              </div>
             ))}
           </div>
         ) : posts.length === 0 ? (
           <div
             className="aside-card"
-            style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}
+            style={{ textAlign: 'center', padding: '48px 24px', alignItems: 'center' }}
           >
-            <h3>No posts found</h3>
-            <p style={{ marginTop: '6px', fontSize: '13px' }}>
-              {activeTag ? `No posts found tagged with #${activeTag}.` : 'Be the first to share something with the community!'}
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--blue-light)',
+                color: 'var(--blue-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 8,
+              }}
+            >
+              <Tag size={22} />
+            </div>
+            <h3 style={{ fontSize: '17px', fontWeight: 800 }}>
+              {activeTag ? `No posts tagged #${activeTag}` : 'No posts in the sphere yet'}
+            </h3>
+            <p style={{ marginTop: '6px', fontSize: '13.5px', color: 'var(--text-secondary)', maxWidth: '380px', lineHeight: '1.5' }}>
+              {activeTag
+                ? `No discussions have been tagged with #${activeTag} yet. Clear the tag to explore all updates or post one now.`
+                : 'Be the first to share an update, start a developer discussion, or post a question with the community.'}
             </p>
+            <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
+              {activeTag ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => handleTagFilter(null)}
+                >
+                  Clear topic filter
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => {
+                    const el = document.querySelector('.create-input-box');
+                    if (el) {
+                      el.focus();
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  Write the first post
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>

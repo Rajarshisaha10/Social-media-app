@@ -68,7 +68,7 @@ export default function FeedSqlBox({ onOpenFullStudio }) {
   };
 
   return (
-    <div className="create-post-card animate-fade-in" id="feedSqlBoxSection" style={{ padding: '16px 18px', gap: '14px' }}>
+    <div className="create-post-card" id="feedSqlBoxSection" style={{ padding: '16px 18px', gap: '14px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

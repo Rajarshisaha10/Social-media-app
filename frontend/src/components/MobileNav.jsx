@@ -2,35 +2,48 @@ import {
   Home,
   Users as UsersIcon,
   Terminal,
-  Database,
   Compass,
   Bell,
   MessageSquare,
   LogOut,
+  UserCheck,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function MobileHeader({ onOpenNotifications, onOpenMessages }) {
   const { unreadNotifCount, unreadMsgCount, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
 
   return (
     <header className="mobile-header">
       <div style={{ fontFamily: 'var(--font-brand)', fontSize: '26px', color: 'var(--text-primary)' }}>
         SocialSphere
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button
+          onClick={toggleTheme}
+          style={{ padding: '8px', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)' }}
+          title={isDark ? 'Switch to Warm Cream Light Mode' : 'Switch to Midnight Obsidian Dark Mode'}
+          aria-label="Toggle Color Theme"
+        >
+          {isDark ? <Sun size={20} color="var(--gold-accent)" /> : <Moon size={20} color="var(--blue-primary)" />}
+        </button>
         <button
           onClick={onOpenNotifications}
-          style={{ padding: '6px', position: 'relative', color: 'var(--text-primary)' }}
+          style={{ padding: '8px', position: 'relative', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)' }}
           title="Notifications"
+          aria-label={unreadNotifCount > 0 ? `Notifications (${unreadNotifCount} unread)` : 'Notifications'}
         >
           <Bell size={22} />
           {unreadNotifCount > 0 && (
             <span
               style={{
                 position: 'absolute',
-                top: '4px',
-                right: '4px',
+                top: '6px',
+                right: '6px',
                 width: '8px',
                 height: '8px',
                 background: 'var(--red-accent)',
@@ -41,16 +54,17 @@ export function MobileHeader({ onOpenNotifications, onOpenMessages }) {
         </button>
         <button
           onClick={onOpenMessages}
-          style={{ padding: '6px', position: 'relative', color: 'var(--text-primary)' }}
+          style={{ padding: '8px', position: 'relative', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)' }}
           title="Messages"
+          aria-label={unreadMsgCount > 0 ? `Messages (${unreadMsgCount} unread)` : 'Messages'}
         >
           <MessageSquare size={22} />
           {unreadMsgCount > 0 && (
             <span
               style={{
                 position: 'absolute',
-                top: '4px',
-                right: '4px',
+                top: '6px',
+                right: '6px',
                 width: '8px',
                 height: '8px',
                 background: 'var(--red-accent)',
@@ -61,8 +75,9 @@ export function MobileHeader({ onOpenNotifications, onOpenMessages }) {
         </button>
         <button
           onClick={logout}
-          style={{ padding: '6px', color: 'var(--text-secondary)' }}
+          style={{ padding: '8px', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)' }}
           title="Log Out"
+          aria-label="Log Out"
         >
           <LogOut size={20} />
         </button>
@@ -80,6 +95,7 @@ export function MobileBottomNav({ activeTab, setActiveTab }) {
         className={`mobile-nav-item ${activeTab === 'feed' ? 'active' : ''}`}
         onClick={() => setActiveTab('feed')}
         title="Home"
+        aria-label="Home Feed"
       >
         <Home size={22} />
       </button>
@@ -88,6 +104,7 @@ export function MobileBottomNav({ activeTab, setActiveTab }) {
         className={`mobile-nav-item ${activeTab === 'groups' ? 'active' : ''}`}
         onClick={() => setActiveTab('groups')}
         title="Communities"
+        aria-label="Communities"
       >
         <UsersIcon size={22} />
       </button>
@@ -96,6 +113,7 @@ export function MobileBottomNav({ activeTab, setActiveTab }) {
         className={`mobile-nav-item ${activeTab === 'sql' ? 'active' : ''}`}
         onClick={() => setActiveTab('sql')}
         title="SQL Queries"
+        aria-label="SQL Studio"
       >
         <Terminal size={22} color={activeTab === 'sql' ? 'var(--blue-primary)' : 'currentColor'} />
       </button>
@@ -104,14 +122,16 @@ export function MobileBottomNav({ activeTab, setActiveTab }) {
         className={`mobile-nav-item ${activeTab === 'connections' ? 'active' : ''}`}
         onClick={() => setActiveTab('connections')}
         title="Connections"
+        aria-label="Connections"
       >
-        <UsersIcon size={22} />
+        <UserCheck size={22} />
       </button>
 
       <button
         className={`mobile-nav-item ${activeTab === 'users' ? 'active' : ''}`}
         onClick={() => setActiveTab('users')}
-        title="Explore"
+        title="Explore Users"
+        aria-label="Explore Users"
       >
         <img
           src={user?.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}

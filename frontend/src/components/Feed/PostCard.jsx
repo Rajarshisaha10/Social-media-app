@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, Flame, MessageCircle, Send, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Heart, Flame, MessageCircle, Send, Trash2, Share2, Smile } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../api/client';
+import ImageLightboxModal from '../Modals/ImageLightboxModal';
 
 function timeAgo(dateStr) {
   if (!dateStr) return 'Just now';
@@ -21,11 +23,15 @@ function timeAgo(dateStr) {
 }
 
 function parseReactionCounts(postData) {
-  const counts = { LIKE: 0, LOVE: 0, FIRE: 0 };
+  const counts = { LIKE: 0, LOVE: 0, FIRE: 0, LAUGH: 0, WOW: 0 };
   if (postData.reactions && Array.isArray(postData.reactions)) {
     postData.reactions.forEach((r) => {
       const type = (r.reaction_type || '').toUpperCase();
-      if (counts[type] !== undefined) counts[type]++;
+      if (counts[type] !== undefined) {
+        counts[type]++;
+      } else {
+        counts[type] = 1;
+      }
     });
   } else if (postData.likes_count !== undefined) {
     counts.LIKE = postData.likes_count || 0;
@@ -47,7 +53,10 @@ function parseUserReactions(postData, currentUserId) {
 
 export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }) {
   const { user, isSuperAdmin } = useAuth();
+  const toast = useToast();
   const [deleting, setDeleting] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [showPopover, setShowPopover] = useState(false);
 
   // Optimistic reactions state
   const [reactions, setReactions] = useState(() => parseReactionCounts(post));
@@ -58,6 +67,7 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [burstingReaction, setBurstingReaction] = useState(null);
 
   const canDelete = Boolean(user && (user.user_id === post.user_id || isSuperAdmin));
 
@@ -73,9 +83,10 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
       } else {
         await api.deletePost({ postId: post.post_id, userId: user?.user_id });
       }
+      toast.success('Post removed successfully');
     } catch (err) {
       console.error('Failed to delete post:', err);
-      alert('Could not delete post: ' + (err.message || 'Server error'));
+      toast.error('Could not delete post: ' + (err.message || 'Server error'));
       setDeleting(false);
     }
   };
@@ -96,7 +107,7 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
     }
   }, [post.reactions, post.reaction_count, post.likes_count, post.comments, post.comment_count, user?.user_id]);
 
-  // 0ms Optimistic Reaction Toggle
+  // 0ms Optimistic Reaction Toggle with Single Memorable Reaction Burst Motion
   const handleToggleReaction = async (type) => {
     if (!user?.user_id) return;
     const isReacted = userReactions.has(type);
@@ -111,6 +122,8 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
     } else {
       nextUserReactions.add(type);
       nextCounts[type] = (nextCounts[type] || 0) + 1;
+      setBurstingReaction(type);
+      setTimeout(() => setBurstingReaction(null), 360);
     }
 
     setUserReactions(nextUserReactions);
@@ -155,12 +168,27 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
         userId: user.user_id,
         content: newComment.content,
       });
+      toast.success('Comment posted!');
     } catch (err) {
       console.error('Failed to post comment:', err);
+      toast.error('Failed to post comment');
       // Remove temporary comment on failure
       setComments((prev) => prev.filter((c) => c.comment_id !== newComment.comment_id));
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    try {
+      const url = `${window.location.origin}/#post-${post.post_id}`;
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
+      toast.info('Post link copied to clipboard! 📋');
+    } catch {
+      toast.info(`Post #${post.post_id} ready to share`);
     }
   };
 
@@ -196,11 +224,20 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
   const displayedComments = showAllComments ? comments : comments.slice(-3);
 
   return (
-    <article className="post-card animate-fade-in">
+    <article className="post-card">
       <header className="post-header">
         <div
           className="post-author-group"
           onClick={() => onUserClick?.(post.user_id)}
+          tabIndex={0}
+          role="button"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onUserClick?.(post.user_id);
+            }
+          }}
+          aria-label={`View profile for ${post.username || 'User'}`}
         >
           <img
             className="post-author-avatar"
@@ -230,6 +267,7 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
             onClick={handleDelete}
             disabled={deleting}
             title={isSuperAdmin && user?.user_id !== post.user_id ? "Delete post (Super Admin)" : "Delete post"}
+            aria-label="Delete post"
           >
             <Trash2 size={16} />
           </button>
@@ -243,7 +281,12 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
       )}
 
       {post.image_url && (
-        <div className="post-media-box">
+        <div
+          className="post-media-box"
+          onClick={() => setShowLightbox(true)}
+          style={{ cursor: 'zoom-in' }}
+          title="Click to zoom image"
+        >
           <img
             className="post-media-img"
             src={post.image_url}
@@ -258,21 +301,74 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
 
       {/* Reactions Bar */}
       <div className="post-reactions-bar">
-        <button
-          type="button"
-          className={`reaction-btn ${userReactions.has('LIKE') ? 'reacted-like' : ''}`}
-          onClick={() => handleToggleReaction('LIKE')}
-          title="Like"
+        <div
+          className="reaction-wrapper"
+          onMouseEnter={() => setShowPopover(true)}
+          onMouseLeave={() => setShowPopover(false)}
         >
-          <Heart size={16} fill={userReactions.has('LIKE') ? 'currentColor' : 'none'} />
-          <span>{reactions.LIKE}</span>
-        </button>
+          <button
+            type="button"
+            className={`reaction-btn ${userReactions.has('LIKE') ? 'reacted-like' : ''} ${burstingReaction === 'LIKE' ? 'bursting' : ''}`}
+            onClick={() => handleToggleReaction('LIKE')}
+            title={userReactions.has('LIKE') ? 'Unlike' : 'Like'}
+            aria-label={`${reactions.LIKE} likes`}
+          >
+            <Heart size={16} fill={userReactions.has('LIKE') ? 'currentColor' : 'none'} />
+            <span>{reactions.LIKE}</span>
+          </button>
+
+          {showPopover && (
+            <div className="reaction-popover" role="toolbar" aria-label="Reaction options">
+              <button
+                type="button"
+                className="reaction-popover-item"
+                onClick={() => { handleToggleReaction('LIKE'); setShowPopover(false); }}
+                title="Like"
+              >
+                👍
+              </button>
+              <button
+                type="button"
+                className="reaction-popover-item"
+                onClick={() => { handleToggleReaction('LOVE'); setShowPopover(false); }}
+                title="Love"
+              >
+                ❤️
+              </button>
+              <button
+                type="button"
+                className="reaction-popover-item"
+                onClick={() => { handleToggleReaction('FIRE'); setShowPopover(false); }}
+                title="Fire"
+              >
+                🔥
+              </button>
+              <button
+                type="button"
+                className="reaction-popover-item"
+                onClick={() => { handleToggleReaction('LAUGH'); setShowPopover(false); }}
+                title="Laugh"
+              >
+                😂
+              </button>
+              <button
+                type="button"
+                className="reaction-popover-item"
+                onClick={() => { handleToggleReaction('WOW'); setShowPopover(false); }}
+                title="Wow"
+              >
+                🤯
+              </button>
+            </div>
+          )}
+        </div>
 
         <button
           type="button"
-          className={`reaction-btn ${userReactions.has('FIRE') ? 'reacted-fire' : ''}`}
+          className={`reaction-btn ${userReactions.has('FIRE') ? 'reacted-fire' : ''} ${burstingReaction === 'FIRE' ? 'bursting' : ''}`}
           onClick={() => handleToggleReaction('FIRE')}
-          title="Fire"
+          title={userReactions.has('FIRE') ? 'Remove fire' : 'Fire'}
+          aria-label={`${reactions.FIRE} fire reactions`}
         >
           <Flame size={16} fill={userReactions.has('FIRE') ? 'currentColor' : 'none'} />
           <span>{reactions.FIRE}</span>
@@ -280,17 +376,57 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
 
         <button
           type="button"
-          className={`reaction-btn ${userReactions.has('LOVE') ? 'reacted-love' : ''}`}
+          className={`reaction-btn ${userReactions.has('LOVE') ? 'reacted-love' : ''} ${burstingReaction === 'LOVE' ? 'bursting' : ''}`}
           onClick={() => handleToggleReaction('LOVE')}
-          title="Love"
+          title={userReactions.has('LOVE') ? 'Remove love' : 'Love'}
+          aria-label={`${reactions.LOVE} love reactions`}
         >
           <Heart size={16} fill={userReactions.has('LOVE') ? 'currentColor' : 'none'} color="#db2777" />
           <span>{reactions.LOVE}</span>
         </button>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '12px' }}>
-          <MessageCircle size={15} />
-          <span>{comments.length}</span>
+        {((reactions.LAUGH || 0) > 0 || userReactions.has('LAUGH')) && (
+          <button
+            type="button"
+            className={`reaction-btn ${userReactions.has('LAUGH') ? 'reacted-like' : ''} ${burstingReaction === 'LAUGH' ? 'bursting' : ''}`}
+            onClick={() => handleToggleReaction('LAUGH')}
+            title="Laugh"
+            aria-label={`${reactions.LAUGH} laugh reactions`}
+          >
+            <span>😂</span>
+            <span>{reactions.LAUGH}</span>
+          </button>
+        )}
+
+        {((reactions.WOW || 0) > 0 || userReactions.has('WOW')) && (
+          <button
+            type="button"
+            className={`reaction-btn ${userReactions.has('WOW') ? 'reacted-fire' : ''} ${burstingReaction === 'WOW' ? 'bursting' : ''}`}
+            onClick={() => handleToggleReaction('WOW')}
+            title="Wow"
+            aria-label={`${reactions.WOW} wow reactions`}
+          >
+            <span>🤯</span>
+            <span>{reactions.WOW}</span>
+          </button>
+        )}
+
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
+          <button
+            type="button"
+            className="btn-icon-subtle"
+            onClick={handleShare}
+            title="Share post link"
+            aria-label="Share post"
+            style={{ padding: '4px', display: 'inline-flex', alignItems: 'center', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+          >
+            <Share2 size={15} />
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <MessageCircle size={15} />
+            <span>{comments.length}</span>
+          </div>
         </div>
       </div>
 
@@ -312,6 +448,14 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
             <span
               className="comment-uname"
               onClick={() => onUserClick?.(c.user_id)}
+              tabIndex={0}
+              role="button"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onUserClick?.(c.user_id);
+                }
+              }}
               style={{ cursor: 'pointer' }}
             >
               {c.username}:
@@ -327,16 +471,27 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
             placeholder="Add a comment..."
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
+            aria-label="Add a comment"
           />
           <button
             type="submit"
             className="btn-post-comment"
             disabled={!commentText.trim() || submittingComment}
+            title="Post comment"
+            aria-label="Post comment"
           >
             <Send size={14} />
           </button>
         </form>
       </div>
+
+      {showLightbox && post.image_url && (
+        <ImageLightboxModal
+          imageUrl={post.image_url}
+          caption={post.content}
+          onClose={() => setShowLightbox(false)}
+        />
+      )}
     </article>
   );
 }

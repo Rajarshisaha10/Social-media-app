@@ -38,15 +38,15 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
   };
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Users size={18} color="var(--blue-primary)" />
             <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Create New Community</h3>
           </div>
-          <button type="button" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
-            <X size={20} />
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close modal">
+            <X size={18} />
           </button>
         </div>
 
@@ -105,7 +105,7 @@ export default function CreateGroupModal({ isOpen, onClose, onGroupCreated }) {
             disabled={submitting || !name.trim()}
             style={{ width: '100%', height: '40px', marginTop: '6px' }}
           >
-            {submitting ? 'Creating...' : 'Create Community'}
+            {submitting ? 'Creating Community...' : 'Create Community'}
           </button>
         </form>
       </div>

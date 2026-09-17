@@ -1,8 +1,9 @@
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Depends, status
 from db import query_all, query_one, execute_write
+from auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -12,15 +13,34 @@ router = APIRouter(
 )
 
 class SendMessageRequest(BaseModel):
-    sender_id: int
     receiver_id: int
     content: str
+    sender_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
+
+@router.get("/conversations")
+def get_conversations(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get list of active chat conversations for the authenticated user."""
+    return _fetch_conversations(current_user["user_id"])
 
 @router.get("/conversations/{user_id}")
-def get_user_conversations(user_id: int = Path(..., description="Active User ID")):
-    """Get list of active chat conversations for a given user."""
+def get_user_conversations(
+    user_id: int = Path(..., description="Active User ID"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Get list of active chat conversations. Only the account owner or super admin is permitted."""
+    is_super_admin = (
+        current_user.get("admin_level") == "SUPER_ADMIN"
+        or current_user.get("username", "").lower() == "rajarshi"
+    )
+    if user_id != current_user["user_id"] and not is_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You cannot view conversations belonging to another user."
+        )
+    return _fetch_conversations(user_id)
+
+def _fetch_conversations(user_id: int):
     try:
-        # Fetch other users the active user has had messages with
         sql = """
             SELECT DISTINCT
                 CASE 
@@ -67,7 +87,7 @@ def get_user_conversations(user_id: int = Path(..., description="Active User ID"
                     "profile_pic": partner_info["profile_pic"],
                     "last_message": last_msg["content"] if last_msg else None,
                     "last_msg_details": last_msg,
-                    "last_timestamp": str(last_msg["sent_at"]) if last_msg and last_msg["sent_at"] else None,
+                    "last_timestamp": str(last_msg["sent_at"]) if last_msg and last_msg.get("sent_at") else None,
                     "unread_count": unread_count["unread"] if unread_count else 0
                 })
 
@@ -80,12 +100,35 @@ def get_user_conversations(user_id: int = Path(..., description="Active User ID"
         logger.error(f"Error fetching conversations for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/thread/{partner_id}")
+def get_partner_message_thread(
+    partner_id: int = Path(..., description="Chat partner User ID"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Get full message thread history between authenticated user and partner."""
+    return _fetch_message_thread(current_user["user_id"], partner_id)
+
 @router.get("/thread/{user_1}/{user_2}")
 def get_message_thread(
     user_1: int = Path(..., description="First User ID"),
-    user_2: int = Path(..., description="Second User ID")
+    user_2: int = Path(..., description="Second User ID"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """Get full message thread history between two users."""
+    """Get message thread history. Requires authenticated user to be participant or super admin."""
+    caller_id = current_user["user_id"]
+    is_super_admin = (
+        current_user.get("admin_level") == "SUPER_ADMIN"
+        or current_user.get("username", "").lower() == "rajarshi"
+    )
+    if caller_id not in (user_1, user_2) and not is_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You can only access message threads in which you are a participant."
+        )
+
+    return _fetch_message_thread(user_1, user_2)
+
+def _fetch_message_thread(user_1: int, user_2: int):
     try:
         sql = """
             SELECT 
@@ -107,7 +150,6 @@ def get_message_thread(
         """
         messages = query_all(sql, (user_1, user_2, user_2, user_1))
 
-        # Convert sent_at and created_at to strings if needed for JSON serialization
         for msg in messages:
             if msg.get("sent_at"):
                 msg["sent_at"] = str(msg["sent_at"])
@@ -131,33 +173,42 @@ def get_message_thread(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("")
-def send_message(payload: SendMessageRequest):
-    """Send a direct message to another user."""
+def send_message(
+    payload: SendMessageRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Send a direct message. Sender identity is derived strictly from verified JWT token."""
     try:
-        if not payload.content.strip():
+        sender_id = current_user["user_id"]
+        content = payload.content.strip()
+
+        if not content:
             raise HTTPException(status_code=400, detail="Message content cannot be empty")
 
-        if payload.sender_id == payload.receiver_id:
+        if sender_id == payload.receiver_id:
             raise HTTPException(status_code=400, detail="Cannot send message to yourself")
+
+        receiver = query_one("SELECT user_id, username FROM Users WHERE user_id = ?", (payload.receiver_id,))
+        if not receiver:
+            raise HTTPException(status_code=404, detail="Recipient user not found")
 
         message_id = execute_write("""
             INSERT INTO Message (sender_id, receiver_id, content, read_status)
             VALUES (?, ?, ?, 'UNREAD')
-        """, (payload.sender_id, payload.receiver_id, payload.content.strip()))
+        """, (sender_id, payload.receiver_id, content))
 
-        # Also create a notification for the recipient
-        sender = query_one("SELECT username FROM Users WHERE user_id = ?", (payload.sender_id,))
-        sender_name = sender["username"] if sender else "Someone"
+        # Create notification for recipient
+        sender_name = current_user.get("username", "Someone")
         execute_write("""
             INSERT INTO Notification (recipient_id, content, ref_id, ref_type)
             VALUES (?, ?, ?, 'MESSAGE')
-        """, (payload.receiver_id, f"{sender_name} sent you a message: {payload.content[:30]}...", message_id))
+        """, (payload.receiver_id, f"{sender_name} sent you a message: {content[:30]}...", message_id))
 
         # Log event
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
             VALUES (?, 'SEND_MESSAGE', 'WEB', ?)
-        """, (payload.sender_id, f'{{"receiver_id": {payload.receiver_id}, "message_id": {message_id}}}'))
+        """, (sender_id, f'{{"receiver_id": {payload.receiver_id}, "message_id": {message_id}}}'))
 
         return {
             "success": True,

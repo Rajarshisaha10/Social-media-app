@@ -8,6 +8,7 @@ export default function CreatePostBox({ onPostCreated }) {
   const [imageUrl, setImageUrl] = useState('');
   const [showImgInput, setShowImgInput] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [posted, setPosted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,6 +23,8 @@ export default function CreatePostBox({ onPostCreated }) {
       setContent('');
       setImageUrl('');
       setShowImgInput(false);
+      setPosted(true);
+      setTimeout(() => setPosted(false), 1400);
     } catch (err) {
       console.error('Failed to publish post:', err);
     } finally {
@@ -106,9 +109,10 @@ export default function CreatePostBox({ onPostCreated }) {
           className="btn-secondary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
           onClick={() => setShowImgInput(!showImgInput)}
+          aria-expanded={showImgInput}
         >
           <Image size={16} />
-          <span>{showImgInput ? 'Hide Image Field' : 'Attach Image'}</span>
+          <span>{showImgInput ? 'Remove image field' : 'Attach image'}</span>
         </button>
 
         <button
@@ -118,7 +122,7 @@ export default function CreatePostBox({ onPostCreated }) {
           onClick={handleSubmit}
         >
           <Send size={15} />
-          <span>{submitting ? 'Sharing...' : 'Share'}</span>
+          <span>{submitting ? 'Posting...' : posted ? 'Posted' : 'Post'}</span>
         </button>
       </div>
     </div>

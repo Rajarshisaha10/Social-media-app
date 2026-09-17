@@ -30,24 +30,30 @@ export default function UserProfileModal({ userId, onClose, onStartChat }) {
   const isFollowing = followingSet.has(userId);
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close-btn" onClick={onClose}>
-          <X size={20} />
+        <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close profile">
+          <X size={18} />
         </button>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div className="skeleton" style={{ height: '80px', borderRadius: '50%', width: '80px', margin: '0 auto' }} />
-            <div className="skeleton" style={{ height: '24px', width: '50%', margin: '0 auto' }} />
-            <div className="skeleton" style={{ height: '60px', width: '100%' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '10px 0' }}>
+            <div className="skeleton skeleton-avatar" style={{ height: '84px', width: '84px' }} />
+            <div className="skeleton skeleton-bar" style={{ height: '18px', width: '140px' }} />
+            <div className="skeleton skeleton-bar" style={{ height: '12px', width: '90px' }} />
+            <div className="skeleton skeleton-bar" style={{ height: '36px', width: '80%' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', padding: '12px 0' }}>
+              <div className="skeleton skeleton-bar" style={{ height: '28px', width: '50px' }} />
+              <div className="skeleton skeleton-bar" style={{ height: '28px', width: '50px' }} />
+              <div className="skeleton skeleton-bar" style={{ height: '28px', width: '50px' }} />
+            </div>
           </div>
         ) : profile ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '12px' }}>
             <img
               src={profile.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
               alt={profile.username}
-              style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', boxShadow: 'var(--shadow-md)' }}
+              style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', boxShadow: 'var(--shadow-card)' }}
             />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -99,6 +105,7 @@ export default function UserProfileModal({ userId, onClose, onStartChat }) {
                   type="button"
                   className={`btn-follow ${isFollowing ? 'following' : ''}`}
                   onClick={() => toggleFollow(userId)}
+                  aria-label={isFollowing ? `Unfollow ${profile.username}` : `Follow ${profile.username}`}
                   style={{ flex: 1, height: '38px' }}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
@@ -110,6 +117,7 @@ export default function UserProfileModal({ userId, onClose, onStartChat }) {
                     onClose();
                     onStartChat?.(userId);
                   }}
+                  aria-label={`Send direct message to ${profile.username}`}
                   style={{ flex: 1, height: '38px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 >
                   <MessageSquare size={15} />
@@ -119,7 +127,15 @@ export default function UserProfileModal({ userId, onClose, onStartChat }) {
             )}
           </div>
         ) : (
-          <div>User not found</div>
+          <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-secondary)' }}>
+            <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Member not found</h4>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '16px' }}>
+              This profile could not be loaded or may no longer exist.
+            </p>
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Close profile
+            </button>
+          </div>
         )}
       </div>
     </div>

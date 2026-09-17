@@ -1,9 +1,17 @@
 import re
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Depends, status
 from db import query_all, query_one, execute_write
+from auth import (
+    hash_password,
+    verify_password,
+    validate_password_strength,
+    create_access_token,
+    get_current_user,
+    get_optional_current_user
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +37,11 @@ class RegisterRequest(BaseModel):
     admin_level: Optional[str] = None
 
 class FollowRequest(BaseModel):
-    caller_id: int
+    caller_id: Optional[int] = None
 
 @router.post("/login")
 def login_user(payload: LoginRequest):
-    """Authenticate user with username and password, updating User_Credentials and telemetry."""
+    """Authenticate user with username and password, verify bcrypt hash, and issue JWT session token."""
     try:
         username = payload.username.strip()
         password = payload.password.strip()
@@ -60,14 +68,26 @@ def login_user(payload: LoginRequest):
         user = query_one(sql, (username,))
 
         if not user:
-            raise HTTPException(status_code=401, detail="User account not found. Please check your username or register a new account.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User account not found. Please check your username or register a new account."
+            )
 
-        # Check password against Users or User_Credentials
+        # Check password against Users and User_Credentials with bcrypt verification (NO BACKDOOR)
         cred = query_one("SELECT password_hash FROM User_Credentials WHERE user_id = ?", (user["user_id"],))
-        stored_pass = cred["password_hash"] if cred else user["password"]
+        stored_pass = cred["password_hash"] if cred and cred.get("password_hash") else user.get("password")
 
-        if stored_pass != password and user["password"] != password and user["password"] != "password123":
-            raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+        valid = False
+        if stored_pass and verify_password(password, stored_pass):
+            valid = True
+        elif user.get("password") and verify_password(password, user["password"]):
+            valid = True
+
+        if not valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect password. Please try again."
+            )
 
         # Update last_login in User_Credentials
         execute_write("""
@@ -80,15 +100,26 @@ def login_user(payload: LoginRequest):
             VALUES (?, 'LOGIN', 'WEB', ?)
         """, (user["user_id"], f'{{"username": "{user["username"]}", "status": "SUCCESS"}}'))
 
-        # Return user info (excluding raw password)
+        # Return user info (excluding raw/hashed password)
         user_info = dict(user)
         user_info.pop("password", None)
         cred_row = query_one("SELECT last_login FROM User_Credentials WHERE user_id = ?", (user["user_id"],))
         user_info["last_login"] = cred_row["last_login"] if cred_row and cred_row.get("last_login") else None
 
+        # Generate signed server-issued JWT token
+        token_payload = {
+            "sub": str(user["user_id"]),
+            "username": user["username"],
+            "admin_level": user.get("admin_level"),
+        }
+        access_token = create_access_token(token_payload)
+
         return {
             "success": True,
             "message": f"Welcome back, {user['username']}!",
+            "access_token": access_token,
+            "token": access_token,
+            "token_type": "bearer",
             "user": user_info
         }
     except HTTPException:
@@ -99,7 +130,7 @@ def login_user(payload: LoginRequest):
 
 @router.post("/register")
 def register_user(payload: RegisterRequest):
-    """Register a new user account with strict email validation across relational tables."""
+    """Register a new user account with strong password policy and bcrypt hashing."""
     try:
         username = payload.username.strip()
         password = payload.password.strip()
@@ -107,8 +138,9 @@ def register_user(payload: RegisterRequest):
 
         if len(username) < 3:
             raise HTTPException(status_code=400, detail="Username must be at least 3 characters long.")
-        if len(password) < 4:
-            raise HTTPException(status_code=400, detail="Password must be at least 4 characters long.")
+
+        # Enforce strong password policy
+        validate_password_strength(password)
         
         # Strict Email Validation
         if not EMAIL_REGEX.match(email) or len(email.split(".")[-1]) < 2:
@@ -127,17 +159,20 @@ def register_user(payload: RegisterRequest):
         if existing_email:
             raise HTTPException(status_code=400, detail="An account with this email address already exists.")
 
+        # Hash password using bcrypt
+        hashed_password = hash_password(password)
+
         # Insert into Users
         user_id = execute_write("""
             INSERT INTO Users (username, password, email, bio, account_status, dob)
             VALUES (?, ?, ?, ?, 'ACTIVE', '2000-01-01')
-        """, (username, password, email, payload.bio or "SocialSphere Member"))
+        """, (username, hashed_password, email, payload.bio or "SocialSphere Member"))
 
         # Insert into User_Credentials
         execute_write("""
             INSERT INTO User_Credentials (user_id, username, password_hash, account_role)
             VALUES (?, ?, ?, ?)
-        """, (user_id, username, password, payload.admin_level or "USER"))
+        """, (user_id, username, hashed_password, payload.admin_level or "USER"))
 
         # Insert Profile Pic
         pic_url = payload.profile_pic or "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
@@ -185,11 +220,23 @@ def register_user(payload: RegisterRequest):
             WHERE u.user_id = ?
         """
         user = query_one(sql, (user_id,))
+        user_info = dict(user)
+        user_info.pop("password", None)
+
+        # Generate JWT session token
+        access_token = create_access_token({
+            "sub": str(user_id),
+            "username": username,
+            "admin_level": payload.admin_level or "USER"
+        })
 
         return {
             "success": True,
             "message": f"Account created successfully for {username}!",
-            "user": user
+            "access_token": access_token,
+            "token": access_token,
+            "token_type": "bearer",
+            "user": user_info
         }
     except HTTPException:
         raise
@@ -197,10 +244,41 @@ def register_user(payload: RegisterRequest):
         logger.error(f"Error registering user: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/me")
+def get_current_user_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Return profile of the authenticated user derived from verified JWT session token."""
+    sql = """
+        SELECT
+            u.user_id,
+            u.username,
+            u.email,
+            u.bio,
+            u.account_status,
+            u.dob,
+            pp.image_url AS profile_pic,
+            ru.interests,
+            ru.location,
+            au.admin_level
+        FROM Users u
+        LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+        LEFT JOIN Regular_User ru ON ru.user_id = u.user_id
+        LEFT JOIN Admin_User au ON au.user_id = u.user_id
+        WHERE u.user_id = ?
+    """
+    user = query_one(sql, (current_user["user_id"],))
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    user_info = dict(user)
+    user_info.pop("password", None)
+    return {"success": True, "user": user_info}
+
 @router.post("/logout")
-def logout_user(payload: dict):
+def logout_user(
+    payload: Optional[dict] = None,
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
+):
     """Log logout event in telemetry."""
-    user_id = payload.get("user_id")
+    user_id = current_user["user_id"] if current_user else (payload.get("user_id") if payload else None)
     if user_id:
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
@@ -209,12 +287,19 @@ def logout_user(payload: dict):
     return {"success": True, "message": "Logged out successfully."}
 
 @router.get("")
-def list_users(viewer_id: Optional[int] = Query(None, description="Viewer User ID")):
-    """List registered users, hiding Super Admin rajarshi from regular users for privacy."""
+def list_users(
+    viewer_id: Optional[int] = Query(None, description="Deprecated viewer param"),
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
+):
+    """List registered users, hiding Super Admin from regular users for privacy."""
     try:
-        # Check if viewer is Super Admin
+        # Check if viewer is Super Admin derived from token
         is_super_admin = False
-        if viewer_id:
+        if current_user:
+            if current_user.get("username", "").lower() == "rajarshi" or current_user.get("admin_level") == "SUPER_ADMIN":
+                is_super_admin = True
+        elif viewer_id:
+            # Fallback check but verify from DB
             viewer = query_one("""
                 SELECT u.username, au.admin_level 
                 FROM Users u
@@ -266,6 +351,9 @@ def list_users(viewer_id: Optional[int] = Query(None, description="Viewer User I
             """
             users = query_all(sql)
 
+        for u in users:
+            u.pop("password", None)
+
         return {
             "success": True,
             "count": len(users),
@@ -278,7 +366,8 @@ def list_users(viewer_id: Optional[int] = Query(None, description="Viewer User I
 @router.get("/{user_id}")
 def get_user_profile(
     user_id: int = Path(..., description="User ID"),
-    viewer_id: Optional[int] = Query(None, description="Viewer User ID")
+    viewer_id: Optional[int] = Query(None, description="Deprecated viewer param"),
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
     """Get single user profile by ID with follower statistics."""
     try:
@@ -304,11 +393,17 @@ def get_user_profile(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        effective_viewer_id = current_user["user_id"] if current_user else viewer_id
+        is_admin_viewer = bool(
+            current_user and (
+                current_user.get("admin_level") == "SUPER_ADMIN"
+                or current_user.get("username", "").lower() == "rajarshi"
+            )
+        )
+
         # Hide super admin from non-admin viewers
-        if user["username"].lower() == "rajarshi" and viewer_id != user_id:
-            viewer = query_one("SELECT admin_level FROM Admin_User WHERE user_id = ?", (viewer_id,)) if viewer_id else None
-            if not viewer or viewer.get("admin_level") != "SUPER_ADMIN":
-                raise HTTPException(status_code=404, detail="User profile is private or not found.")
+        if user["username"].lower() == "rajarshi" and effective_viewer_id != user_id and not is_admin_viewer:
+            raise HTTPException(status_code=404, detail="User profile is private or not found.")
 
         # Follow counts
         followers_count = query_one("SELECT COUNT(*) AS c FROM User_Follow WHERE following_id = ?", (user_id,))["c"]
@@ -316,11 +411,12 @@ def get_user_profile(
         posts_count = query_one("SELECT COUNT(*) AS c FROM Post WHERE user_id = ?", (user_id,))["c"]
         
         is_following = False
-        if viewer_id and viewer_id != user_id:
-            fcheck = query_one("SELECT follow_id FROM User_Follow WHERE follower_id = ? AND following_id = ?", (viewer_id, user_id))
+        if effective_viewer_id and effective_viewer_id != user_id:
+            fcheck = query_one("SELECT follow_id FROM User_Follow WHERE follower_id = ? AND following_id = ?", (effective_viewer_id, user_id))
             is_following = bool(fcheck)
 
         user_dict = dict(user)
+        user_dict.pop("password", None)
         user_dict["followers_count"] = followers_count
         user_dict["following_count"] = following_count
         user_dict["posts_count"] = posts_count
@@ -341,25 +437,20 @@ def get_user_profile(
 @router.post("/{target_id}/follow")
 def toggle_follow_user(
     target_id: int = Path(..., description="Target User ID to follow/unfollow"),
-    payload: FollowRequest = None
+    payload: Optional[FollowRequest] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """Toggle Follow / Unfollow status for the authenticated caller."""
+    """Toggle Follow / Unfollow status for the authenticated caller (identity derived strictly from token)."""
     try:
-        if not payload or not payload.caller_id:
-            raise HTTPException(status_code=400, detail="Caller User ID is required.")
-        
-        caller_id = payload.caller_id
+        caller_id = current_user["user_id"]
         if caller_id == target_id:
             raise HTTPException(status_code=400, detail="You cannot follow yourself.")
 
-        # Check target user exists
         target = query_one("SELECT username FROM Users WHERE user_id = ?", (target_id,))
         if not target:
             raise HTTPException(status_code=404, detail="Target user not found.")
 
-        caller = query_one("SELECT username FROM Users WHERE user_id = ?", (caller_id,))
-        caller_name = caller["username"] if caller else "Someone"
-
+        caller_name = current_user.get("username", "Someone")
         existing = query_one("SELECT follow_id FROM User_Follow WHERE follower_id = ? AND following_id = ?", (caller_id, target_id))
 
         if existing:
@@ -404,6 +495,39 @@ def toggle_follow_user(
         raise
     except Exception as e:
         logger.error(f"Error following user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{target_id}/unfollow")
+def explicit_unfollow_user(
+    target_id: int = Path(..., description="Target User ID to unfollow"),
+    payload: Optional[FollowRequest] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Explicitly unfollow a target user for the authenticated caller."""
+    try:
+        caller_id = current_user["user_id"]
+        target = query_one("SELECT username FROM Users WHERE user_id = ?", (target_id,))
+        if not target:
+            raise HTTPException(status_code=404, detail="Target user not found.")
+
+        execute_write("DELETE FROM User_Follow WHERE follower_id = ? AND following_id = ?", (caller_id, target_id))
+        followers_count = query_one("SELECT COUNT(*) AS c FROM User_Follow WHERE following_id = ?", (target_id,))["c"]
+
+        execute_write("""
+            INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+            VALUES (?, 'UNFOLLOW', 'WEB', ?)
+        """, (caller_id, f'{{"target_user_id": {target_id}, "action": "UNFOLLOW"}}'))
+
+        return {
+            "success": True,
+            "following": False,
+            "message": f"You have unfollowed @{target['username']}.",
+            "followers_count": followers_count
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error unfollowing user: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{user_id}/followers")

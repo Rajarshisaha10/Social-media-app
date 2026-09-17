@@ -62,6 +62,8 @@ try:
     r = client.post("/api/users/login", json={"username": "rajarshi", "password": "dbms108"})
     assert r.status_code == 200 and r.json()["success"]
     admin_user = r.json()["user"]
+    admin_token = r.json()["access_token"]
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
     assert admin_user["username"] == "rajarshi"
     print(" [PASS] POST /api/users/login (Admin rajarshi):", admin_user["username"])
 
@@ -69,7 +71,7 @@ try:
     r_bad_email = client.post("/api/users/register", json={
         "username": "bademail_test",
         "email": "invalid_email_format",
-        "password": "password123"
+        "password": "Password@123"
     })
     assert r_bad_email.status_code == 400
     print(" [PASS] Strict Email Validation: Rejected invalid email format successfully.")
@@ -78,21 +80,23 @@ try:
     r_good = client.post("/api/users/register", json={
         "username": unique_uname,
         "email": f"{unique_uname}@socialsphere.io",
-        "password": "securepass123",
+        "password": "SecurePassword@123",
         "bio": "Automated test user",
         "location": "Cloud",
         "interests": "SQL, Python"
     })
     assert r_good.status_code == 200 and r_good.json()["success"]
     new_user_id = r_good.json()["user"]["user_id"]
+    new_user_token = r_good.json()["access_token"]
+    new_user_headers = {"Authorization": f"Bearer {new_user_token}"}
     print(" [PASS] POST /api/users/register (Valid Email):", r_good.json()["user"]["username"])
 
     # 6. Follow / Unfollow Social Graph
-    r_follow = client.post(f"/api/users/{new_user_id}/follow", json={"caller_id": 2})
+    r_follow = client.post(f"/api/users/{new_user_id}/follow", headers=admin_headers)
     assert r_follow.status_code == 200 and r_follow.json()["following"] == True
     print(" [PASS] POST /api/users/{id}/follow (Follow Action): following=True")
 
-    r_unfollow = client.post(f"/api/users/{new_user_id}/follow", json={"caller_id": 2})
+    r_unfollow = client.post(f"/api/users/{new_user_id}/follow", headers=admin_headers)
     assert r_unfollow.status_code == 200 and r_unfollow.json()["following"] == False
     print(" [PASS] POST /api/users/{id}/follow (Unfollow Action): following=False")
 
@@ -107,8 +111,7 @@ try:
     assert "rajarshi" not in user_names
     print(" [PASS] Super Admin Privacy: 'rajarshi' hidden from public user directory.")
 
-    rajarshi_uid = query_one("SELECT user_id FROM Users WHERE username = 'rajarshi'")["user_id"]
-    r_users_admin = client.get(f"/api/users?viewer_id={rajarshi_uid}")
+    r_users_admin = client.get("/api/users", headers=admin_headers)
     assert r_users_admin.status_code == 200
     admin_user_names = [u["username"].lower() for u in r_users_admin.json()["users"]]
     assert "rajarshi" in admin_user_names
@@ -121,42 +124,44 @@ try:
 
     # 8b. Post Creation & Deletion
     r_create_post = client.post("/api/posts", json={
-        "user_id": new_user_id,
         "content": "Test post for deletion #deleteTest"
-    })
+    }, headers=new_user_headers)
     assert r_create_post.status_code == 200 and r_create_post.json()["success"]
     created_post_id = r_create_post.json()["post_id"]
     print(" [PASS] POST /api/posts (Created temporary post):", created_post_id)
 
     # Permission check: non-author cannot delete
-    r_del_unauth = client.delete(f"/api/posts/{created_post_id}?user_id=2")
+    r_login_other = client.post("/api/users/login", json={"username": "kandarp", "password": "hashed_pass_123"})
+    other_token = r_login_other.json()["access_token"]
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+    r_del_unauth = client.delete(f"/api/posts/{created_post_id}", headers=other_headers)
     assert r_del_unauth.status_code == 403
     print(" [PASS] DELETE /api/posts/{id} (Unauthorized rejected with 403)")
 
     # Author deletion succeeds
-    r_del_auth = client.delete(f"/api/posts/{created_post_id}?user_id={new_user_id}")
+    r_del_auth = client.delete(f"/api/posts/{created_post_id}", headers=new_user_headers)
     assert r_del_auth.status_code == 200 and r_del_auth.json()["success"]
     print(" [PASS] DELETE /api/posts/{id} (Author deleted post successfully)")
 
     # Deleting already deleted post returns 404
-    r_del_gone = client.delete(f"/api/posts/{created_post_id}?user_id={new_user_id}")
+    r_del_gone = client.delete(f"/api/posts/{created_post_id}", headers=new_user_headers)
     assert r_del_gone.status_code == 404
     print(" [PASS] DELETE /api/posts/{id} (Already deleted post returns 404)")
 
     # 9. Groups
-    r = client.get("/api/groups?user_id=1")
+    r = client.get("/api/groups")
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/groups - Count:", r.json()["count"])
 
     # 10. Messages
-    r = client.get("/api/messages/conversations/1")
+    r = client.get("/api/messages/conversations", headers=admin_headers)
     assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] GET /api/messages/conversations/1 - Count:", r.json()["count"])
+    print(" [PASS] GET /api/messages/conversations - Count:", r.json()["count"])
 
     # 11. Notifications
-    r = client.get("/api/notifications/1")
+    r = client.get("/api/notifications", headers=admin_headers)
     assert r.status_code == 200 and r.json()["success"]
-    print(" [PASS] GET /api/notifications/1 - Count:", r.json()["count"])
+    print(" [PASS] GET /api/notifications - Count:", r.json()["count"])
 
     # 12. Analytics Overview & Events
     r = client.get("/api/analytics/overview")
@@ -164,11 +169,11 @@ try:
     print(" [PASS] GET /api/analytics/overview (Total 17 Tables):", r.json()["analytics"]["totalFollows"], "follows")
 
     # 13. SQL Studio Execution & Schema
-    r = client.get("/api/sql/schema")
+    r = client.get("/api/sql/schema", headers=admin_headers)
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] GET /api/sql/schema - Tables:", r.json()["table_count"])
 
-    r = client.post("/api/sql/execute", json={"query": "SELECT u.username, uc.account_role FROM Users u JOIN User_Credentials uc ON uc.user_id = u.user_id"})
+    r = client.post("/api/sql/execute", json={"query": "SELECT u.username, uc.account_role FROM Users u JOIN User_Credentials uc ON uc.user_id = u.user_id"}, headers=admin_headers)
     assert r.status_code == 200 and r.json()["success"]
     print(" [PASS] POST /api/sql/execute - Query returned:", r.json()["message"])
 

@@ -50,7 +50,7 @@ export default function AuthGate() {
 
 
   return (
-    <div className="auth-gate-wrapper animate-fade-in">
+    <div className="auth-gate-wrapper">
       <div className="auth-gate-box">
         <div>
           <div className="auth-logo">SocialSphere</div>

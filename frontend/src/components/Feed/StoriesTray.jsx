@@ -20,6 +20,15 @@ export default function StoriesTray({ users, onSelectStory }) {
             key={u.user_id}
             className="story-bubble"
             onClick={() => onSelectStory(u)}
+            tabIndex={0}
+            role="button"
+            aria-label={`View story from ${u.username}`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectStory(u);
+              }
+            }}
           >
             <div className="story-ring">
               <img

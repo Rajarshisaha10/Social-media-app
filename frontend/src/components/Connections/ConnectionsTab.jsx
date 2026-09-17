@@ -40,15 +40,23 @@ export default function ConnectionsTab({ onUserClick }) {
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="skeleton" style={{ height: '240px', borderRadius: 'var(--radius-lg)' }} />
+            <div key={n} className="aside-card" style={{ alignItems: 'center', textAlign: 'center', padding: '20px', gap: 10 }}>
+              <div className="skeleton skeleton-avatar" style={{ width: 72, height: 72 }} />
+              <div className="skeleton skeleton-bar" style={{ width: 110, height: 16, marginTop: 4 }} />
+              <div className="skeleton skeleton-bar" style={{ width: 150, height: 12 }} />
+              <div className="skeleton" style={{ width: 80, height: 20, borderRadius: 'var(--radius-full)', margin: '4px 0' }} />
+              <div className="skeleton" style={{ width: '100%', height: 34, borderRadius: 'var(--radius-full)', marginTop: 'auto' }} />
+            </div>
           ))}
         </div>
       ) : recommendations.length === 0 ? (
-        <div className="aside-card" style={{ textAlign: 'center', padding: '40px' }}>
-          <UserCheck size={36} style={{ margin: '0 auto 12px', color: 'var(--text-muted)' }} />
-          <h3>No suggestions found</h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px' }}>
-            Check back later as new members join and expand the social graph!
+        <div className="aside-card" style={{ textAlign: 'center', padding: '48px 24px', alignItems: 'center' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 'var(--radius-full)', background: 'var(--blue-light)', color: 'var(--blue-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+            <UserCheck size={24} />
+          </div>
+          <h3 style={{ fontSize: '17px', fontWeight: 800 }}>No suggestions found right now</h3>
+          <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', maxWidth: '380px', marginTop: '6px', lineHeight: '1.5' }}>
+            As you interact with posts and join communities, people you may know will appear here based on mutual topics and relational recommendations.
           </p>
         </div>
       ) : (
@@ -58,20 +66,29 @@ export default function ConnectionsTab({ onUserClick }) {
             return (
               <div
                 key={rec.user_id}
-                className="aside-card animate-fade-in"
+                className="aside-card"
                 style={{ alignItems: 'center', textAlign: 'center', padding: '20px' }}
               >
                 <img
                   src={rec.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
                   alt={rec.username}
                   onClick={() => onUserClick?.(rec.user_id)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View profile for ${rec.username}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onUserClick?.(rec.user_id);
+                    }
+                  }}
                   style={{
                     width: '72px',
                     height: '72px',
                     borderRadius: '50%',
                     objectFit: 'cover',
                     cursor: 'pointer',
-                    boxShadow: 'var(--shadow-sm)',
+                    boxShadow: 'var(--shadow-card)',
                   }}
                 />
                 <h4
@@ -104,6 +121,7 @@ export default function ConnectionsTab({ onUserClick }) {
                   type="button"
                   className={`btn-follow ${isFollowing ? 'following' : ''}`}
                   onClick={() => toggleFollow(rec.user_id)}
+                  aria-label={isFollowing ? `Unfollow ${rec.username}` : `Follow ${rec.username}`}
                   style={{ width: '100%', marginTop: 'auto' }}
                 >
                   {isFollowing ? 'Following' : 'Follow'}

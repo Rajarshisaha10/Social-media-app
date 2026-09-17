@@ -1,8 +1,9 @@
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Depends
 from db import query_all, query_one, execute_write
+from auth import get_current_user, get_optional_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -12,18 +13,23 @@ router = APIRouter(
 )
 
 class CreateGroupRequest(BaseModel):
-    user_id: int
     group_name: str
     description: Optional[str] = None
     privacy_setting: Optional[str] = "PUBLIC"
+    user_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
 
 class JoinGroupRequest(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
 
 @router.get("")
-def list_groups(user_id: Optional[int] = Query(None, description="Active user ID to check membership")):
+def list_groups(
+    user_id: Optional[int] = Query(None, description="Deprecated user param"),
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
+):
     """List all community groups with membership details."""
     try:
+        active_user_id = current_user["user_id"] if current_user else user_id
+
         sql = """
             SELECT 
                 cg.group_id,
@@ -56,7 +62,7 @@ def list_groups(user_id: Optional[int] = Query(None, description="Active user ID
                 ORDER BY gm.join_date ASC
             """, (group_id,))
             g["members"] = members
-            g["is_member"] = any(m["user_id"] == user_id for m in members) if user_id else False
+            g["is_member"] = any(m["user_id"] == active_user_id for m in members) if active_user_id else False
 
         return {
             "success": True,
@@ -68,9 +74,13 @@ def list_groups(user_id: Optional[int] = Query(None, description="Active user ID
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("")
-def create_group(payload: CreateGroupRequest):
-    """Create a new community group and assign creator as ADMIN."""
+def create_group(
+    payload: CreateGroupRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Create a new community group and assign creator as ADMIN (creator derived from token)."""
     try:
+        user_id = current_user["user_id"]
         group_id = execute_write("""
             INSERT INTO Community_Group (group_name, description, privacy_setting)
             VALUES (?, ?, ?)
@@ -80,13 +90,13 @@ def create_group(payload: CreateGroupRequest):
         execute_write("""
             INSERT INTO Group_Members (group_id, user_id, role)
             VALUES (?, ?, 'ADMIN')
-        """, (group_id, payload.user_id))
+        """, (group_id, user_id))
 
         # Log event
         execute_write("""
             INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
             VALUES (?, 'GROUP_CREATE', 'WEB', ?)
-        """, (payload.user_id, f'{{"group_id": {group_id}, "group_name": "{payload.group_name}"}}'))
+        """, (user_id, f'{{"group_id": {group_id}, "group_name": "{payload.group_name}"}}'))
 
         return {
             "success": True,
@@ -100,33 +110,35 @@ def create_group(payload: CreateGroupRequest):
 @router.post("/{group_id}/toggle-join")
 def toggle_group_membership(
     group_id: int = Path(..., description="Group ID"),
-    payload: JoinGroupRequest = ...
+    payload: Optional[JoinGroupRequest] = None,
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """Join or leave a community group."""
+    """Join or leave a community group. Actor derived strictly from verified JWT token."""
     try:
+        user_id = current_user["user_id"]
         existing = query_one("""
             SELECT role FROM Group_Members 
             WHERE group_id = ? AND user_id = ?
-        """, (group_id, payload.user_id))
+        """, (group_id, user_id))
 
         if existing:
             execute_write("""
                 DELETE FROM Group_Members 
                 WHERE group_id = ? AND user_id = ?
-            """, (group_id, payload.user_id))
+            """, (group_id, user_id))
             action = "left"
         else:
             execute_write("""
                 INSERT INTO Group_Members (group_id, user_id, role)
                 VALUES (?, ?, 'MEMBER')
-            """, (group_id, payload.user_id))
+            """, (group_id, user_id))
             action = "joined"
 
         return {
             "success": True,
             "action": action,
             "group_id": group_id,
-            "user_id": payload.user_id
+            "user_id": user_id
         }
     except Exception as e:
         logger.error(f"Error toggling membership for group {group_id}: {e}")

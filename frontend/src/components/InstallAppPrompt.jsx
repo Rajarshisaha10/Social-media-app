@@ -82,15 +82,14 @@ export default function InstallAppPrompt() {
           width: 'calc(100% - 24px)',
           maxWidth: '440px',
           backgroundColor: 'var(--bg-surface-elevated, #ffffff)',
-          borderRadius: '16px',
-          border: '1px solid var(--border-default, #e2d5c3)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.16)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-default)',
+          boxShadow: 'var(--shadow-elevated)',
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          animation: 'fadeIn 0.3s ease-out'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
@@ -98,7 +97,7 @@ export default function InstallAppPrompt() {
             style={{
               width: '40px',
               height: '40px',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-md)',
               background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               display: 'flex',
               alignItems: 'center',
@@ -130,33 +129,29 @@ export default function InstallAppPrompt() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <button
             onClick={handleInstallClick}
+            className="btn-primary"
             style={{
-              backgroundColor: 'var(--blue-primary, #2563eb)',
-              color: '#ffffff',
-              padding: '7px 14px',
-              borderRadius: '20px',
+              padding: '6px 14px',
+              borderRadius: 'var(--radius-full)',
               fontSize: '12.5px',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
-              cursor: 'pointer'
             }}
+            aria-label="Install SocialSphere App"
           >
             <Download size={14} />
-            Install
+            <span>Install App</span>
           </button>
           <button
             onClick={handleDismiss}
             style={{
               padding: '6px',
-              color: 'var(--text-muted, #a8a29e)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              borderRadius: 'var(--radius-sm)',
             }}
             title="Dismiss"
+            aria-label="Dismiss app install banner"
           >
             <X size={16} />
           </button>

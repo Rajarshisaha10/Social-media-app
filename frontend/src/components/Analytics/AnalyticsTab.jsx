@@ -61,7 +61,10 @@ export default function AnalyticsTab() {
       {loading ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px', marginBottom: '24px' }}>
           {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div key={n} className="skeleton" style={{ height: '90px', borderRadius: 'var(--radius-md)' }} />
+            <div key={n} className="skeleton-stat-card">
+              <div className="skeleton skeleton-bar" style={{ width: 80, height: 11 }} />
+              <div className="skeleton skeleton-bar" style={{ width: 45, height: 26, marginTop: 4 }} />
+            </div>
           ))}
         </div>
       ) : overview ? (
@@ -69,7 +72,7 @@ export default function AnalyticsTab() {
           {Object.entries(overview).map(([key, val]) => (
             <div
               key={key}
-              className="aside-card animate-fade-in"
+              className="aside-card"
               style={{ padding: '14px', background: 'var(--bg-surface)' }}
             >
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
@@ -108,24 +111,43 @@ export default function AnalyticsTab() {
               </tr>
             </thead>
             <tbody>
-              {events.slice(0, 50).map((ev) => (
-                <tr key={ev.event_id}>
-                  <td>#{ev.event_id}</td>
-                  <td>{ev.user_id ? `User #${ev.user_id}` : 'System'}</td>
-                  <td>
-                    <span style={{ fontWeight: 700, color: 'var(--blue-primary)' }}>
-                      {ev.event_type}
-                    </span>
-                  </td>
-                  <td>{ev.device_type || 'WEB'}</td>
-                  <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {ev.metadata || '{}'}
-                  </td>
-                  <td style={{ color: 'var(--text-muted)' }}>
-                    {ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
+              {loading ? (
+                [1, 2, 3, 4].map((n) => (
+                  <tr key={n}>
+                    <td><div className="skeleton skeleton-bar" style={{ width: 40, height: 12 }} /></td>
+                    <td><div className="skeleton skeleton-bar" style={{ width: 60, height: 12 }} /></td>
+                    <td><div className="skeleton skeleton-bar" style={{ width: 80, height: 12 }} /></td>
+                    <td><div className="skeleton skeleton-bar" style={{ width: 45, height: 12 }} /></td>
+                    <td><div className="skeleton skeleton-bar" style={{ width: 140, height: 12 }} /></td>
+                    <td><div className="skeleton skeleton-bar" style={{ width: 90, height: 12 }} /></td>
+                  </tr>
+                ))
+              ) : events.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
+                    No telemetry events recorded yet. Events will appear in real time as members interact.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                events.slice(0, 50).map((ev) => (
+                  <tr key={ev.event_id}>
+                    <td>#{ev.event_id}</td>
+                    <td>{ev.user_id ? `User #${ev.user_id}` : 'System'}</td>
+                    <td>
+                      <span style={{ fontWeight: 700, color: 'var(--blue-primary)' }}>
+                        {ev.event_type}
+                      </span>
+                    </td>
+                    <td>{ev.device_type || 'WEB'}</td>
+                    <td style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ev.metadata || '{}'}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,11 +1,16 @@
 import time
+import json
 import logging
+from collections import defaultdict
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, status, Request
+import sqlparse
 import pymysql
 import sqlite3
-from db import get_db, query_all, get_engine
+from db import get_db, query_all, get_engine, execute_write
+from auth import get_optional_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +19,57 @@ router = APIRouter(
     tags=["SQL Studio"]
 )
 
+# Rolling window rate limiter: 30 queries per 60 seconds per user/IP
+_query_timestamps = defaultdict(list)
+
+def check_rate_limit(actor_key: Any, max_requests: int = 30, window_seconds: int = 60) -> None:
+    now = time.time()
+    timestamps = _query_timestamps[actor_key]
+    _query_timestamps[actor_key] = [t for t in timestamps if now - t < window_seconds]
+    if len(_query_timestamps[actor_key]) >= max_requests:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded: Maximum {max_requests} queries per {window_seconds} seconds allowed."
+        )
+    _query_timestamps[actor_key].append(now)
+
+DISALLOWED_KEYWORDS = {
+    "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "REPLACE",
+    "CREATE", "GRANT", "REVOKE", "INTO", "OUTFILE", "DUMPFILE", "EXEC",
+    "EXECUTE", "SET", "CALL", "RENAME", "ATTACH", "DETACH"
+}
+
+def validate_sql_readonly(query_str: str) -> None:
+    """Use sqlparse AST parser to ensure statement is strictly a read-only SELECT."""
+    parsed = [s for s in sqlparse.parse(query_str.strip()) if s.tokens and not s.is_whitespace]
+    if not parsed:
+        raise HTTPException(status_code=400, detail="Query string cannot be empty")
+    if len(parsed) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Security violation: Multiple SQL statements are strictly prohibited."
+        )
+    
+    stmt = parsed[0]
+    stmt_type = stmt.get_type().upper()
+    if stmt_type != "SELECT":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security violation: Only SELECT statements are permitted in SQL Studio. Received '{stmt_type}'."
+        )
+
+    # Check all flattened tokens for any mutation or dangerous commands
+    for token in stmt.flatten():
+        val = token.value.upper().strip()
+        if val in DISALLOWED_KEYWORDS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Security violation: Keyword '{val}' is forbidden in read-only SQL queries."
+            )
+
 class QueryRequest(BaseModel):
     query: str
+    user_id: Optional[int] = None  # Deprecated: Derived strictly from auth token
 
 PRESET_QUERIES = [
     {
@@ -179,16 +233,16 @@ ORDER BY uf.created_at DESC;"""
 ]
 
 @router.get("/presets")
-def get_preset_queries():
-    """Return curated sample queries for quick exploration."""
+def get_preset_queries(current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)):
+    """Return curated sample queries for quick exploration. Accessible to everyone."""
     return {
         "success": True,
         "presets": PRESET_QUERIES
     }
 
 @router.get("/schema")
-def get_database_schema():
-    """Return database schema information for all tables."""
+def get_database_schema(current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)):
+    """Return database schema information for all tables. Accessible to everyone."""
     try:
         engine = get_engine()
         if engine == "mysql":
@@ -284,11 +338,23 @@ def get_database_schema():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/execute")
-def execute_sql_query(payload: QueryRequest):
-    """Execute raw SQL query against database."""
+def execute_sql_query(
+    payload: QueryRequest,
+    request: Request,
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
+):
+    """Execute raw read-only SELECT query against database. Accessible to everyone with AST read-only validation."""
+    actor_key = current_user["user_id"] if current_user else (request.client.host if request.client else "anonymous")
+    actor_name = current_user.get("username") if current_user else "anonymous"
+    user_id = current_user["user_id"] if current_user else None
+    check_rate_limit(actor_key)
+
     query_str = payload.query.strip()
     if not query_str:
         raise HTTPException(status_code=400, detail="Query string cannot be empty")
+
+    # Use AST parser to ensure statement is strictly a read-only SELECT
+    validate_sql_readonly(query_str)
 
     start_time = time.perf_counter()
     engine = get_engine()
@@ -298,7 +364,6 @@ def execute_sql_query(payload: QueryRequest):
             cursor = conn.cursor()
             cursor.execute(query_str)
             
-            # If query is a SELECT or SHOW or PRAGMA that produces a result set
             if cursor.description:
                 columns = [col[0] for col in cursor.description]
                 raw_rows = cursor.fetchall()
@@ -306,8 +371,24 @@ def execute_sql_query(payload: QueryRequest):
                     rows = list(raw_rows) if raw_rows else []
                 else:
                     rows = [dict(r) for r in raw_rows] if raw_rows else []
-                conn.commit()
+                
                 elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+
+                # Audit log every query with acting user's identity
+                try:
+                    execute_write("""
+                        INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+                        VALUES (?, 'SQL_STUDIO_EXECUTE', 'WEB', ?)
+                    """, (user_id, json.dumps({
+                        "user": actor_name,
+                        "query": query_str[:500],
+                        "rows_count": len(rows),
+                        "execution_time_ms": elapsed_ms,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })))
+                except Exception as audit_err:
+                    logger.warning(f"Failed to log SQL audit event: {audit_err}")
+
                 return {
                     "success": True,
                     "query_type": "SELECT",
@@ -318,20 +399,12 @@ def execute_sql_query(payload: QueryRequest):
                     "message": f"Query returned {len(rows)} row(s) in {elapsed_ms}ms"
                 }
             else:
-                # INSERT, UPDATE, DELETE, etc.
-                conn.commit()
-                affected = cursor.rowcount
-                last_id = cursor.lastrowid
-                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
-                return {
-                    "success": True,
-                    "query_type": "MUTATION",
-                    "columns": ["affected_rows", "last_insert_id"],
-                    "rows": [{"affected_rows": affected, "last_insert_id": last_id}],
-                    "row_count": 1,
-                    "execution_time_ms": elapsed_ms,
-                    "message": f"Statement executed successfully. Affected rows: {affected} in {elapsed_ms}ms"
-                }
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Query produced no result set. Only SELECT queries producing result sets are allowed."
+                )
+    except HTTPException:
+        raise
     except (pymysql.MySQLError, sqlite3.Error) as dbe:
         elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
         return {

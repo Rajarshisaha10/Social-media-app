@@ -1,0 +1,22 @@
+runtime: custom
+env: flex
+
+# Resources allocation
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 4
+  cool_down_period_sec: 120
+  cpu_utilization:
+    target_utilization: 0.65
+
+network:
+  forwarded_ports:
+    - 8080:8080
+
+env_variables:
+  PORT: "8080"

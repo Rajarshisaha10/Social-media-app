@@ -70,48 +70,20 @@ uvicorn main:app --host 127.0.0.1 --port 5000 --reload
 
 ---
 
-## ☁️ Deployment on Google Cloud Run (Recommended)
+## ☁️ Cloud Deployment
 
-Google Cloud Run offers ultra-low latency, automatic SSL, and scale-to-zero pricing.
-
-### Method 1: Continuous Deployment from GitHub (Zero CLI required)
-1. Push this repository to GitHub.
-2. Go to the **[Google Cloud Run Console](https://console.cloud.google.com/run)**.
-3. Click **Create Service**.
-4. Select **"Continuously deploy from a repository"** and click **Set up with Cloud Build**.
-5. Connect your GitHub repository and select branch `main`.
-6. Select **Build Type**: `Dockerfile` (automatically detected at `/Dockerfile`).
-7. Under **Authentication**, select **"Allow unauthenticated invocations"**.
-8. Under **Container, Networking, Security**:
-   - Set **Container port**: `8080`
-   - Memory: `512 MiB` or `1 GiB`
-   - CPU: `1`
-   - (Optional) Set environment variables: `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` if connecting to Google Cloud SQL or external MySQL. If omitted, the app automatically runs on SQLite with zero setup!
-9. Click **Create**. Your app is live with a global HTTPS URL!
-
-### Method 2: 1-Command Deployment via Google Cloud Shell
-Open **[Google Cloud Shell](https://shell.cloud.google.com)** (which has `gcloud` and `docker` pre-installed and authenticated):
-```bash
-git clone <your-repo-url>
-cd social-media-backend
-gcloud run deploy social-media-platform \
-  --source . \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --port 8080 \
-  --memory 512Mi
-```
-
----
-
-## ☁️ Deployment on Render
-
-This repository is pre-configured for seamless deployment to **[Render](https://render.com)**.
-
-### Option A: 1-Click / Blueprint Deployment (`render.yaml`)
-1. Push this repository to GitHub or GitLab.
+### 1. Render Deployment (`render.yaml`)
+This repository is pre-configured for automated 1-click deployment on **[Render](https://render.com)**.
+1. Push this repository to your GitHub account.
 2. In the Render Dashboard, click **New +** -> **Blueprint**.
-3. Connect your repository. Render will automatically detect `render.yaml` and configure the web service.
+3. Connect your repository. Render will automatically detect [`render.yaml`](file:///c:/Users/rajar/Desktop/coding/social-media-backend/render.yaml) and deploy the web service with multi-worker concurrency and PWA caching.
+
+### 2. Klouds Deployment (`klouds.yaml`)
+Pre-configured for **[Klouds.online](https://klouds.online)** fullstack deployment with managed MySQL 8.0:
+1. Connect your repository in Klouds.
+2. Klouds automatically reads [`klouds.yaml`](file:///c:/Users/rajar/Desktop/coding/social-media-backend/klouds.yaml) to provision:
+   - **Backend**: FastAPI web service with Uvicorn.
+   - **Database**: Managed MySQL 8.0 with credentials auto-wired.
 
 ### Option B: Manual Web Service Setup
 1. In Render, click **New +** -> **Web Service**.

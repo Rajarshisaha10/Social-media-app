@@ -23,18 +23,47 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
           className="sidebar-logo"
           onClick={() => setActiveTab('feed')}
           style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '34px',
-            color: 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
             cursor: 'pointer',
             userSelect: 'none',
             padding: '8px 12px 16px',
             margin: 0,
-            lineHeight: 1.1,
-            letterSpacing: '0.5px',
           }}
         >
-          Social Sphere
+          <div
+            className="sphere-emblem-glow"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(37, 99, 255, 0.3)',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+          </div>
+          <span
+            style={{
+              fontFamily: 'var(--font-brand)',
+              fontSize: '32px',
+              color: 'var(--text-primary)',
+              lineHeight: 1,
+              letterSpacing: '0.5px',
+            }}
+          >
+            Social Sphere
+          </span>
         </div>
 
         {/* Navigation Pills */}

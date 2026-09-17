@@ -109,12 +109,33 @@ export default function App() {
         >
           <div
             onClick={() => setActiveTab('feed')}
-            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}
           >
+            <div
+              className="sphere-emblem-glow"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                boxShadow: '0 4px 12px rgba(37, 99, 255, 0.25)',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            </div>
             <span
               style={{
                 fontFamily: 'var(--font-brand)',
-                fontSize: '30px',
+                fontSize: '28px',
                 color: 'var(--text-primary)',
                 lineHeight: 1,
                 letterSpacing: '0.5px',
@@ -311,6 +332,7 @@ export default function App() {
             setActiveTab('feed');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          onOpenProfile={() => setViewingProfileId(user?.user_id)}
         />
       </div>
 

@@ -149,14 +149,14 @@ export default function SqlStudioTab() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="sql-header-actions">
           <button
             type="button"
             className={`btn-secondary ${activeView === 'editor' ? 'active' : ''}`}
             onClick={() => setActiveView('editor')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
           >
-            <Code2 size={14} />
+            <Code2 size={13} />
             <span>Query Runner</span>
           </button>
 
@@ -164,10 +164,10 @@ export default function SqlStudioTab() {
             type="button"
             className={`btn-secondary ${activeView === 'dictionary' ? 'active' : ''}`}
             onClick={() => setActiveView('dictionary')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
           >
-            <Layers size={14} />
-            <span>Data Dictionary ({schema.length} tables)</span>
+            <Layers size={13} />
+            <span>Data Dictionary ({schema.length})</span>
           </button>
 
           {activeView === 'editor' && (
@@ -177,9 +177,9 @@ export default function SqlStudioTab() {
                 className="btn-secondary"
                 onClick={exportCsv}
                 disabled={!results?.rows?.length}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
               >
-                <Download size={14} />
+                <Download size={13} />
                 <span>CSV</span>
               </button>
 
@@ -188,11 +188,11 @@ export default function SqlStudioTab() {
                 className="btn-primary"
                 onClick={handleExecute}
                 disabled={executing}
-                style={{ padding: '8px 18px', gap: '8px' }}
+                style={{ padding: '7px 14px', gap: '6px', fontSize: '12px', whiteSpace: 'nowrap' }}
               >
-                <Play size={14} fill="currentColor" />
+                <Play size={13} fill="currentColor" />
                 <span>{executing ? 'Running...' : 'Execute'}</span>
-                <kbd style={{ fontSize: '10px', background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: '4px' }}>
+                <kbd style={{ fontSize: '9px', background: 'rgba(255,255,255,0.2)', padding: '1px 4px', borderRadius: '3px' }}>
                   Ctrl+Enter
                 </kbd>
               </button>
@@ -202,44 +202,44 @@ export default function SqlStudioTab() {
       </div>
 
       {/* Database Quick Stats Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
-        <div className="aside-card" style={{ padding: '12px 16px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+        <div className="aside-card" style={{ padding: '12px 14px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
           <div style={{ padding: '8px', background: 'var(--blue-light)', color: 'var(--blue-primary)', borderRadius: 'var(--radius-sm)' }}>
             <Table size={18} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>TOTAL TABLES</div>
-            <div style={{ fontSize: '18px', fontWeight: 800 }}>{schema.length} Relational Tables</div>
+            <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted)' }}>TOTAL TABLES</div>
+            <div style={{ fontSize: '16px', fontWeight: 800 }}>{schema.length} Tables</div>
           </div>
         </div>
 
-        <div className="aside-card" style={{ padding: '12px 16px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+        <div className="aside-card" style={{ padding: '12px 14px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
           <div style={{ padding: '8px', background: 'var(--green-light)', color: 'var(--green-accent)', borderRadius: 'var(--radius-sm)' }}>
             <Activity size={18} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>TOTAL RECORDS</div>
-            <div style={{ fontSize: '18px', fontWeight: 800 }}>{totalRows} Rows</div>
+            <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted)' }}>TOTAL RECORDS</div>
+            <div style={{ fontSize: '16px', fontWeight: 800 }}>{totalRows} Rows</div>
           </div>
         </div>
 
-        <div className="aside-card" style={{ padding: '12px 16px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+        <div className="aside-card" style={{ padding: '12px 14px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
           <div style={{ padding: '8px', background: 'var(--gold-light)', color: 'var(--gold-accent)', borderRadius: 'var(--radius-sm)' }}>
             <FileText size={18} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>SCHEMA COLUMNS</div>
-            <div style={{ fontSize: '18px', fontWeight: 800 }}>{totalColumns} Defined Fields</div>
+            <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted)' }}>SCHEMA COLUMNS</div>
+            <div style={{ fontSize: '16px', fontWeight: 800 }}>{totalColumns} Fields</div>
           </div>
         </div>
 
-        <div className="aside-card" style={{ padding: '12px 16px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+        <div className="aside-card" style={{ padding: '12px 14px', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
           <div style={{ padding: '8px', background: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)' }}>
             <Database size={18} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>DATABASE ENGINE</div>
-            <div style={{ fontSize: '18px', fontWeight: 800 }}>{dbEngine}</div>
+            <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted)' }}>DATABASE ENGINE</div>
+            <div style={{ fontSize: '16px', fontWeight: 800 }}>{dbEngine}</div>
           </div>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function SqlStudioTab() {
           {/* Preset Chips */}
           {presets.length > 0 && (
             <div className="sql-presets-tray">
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.6px', flexShrink: 0 }}>
                 PRESETS:
               </span>
               {presets.map((p, idx) => (
@@ -270,7 +270,7 @@ export default function SqlStudioTab() {
 
           {/* Workspace Grid */}
           <div className="sql-workspace">
-            <div>
+            <div style={{ minWidth: 0, width: '100%' }}>
               {/* Query Editor */}
               <div className="sql-editor-card">
                 <div style={{ padding: '8px 14px', background: '#27272a', color: '#a1a1aa', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -287,12 +287,38 @@ export default function SqlStudioTab() {
                   spellCheck="false"
                   placeholder="Enter any SQL query (e.g. SELECT * FROM Users LIMIT 10;)"
                 />
+                <div style={{ padding: '8px 12px', background: '#1c1c24', borderTop: '1px solid #2a2a38', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                    Press <kbd style={{ background: '#2e2e3e', padding: '2px 5px', borderRadius: '3px', color: '#e5e7eb', fontSize: '10px' }}>Ctrl+Enter</kbd> to run
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                    {query && (
+                      <button
+                        type="button"
+                        onClick={() => setQuery('')}
+                        style={{ fontSize: '11.5px', padding: '5px 10px', color: '#9ca3af', background: 'transparent', border: '1px solid #3f3f46', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleExecute}
+                      disabled={executing}
+                      style={{ padding: '6px 14px', fontSize: '12px', gap: '6px', whiteSpace: 'nowrap' }}
+                    >
+                      <Play size={13} fill="currentColor" />
+                      <span>{executing ? 'Running...' : 'Execute Query'}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Results Card */}
               <div className="sql-results-card">
                 <div style={{ padding: '10px 16px', background: 'var(--bg-surface-secondary)', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-secondary)' }}>
                       QUERY OUTPUT
                     </span>
@@ -303,8 +329,13 @@ export default function SqlStudioTab() {
                       </span>
                     )}
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {results?.rows ? `${results.rows.length} rows returned` : 'No results'}
+                      {results?.rows ? `${results.rows.length} rows` : 'No results'}
                     </span>
+                    {results?.rows && results.rows.length > 0 && (
+                      <span style={{ fontSize: '10.5px', color: 'var(--blue-primary)', background: 'var(--blue-light)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>
+                        ↔ Swipe table horizontally
+                      </span>
+                    )}
                   </div>
 
                   {results?.rows && results.rows.length > 0 && (
@@ -337,8 +368,8 @@ export default function SqlStudioTab() {
                     <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)' }}>{error}</div>
                   </div>
                 ) : results?.rows && results.rows.length > 0 ? (
-                  <div className="table-scroll">
-                    <table className="sql-table">
+                  <div className="table-scroll" style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
+                    <table className="sql-table" style={{ width: 'max-content', minWidth: '100%' }}>
                       <thead>
                         <tr>
                           {(results.columns || Object.keys(results.rows[0])).map((col) => (

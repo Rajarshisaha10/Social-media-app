@@ -103,26 +103,38 @@ export default function AuthGate() {
           borderBottom: '1px solid var(--border)',
         }}
       >
-        <div
-          style={{
-            maxWidth: '1280px',
-            margin: '0 auto',
-            padding: '14px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
+        <div className="landing-nav-inner">
           <a
             href="#"
-            style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', minWidth: 0 }}
           >
-            <span style={{ fontFamily: 'var(--font-brand)', fontSize: '32px', color: '#0A0E27', letterSpacing: '0.5px' }}>
+            <div
+              className="sphere-emblem-glow"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                boxShadow: '0 4px 14px rgba(37, 99, 255, 0.35)',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            </div>
+            <span className="landing-brand-title">
               Social Sphere
             </span>
           </a>
 
-          <div className="landing-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          <div className="landing-nav-links" style={{ gap: '28px' }}>
             <a href="#features" className="link-underline" style={{ fontSize: '14px', fontWeight: 600, color: '#4B5563', textDecoration: 'none' }}>
               Features
             </a>
@@ -134,19 +146,18 @@ export default function AuthGate() {
             </a>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="landing-nav-actions">
             <button
               type="button"
               onClick={() => openAuth('login')}
-              style={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', padding: '8px 16px' }}
+              className="landing-btn-signin"
             >
               Sign in
             </button>
             <button
               type="button"
               onClick={() => openAuth('register')}
-              className="btn-primary"
-              style={{ padding: '10px 22px', borderRadius: '9999px', fontSize: '13.5px', fontWeight: 700, color: '#fff' }}
+              className="btn-primary landing-btn-signup"
             >
               Get started
             </button>
@@ -191,8 +202,8 @@ export default function AuthGate() {
               }}
             >
               <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
-              <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#374151' }}>
-                2.4M creators online right now
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                Live creator community · Real-time interactions
               </span>
             </div>
 
@@ -307,7 +318,7 @@ export default function AuthGate() {
           </div>
 
           {/* Mascot column with floating stat cards */}
-          <div style={{ position: 'relative', height: '480px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="mascot-hero-col" style={{ position: 'relative', height: '480px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div
               className="card float-anim"
               style={{
@@ -441,83 +452,76 @@ export default function AuthGate() {
         </div>
 
         {/* Bento Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '20px',
-          }}
-        >
+        <div className="features-bento-grid">
           {/* Card 1: AI-powered */}
           <div
-            className="card card-hover"
+            className="card card-hover bento-card-wide bento-card-padded"
             style={{
-              padding: '32px',
+              padding: 'clamp(20px, 4vw, 32px)',
               position: 'relative',
               overflow: 'hidden',
-              gridColumn: 'span 2',
             }}
           >
             <div
               style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '16px',
+                width: '46px',
+                height: '46px',
+                borderRadius: '14px',
                 background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                marginBottom: '18px',
+                marginBottom: '16px',
                 boxShadow: '0 8px 20px -4px rgba(255, 45, 85, 0.4)',
               }}
             >
-              <Wand2 size={24} />
+              <Wand2 size={22} />
             </div>
-            <h3 className="font-display" style={{ fontSize: '24px', fontWeight: 800, marginBottom: '10px' }}>
+            <h3 className="font-display" style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, marginBottom: '10px' }}>
               AI-powered creation
             </h3>
-            <p style={{ fontSize: '15px', color: '#4B5563', lineHeight: 1.6, marginBottom: '24px', maxWidth: '520px' }}>
+            <p style={{ fontSize: '14.5px', color: '#4B5563', lineHeight: 1.6, marginBottom: '20px', maxWidth: '520px' }}>
               Generate captions, suggest hashtags, edit media, and remix trends — all with one effortless tap.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <div className="bento-ai-images">
               <img
                 src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&h=200&fit=crop"
                 alt="AI preview"
-                style={{ width: '100%', height: '110px', borderRadius: '14px', objectFit: 'cover' }}
+                className="bento-ai-img"
               />
               <img
                 src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&h=200&fit=crop"
                 alt="AI preview"
-                style={{ width: '100%', height: '110px', borderRadius: '14px', objectFit: 'cover' }}
+                className="bento-ai-img"
               />
               <img
                 src="https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=300&h=200&fit=crop"
                 alt="AI preview"
-                style={{ width: '100%', height: '110px', borderRadius: '14px', objectFit: 'cover' }}
+                className="bento-ai-img"
               />
             </div>
           </div>
 
           {/* Card 2: Real-time engagement */}
-          <div className="card card-hover" style={{ padding: '32px' }}>
+          <div className="card card-hover bento-card-padded" style={{ padding: 'clamp(20px, 3.5vw, 28px)' }}>
             <div
               style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '16px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
                 background: 'linear-gradient(135deg, #2563FF 0%, #1E40AF 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                marginBottom: '18px',
+                marginBottom: '16px',
                 boxShadow: '0 8px 20px -4px rgba(37, 99, 255, 0.4)',
               }}
             >
-              <Zap size={24} />
+              <Zap size={22} />
             </div>
-            <h3 className="font-display" style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>
+            <h3 className="font-display" style={{ fontSize: '19px', fontWeight: 800, marginBottom: '8px' }}>
               Real-time engagement
             </h3>
             <p style={{ fontSize: '14px', color: '#4B5563', lineHeight: 1.55 }}>
@@ -526,7 +530,7 @@ export default function AuthGate() {
           </div>
 
           {/* Card 3: Creator-first */}
-          <div className="card card-hover" style={{ padding: '28px' }}>
+          <div className="card card-hover bento-card-padded" style={{ padding: 'clamp(20px, 3.5vw, 28px)' }}>
             <div
               style={{
                 width: '44px',
@@ -549,7 +553,7 @@ export default function AuthGate() {
           </div>
 
           {/* Card 4: Real-time reactions */}
-          <div className="card card-hover" style={{ padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="card card-hover bento-card-padded" style={{ padding: 'clamp(20px, 3.5vw, 28px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div
               style={{
                 width: '40px',
@@ -564,8 +568,8 @@ export default function AuthGate() {
             >
               <Heart size={20} />
             </div>
-            <div>
-              <div className="font-display gradient-text" style={{ fontSize: '32px', fontWeight: 800 }}>
+            <div style={{ marginTop: '16px' }}>
+              <div className="font-display gradient-text" style={{ fontSize: 'clamp(26px, 5vw, 32px)', fontWeight: 800 }}>
                 Real-Time
               </div>
               <div style={{ fontSize: '12px', color: '#6B7280' }}>instant live reactions</div>
@@ -573,7 +577,7 @@ export default function AuthGate() {
           </div>
 
           {/* Card 5: Build your tribe */}
-          <div className="card card-hover" style={{ padding: '28px' }}>
+          <div className="card card-hover bento-card-padded" style={{ padding: 'clamp(20px, 3.5vw, 28px)' }}>
             <div
               style={{
                 width: '44px',
@@ -770,29 +774,6 @@ export default function AuthGate() {
         </div>
       </section>
 
-      {/* ============================================================ */}
-      {/* STATS COUNTERS */}
-      {/* ============================================================ */}
-      <section style={{ padding: '80px 24px', maxWidth: '1280px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px' }}>
-          <div>
-            <div className="font-display gradient-text" style={{ fontSize: '56px', fontWeight: 800 }}>2.4M+</div>
-            <div style={{ color: '#6B7280', fontSize: '15px', fontWeight: 600 }}>Active creators</div>
-          </div>
-          <div>
-            <div className="font-display gradient-text" style={{ fontSize: '56px', fontWeight: 800 }}>847M</div>
-            <div style={{ color: '#6B7280', fontSize: '15px', fontWeight: 600 }}>Posts daily</div>
-          </div>
-          <div>
-            <div className="font-display gradient-text" style={{ fontSize: '56px', fontWeight: 800 }}>98%</div>
-            <div style={{ color: '#6B7280', fontSize: '15px', fontWeight: 600 }}>Creator satisfaction</div>
-          </div>
-          <div>
-            <div className="font-display gradient-text" style={{ fontSize: '56px', fontWeight: 800 }}>156+</div>
-            <div style={{ color: '#6B7280', fontSize: '15px', fontWeight: 600 }}>Countries</div>
-          </div>
-        </div>
-      </section>
 
       {/* ============================================================ */}
       {/* MEET NEXO MASCOT INTRO */}
@@ -880,7 +861,28 @@ export default function AuthGate() {
       {/* ============================================================ */}
       <footer style={{ padding: '64px 24px 40px', borderTop: '1px solid var(--border)', background: '#FAFAFC' }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              className="sphere-emblem-glow"
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                boxShadow: '0 2px 8px rgba(37, 99, 255, 0.3)',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            </div>
             <span style={{ fontFamily: 'var(--font-brand)', fontSize: '26px', color: '#0A0E27' }}>Social Sphere</span>
             <span style={{ color: '#6B7280', fontSize: '13px' }}>— Where the internet comes alive.</span>
           </div>
@@ -932,18 +934,39 @@ export default function AuthGate() {
 
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <div
+                className="sphere-emblem-glow"
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  boxShadow: '0 8px 24px -4px rgba(37, 99, 255, 0.4)',
+                  margin: '0 auto 12px',
+                }}
+              >
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              </div>
+              <div
                 style={{
                   fontFamily: 'var(--font-brand)',
-                  fontSize: '38px',
+                  fontSize: '36px',
                   color: 'var(--text-primary)',
-                  marginBottom: '6px',
+                  marginBottom: '4px',
                   lineHeight: 1,
                   userSelect: 'none',
                 }}
               >
                 Social Sphere
               </div>
-              <h3 className="font-display" style={{ fontSize: '22px', fontWeight: 800, marginBottom: '4px' }}>
+              <h3 className="font-display" style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>
                 Welcome to Social Sphere
               </h3>
               <p style={{ fontSize: '13px', color: '#6B7280' }}>

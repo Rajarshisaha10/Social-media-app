@@ -12,7 +12,7 @@ export const setAuthToken = (token) => {
   }
 };
 
-export const getAuthToken = () => authToken;
+export const getAuthToken = () => authToken || localStorage.getItem('socialsphere_token') || '';
 
 async function request(endpoint, options = {}) {
   const headers = {
@@ -20,8 +20,9 @@ async function request(endpoint, options = {}) {
     ...options.headers,
   };
 
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  const currentToken = authToken || localStorage.getItem('socialsphere_token') || '';
+  if (currentToken) {
+    headers['Authorization'] = `Bearer ${currentToken}`;
   }
 
   const config = {
@@ -33,6 +34,14 @@ async function request(endpoint, options = {}) {
     const res = await fetch(`${BASE_URL}${endpoint}`, config);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      if (res.status === 401) {
+        // Clear invalid or expired auth state if unauthorized (except during initial login/register attempts)
+        if (!endpoint.includes('/login') && !endpoint.includes('/register')) {
+          setAuthToken(null);
+          localStorage.removeItem('socialsphere_user');
+          window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint } }));
+        }
+      }
       const errorMsg = data?.detail || data?.message || `Request failed with status ${res.status}`;
       throw new Error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
     }

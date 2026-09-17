@@ -155,14 +155,14 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
         <CreatePostBox onPostCreated={handleCreatePost} />
 
         {/* Feed Selection Tabs matching index.html */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', margin: '4px 0 0' }}>
-          <div style={{ display: 'flex', gap: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', margin: '4px 0 0', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '20px' }}>
             <button
               type="button"
               onClick={() => setFeedTab('foryou')}
               style={{
                 fontWeight: 700,
-                fontSize: '15px',
+                fontSize: '14.5px',
                 color: feedTab === 'foryou' ? '#2563FF' : '#6B7280',
                 borderBottom: feedTab === 'foryou' ? '2.5px solid #2563FF' : '2.5px solid transparent',
                 paddingBottom: '8px',
@@ -181,7 +181,7 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
               onClick={() => setFeedTab('following')}
               style={{
                 fontWeight: 700,
-                fontSize: '15px',
+                fontSize: '14.5px',
                 color: feedTab === 'following' ? '#2563FF' : '#6B7280',
                 borderBottom: feedTab === 'following' ? '2.5px solid #2563FF' : '2.5px solid transparent',
                 paddingBottom: '8px',
@@ -200,7 +200,7 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
               onClick={() => setFeedTab('latest')}
               style={{
                 fontWeight: 700,
-                fontSize: '15px',
+                fontSize: '14.5px',
                 color: feedTab === 'latest' ? '#2563FF' : '#6B7280',
                 borderBottom: feedTab === 'latest' ? '2.5px solid #2563FF' : '2.5px solid transparent',
                 paddingBottom: '8px',
@@ -215,69 +215,43 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
               Latest
             </button>
           </div>
+
+          <button
+            type="button"
+            className="btn-text-sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+          >
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
         </div>
 
-        {/* Topic / Hashtag Discovery Bar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.6px' }}>
-              <Tag size={13} />
-              <span>POPULAR TOPICS</span>
-            </div>
+        {activeTag && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              background: 'var(--blue-light)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '12.5px',
+              color: 'var(--blue-primary)',
+            }}
+          >
+            <span>Filtering by <strong>#{activeTag}</strong></span>
             <button
               type="button"
-              className="btn-text-sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}
+              onClick={() => handleTagFilter(null)}
+              style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue-primary)' }}
             >
-              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-              <span>Refresh</span>
+              Clear filter
             </button>
           </div>
+        )}
 
-          <div className="hashtag-filter-bar">
-            {hashtags.slice(0, 8).map((h) => {
-              const tag = h.tag || h.tag_name || h.hashtag;
-              const isActive = activeTag === tag;
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`hashtag-pill ${isActive ? 'active' : ''}`}
-                  onClick={() => handleTagFilter(tag)}
-                >
-                  #{tag} {h.post_count ? `(${h.post_count})` : ''}
-                </button>
-              );
-            })}
-          </div>
-
-          {activeTag && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: 'var(--blue-light)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '12.5px',
-                color: 'var(--blue-primary)',
-              }}
-            >
-              <span>Filtering by <strong>#{activeTag}</strong></span>
-              <button
-                type="button"
-                onClick={() => handleTagFilter(null)}
-                style={{ display: 'flex', alignItems: 'center', gap: '2px', color: 'var(--blue-primary)', fontWeight: 600 }}
-              >
-                <X size={14} />
-                <span>Clear filter</span>
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Top Reloading Markup: Visible indicator while preserving all screen content */}
         {refreshing && (

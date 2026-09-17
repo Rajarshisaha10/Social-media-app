@@ -6,8 +6,15 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
+      const token = localStorage.getItem('socialsphere_token');
       const saved = localStorage.getItem('socialsphere_user');
-      return saved ? JSON.parse(saved) : null;
+      if (!token || !saved) {
+        localStorage.removeItem('socialsphere_token');
+        localStorage.removeItem('socialsphere_user');
+        setAuthToken(null);
+        return null;
+      }
+      return JSON.parse(saved);
     } catch {
       return null;
     }
@@ -22,6 +29,37 @@ export function AuthProvider({ children }) {
   const isSuperAdmin = Boolean(
     user && (user.username?.toLowerCase() === 'rajarshi' || user.admin_level === 'SUPER_ADMIN')
   );
+
+  // Listen for 401 unauthorized events from API client
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setFollowingSet(new Set());
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
+  // Validate saved session token with server on initial mount
+  useEffect(() => {
+    const token = localStorage.getItem('socialsphere_token');
+    const saved = localStorage.getItem('socialsphere_user');
+    if (token && saved) {
+      api.getCurrentUser()
+        .then((res) => {
+          if (res?.user) {
+            setUser((prev) => (prev ? { ...prev, ...res.user } : res.user));
+          }
+        })
+        .catch((err) => {
+          console.warn('Saved session validation failed:', err);
+          setUser(null);
+          setAuthToken(null);
+          localStorage.removeItem('socialsphere_user');
+          localStorage.removeItem('socialsphere_token');
+        });
+    }
+  }, []);
 
   // Load user's following list and explore users
   const refreshUsersAndFollowing = useCallback(async (currentUserId) => {
@@ -138,6 +176,7 @@ export function AuthProvider({ children }) {
     setAuthToken(null);
     setUser(null);
     localStorage.removeItem('socialsphere_user');
+    localStorage.removeItem('socialsphere_token');
     setFollowingSet(new Set());
   };
 

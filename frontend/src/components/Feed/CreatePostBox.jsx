@@ -20,9 +20,6 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
     setContent((prev) => prev + randomEmoji);
   };
 
-  const handleInsertTag = (tag) => {
-    setContent((prev) => (prev ? `${prev} ${tag} ` : `${tag} `));
-  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -49,19 +46,21 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
     <div
       className="card"
       style={{
-        padding: '20px',
+        padding: 'clamp(14px, 3vw, 20px)',
         background: '#FFFFFF',
         border: '1px solid var(--border)',
-        borderRadius: '24px',
+        borderRadius: '20px',
         boxShadow: '0 4px 20px -4px rgba(10, 14, 39, 0.04)',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
-      <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
         <div className="story-ring" style={{ padding: '2px', borderRadius: '50%', flexShrink: 0 }}>
           <img
             src={user?.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
             alt={user?.username}
-            style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', background: '#fff' }}
+            style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', background: '#fff' }}
           />
         </div>
 
@@ -71,6 +70,10 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
             placeholder="What's on your mind? Share moments, code, or ideas..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            spellCheck="false"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="sentences"
             style={{
               width: '100%',
               border: 'none',
@@ -167,18 +170,22 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
               alignItems: 'center',
               justifyContent: 'space-between',
               marginTop: '12px',
-              paddingTop: '12px',
+              paddingTop: '10px',
               borderTop: '1px solid var(--border)',
+              flexWrap: 'wrap',
+              gap: '8px',
+              width: '100%',
+              minWidth: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 type="button"
                 title="Attach Image"
                 onClick={() => setShowImgInput(!showImgInput)}
                 style={{
-                  width: '36px',
-                  height: '36px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -198,8 +205,8 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                 title="Add Emoji"
                 onClick={handleInsertEmoji}
                 style={{
-                  width: '36px',
-                  height: '36px',
+                  width: '34px',
+                  height: '34px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -213,46 +220,9 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
               >
                 <Smile size={18} />
               </button>
-
-              <button
-                type="button"
-                title="Add Tech Tag"
-                onClick={() => handleInsertTag('#tech')}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  background: '#F4F5F9',
-                  color: '#2563FF',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginLeft: '4px',
-                }}
-              >
-                #tech
-              </button>
-
-              <button
-                type="button"
-                title="Add Viral Tag"
-                onClick={() => handleInsertTag('#vibe')}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  background: '#FFE5EC',
-                  color: '#FF2D55',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                #vibe
-              </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto', flexShrink: 0 }}>
               <span
                 style={{
                   fontSize: '12px',
@@ -269,12 +239,14 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                 onClick={handleSubmit}
                 className="btn-primary"
                 style={{
-                  padding: '8px 22px',
-                  fontSize: '13.5px',
+                  padding: '7px 18px',
+                  fontSize: '13px',
                   fontWeight: 700,
                   borderRadius: '9999px',
                   opacity: canSubmit ? 1 : 0.45,
                   cursor: canSubmit ? 'pointer' : 'not-allowed',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 {submitting ? 'Posting...' : 'Post'}

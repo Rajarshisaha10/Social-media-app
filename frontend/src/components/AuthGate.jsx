@@ -1091,6 +1091,52 @@ export default function AuthGate() {
                 >
                   {loading ? 'Signing in...' : 'Sign in'}
                 </button>
+
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #E5E7EB' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                    Quick Demo Accounts:
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginUsername('rajarshi10');
+                        setLoginPassword('dbms108i');
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: '#EFF6FF',
+                        color: '#2563EB',
+                        border: '1px solid #BFDBFE',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      👤 rajarshi10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginUsername('rajarshi');
+                        setLoginPassword('dbms108');
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: '#FDF2F8',
+                        color: '#DB2777',
+                        border: '1px solid #FBCFE8',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ⚡ rajarshi (Super Admin)
+                    </button>
+                  </div>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

@@ -105,6 +105,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);

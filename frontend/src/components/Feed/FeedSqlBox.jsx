@@ -5,8 +5,8 @@ import { api } from '../../api/client';
 
 const QUICK_PRESETS = [
   { label: 'All Users', query: 'SELECT user_id, username, email, bio, account_status FROM Users LIMIT 5;' },
-  { label: 'Recent Posts', query: 'SELECT post_id, username, content, created_at FROM Post p JOIN Users u ON p.user_id = u.user_id ORDER BY created_at DESC LIMIT 5;' },
-  { label: 'Communities', query: 'SELECT group_id, group_name, privacy, member_count FROM Community_Group;' },
+  { label: 'Recent Posts', query: 'SELECT post_id, username, content, created_date FROM Post p JOIN Users u ON p.user_id = u.user_id ORDER BY created_date DESC LIMIT 5;' },
+  { label: 'Communities', query: 'SELECT g.group_id, g.group_name, g.privacy_setting, (SELECT COUNT(*) FROM Group_Members gm WHERE gm.group_id = g.group_id) AS member_count FROM Community_Group g;' },
   { label: 'Follow Graph', query: 'SELECT f.follower_id, u1.username AS follower, f.following_id, u2.username AS following FROM User_Follow f JOIN Users u1 ON f.follower_id = u1.user_id JOIN Users u2 ON f.following_id = u2.user_id LIMIT 5;' },
 ];
 

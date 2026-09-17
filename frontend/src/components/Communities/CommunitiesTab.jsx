@@ -4,7 +4,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
-export default function CommunitiesTab({ onOpenCreateGroup }) {
+export default function CommunitiesTab({ onOpenCreateGroup, refreshKey }) {
   const { user } = useAuth();
   const toast = useToast();
   const [groups, setGroups] = useState([]);
@@ -26,7 +26,7 @@ export default function CommunitiesTab({ onOpenCreateGroup }) {
 
   useEffect(() => {
     loadGroups();
-  }, [user?.user_id]);
+  }, [user?.user_id, refreshKey]);
 
   // 0ms Optimistic Join / Leave Toggle
   const handleToggleJoin = async (group) => {
@@ -120,7 +120,8 @@ export default function CommunitiesTab({ onOpenCreateGroup }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
           {groups.map((group) => {
             const isMember = Boolean(group.is_member);
-            const isPrivate = group.privacy === 'PRIVATE';
+            const privacyVal = (group.privacy_setting || group.privacy || 'PUBLIC').toUpperCase();
+            const isPrivate = privacyVal === 'PRIVATE';
             return (
               <div
                 key={group.group_id}
@@ -132,7 +133,7 @@ export default function CommunitiesTab({ onOpenCreateGroup }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {isPrivate ? <Lock size={14} color="var(--gold-accent)" /> : <Globe size={14} color="var(--blue-primary)" />}
                       <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
-                        {group.privacy || 'PUBLIC'}
+                        {privacyVal}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

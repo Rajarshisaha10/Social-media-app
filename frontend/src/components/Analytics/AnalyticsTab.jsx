@@ -14,7 +14,7 @@ export default function AnalyticsTab() {
         api.getAnalyticsOverview(),
         api.getAnalyticsEvents(),
       ]);
-      if (overData?.counts) setOverview(overData.counts);
+      if (overData?.analytics) setOverview(overData.analytics);
       if (evData?.events) setEvents(evData.events);
     } catch (err) {
       console.error('Failed to load analytics:', err);
@@ -143,7 +143,7 @@ export default function AnalyticsTab() {
                       {ev.metadata || '{}'}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>
-                      {ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
+                      {ev.event_time ? new Date(ev.event_time).toLocaleString() : ''}
                     </td>
                   </tr>
                 ))

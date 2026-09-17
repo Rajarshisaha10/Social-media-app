@@ -186,12 +186,13 @@ def query_one(sql: str, params: tuple | list = ()):
                 row = cursor.fetchone()
                 return dict(row) if row else None
     else:
+        adapted_sql = _adapt_sqlite(sql)
         with get_db() as conn:
             cursor = conn.cursor()
             if params:
-                cursor.execute(sql, params)
+                cursor.execute(adapted_sql, params)
             else:
-                cursor.execute(sql)
+                cursor.execute(adapted_sql)
             row = cursor.fetchone()
             return dict(row) if row else None
 
@@ -209,12 +210,13 @@ def execute_write(sql: str, params: tuple | list = ()):
                 conn.commit()
                 return cursor.lastrowid
     else:
+        adapted_sql = _adapt_sqlite(sql)
         with get_db() as conn:
             cursor = conn.cursor()
             if params:
-                cursor.execute(sql, params)
+                cursor.execute(adapted_sql, params)
             else:
-                cursor.execute(sql)
+                cursor.execute(adapted_sql)
             conn.commit()
             return cursor.lastrowid
 

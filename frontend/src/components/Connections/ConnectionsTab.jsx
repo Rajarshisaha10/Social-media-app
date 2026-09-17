@@ -62,24 +62,30 @@ export default function ConnectionsTab({ onUserClick }) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '18px' }}>
           {recommendations.map((rec) => {
-            const isFollowing = followingSet.has(rec.user_id);
+            const recUserId = rec.RecommendedUserID || rec.user_id;
+            const isFollowing = followingSet.has(recUserId);
+            const recUsername = rec.Username || rec.username;
+            const recProfilePic = rec.ProfilePic || rec.profile_pic;
+            const recInterests = rec.Interests || rec.interests;
+            const recBio = rec.Bio || rec.bio;
+            const recScore = rec.Score || rec.score;
             return (
               <div
-                key={rec.user_id}
+                key={recUserId}
                 className="aside-card"
                 style={{ alignItems: 'center', textAlign: 'center', padding: '20px' }}
               >
                 <img
-                  src={rec.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
-                  alt={rec.username}
-                  onClick={() => onUserClick?.(rec.user_id)}
+                  src={recProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                  alt={recUsername}
+                  onClick={() => onUserClick?.(recUserId)}
                   tabIndex={0}
                   role="button"
-                  aria-label={`View profile for ${rec.username}`}
+                  aria-label={`View profile for ${recUsername}`}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      onUserClick?.(rec.user_id);
+                      onUserClick?.(recUserId);
                     }
                   }}
                   style={{
@@ -92,16 +98,16 @@ export default function ConnectionsTab({ onUserClick }) {
                   }}
                 />
                 <h4
-                  onClick={() => onUserClick?.(rec.user_id)}
+                  onClick={() => onUserClick?.(recUserId)}
                   style={{ fontWeight: 800, fontSize: '15px', marginTop: '10px', cursor: 'pointer' }}
                 >
-                  {rec.username}
+                  {recUsername}
                 </h4>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', minHeight: '32px', marginTop: '2px' }}>
-                  {rec.interests?.split(',').slice(0, 2).join(', ') || rec.bio || 'SocialSphere member'}
+                  {recInterests?.split(',').slice(0, 2).join(', ') || recBio || 'SocialSphere member'}
                 </p>
 
-                {rec.score && (
+                {recScore && (
                   <span
                     style={{
                       fontSize: '11px',
@@ -113,15 +119,15 @@ export default function ConnectionsTab({ onUserClick }) {
                       margin: '6px 0 10px',
                     }}
                   >
-                    Match {Math.round(rec.score * 100)}%
+                    Match {Math.round(recScore * 100)}%
                   </span>
                 )}
 
                 <button
                   type="button"
                   className={`btn-follow ${isFollowing ? 'following' : ''}`}
-                  onClick={() => toggleFollow(rec.user_id)}
-                  aria-label={isFollowing ? `Unfollow ${rec.username}` : `Follow ${rec.username}`}
+                  onClick={() => toggleFollow(recUserId)}
+                  aria-label={isFollowing ? `Unfollow ${recUsername}` : `Follow ${recUsername}`}
                   style={{ width: '100%', marginTop: 'auto' }}
                 >
                   {isFollowing ? 'Following' : 'Follow'}

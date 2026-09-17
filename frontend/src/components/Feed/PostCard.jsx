@@ -224,8 +224,8 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
   const displayedComments = showAllComments ? comments : comments.slice(-3);
 
   return (
-    <article className="post-card">
-      <header className="post-header">
+    <article className="card card-hover post-card" style={{ borderRadius: '24px', overflow: 'hidden' }}>
+      <header className="post-header" style={{ padding: '16px 20px 0' }}>
         <div
           className="post-author-group"
           onClick={() => onUserClick?.(post.user_id)}
@@ -238,25 +238,35 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
             }
           }}
           aria-label={`View profile for ${post.username || 'User'}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
         >
-          <img
-            className="post-author-avatar"
-            src={post.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
-            alt={post.username}
-            onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde';
-            }}
-          />
+          <div className="story-ring" style={{ padding: '2px', borderRadius: '50%', flexShrink: 0 }}>
+            <img
+              className="post-author-avatar"
+              src={post.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+              alt={post.username}
+              onError={(e) => {
+                e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde';
+              }}
+              style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', background: '#fff' }}
+            />
+          </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="post-author-uname">{post.username || 'User'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span className="post-author-uname" style={{ fontWeight: 700, fontSize: '14.5px', color: '#0A0E27' }}>
+                {post.username || 'Creator'}
+              </span>
+              <i className="fas fa-circle-check" style={{ color: '#2563FF', fontSize: '12px' }} title="Verified Creator"></i>
+              <span style={{ fontSize: '12px', color: '#9CA3AF' }}>
+                @{post.username?.toLowerCase() || 'creator'} · {timeAgo(post.created_date || post.created_at)}
+              </span>
               {post.username?.toLowerCase() === 'rajarshi' && (
                 <span className="admin-pill-tag">SUPER ADMIN</span>
               )}
             </div>
-            <span className="post-timestamp">
-              {timeAgo(post.created_at || post.created_date)}
-            </span>
+            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '1px' }}>
+              Creator
+            </div>
           </div>
         </div>
 
@@ -280,7 +290,7 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
         </div>
       )}
 
-      {post.image_url && (
+      {post.url && (
         <div
           className="post-media-box"
           onClick={() => setShowLightbox(true)}
@@ -289,7 +299,7 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
         >
           <img
             className="post-media-img"
-            src={post.image_url}
+            src={post.url}
             alt="Post content"
             loading="lazy"
             onError={(e) => {
@@ -485,9 +495,9 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
         </form>
       </div>
 
-      {showLightbox && post.image_url && (
+      {showLightbox && post.url && (
         <ImageLightboxModal
-          imageUrl={post.image_url}
+          imageUrl={post.url}
           caption={post.content}
           onClose={() => setShowLightbox(false)}
         />

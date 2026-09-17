@@ -104,7 +104,19 @@ export default function UserProfileModal({ userId, onClose, onStartChat }) {
                 <button
                   type="button"
                   className={`btn-follow ${isFollowing ? 'following' : ''}`}
-                  onClick={() => toggleFollow(userId)}
+                  onClick={() => {
+                    toggleFollow(userId);
+                    setProfile((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            followers_count: isFollowing
+                              ? Math.max(0, (prev.followers_count || 0) - 1)
+                              : (prev.followers_count || 0) + 1,
+                          }
+                        : prev
+                    );
+                  }}
                   aria-label={isFollowing ? `Unfollow ${profile.username}` : `Follow ${profile.username}`}
                   style={{ flex: 1, height: '38px' }}
                 >

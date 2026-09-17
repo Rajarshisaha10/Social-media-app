@@ -92,7 +92,7 @@ export default function NotificationsModal({ isOpen, onClose }) {
                   justifyContent: 'space-between',
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-md)',
-                  background: notif.is_read ? 'var(--bg-surface)' : 'var(--blue-light)',
+                  background: 'var(--blue-light)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >

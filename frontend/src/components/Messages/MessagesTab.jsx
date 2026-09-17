@@ -222,7 +222,7 @@ export default function MessagesTab({ initialPartnerId = null }) {
                   }}
                 >
                   <img
-                    src={u.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                    src={u.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
                     alt={u.username}
                     style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
                   />

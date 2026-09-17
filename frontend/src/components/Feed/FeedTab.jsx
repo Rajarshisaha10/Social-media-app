@@ -8,8 +8,9 @@ import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
 export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
-  const { user } = useAuth();
+  const { user, followingSet } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [feedTab, setFeedTab] = useState('foryou');
   const [hashtags, setHashtags] = useState([]);
   const [activeTag, setActiveTag] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,11 +99,12 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
       username: user.username,
       profile_pic: user.profile_pic,
       content,
-      image_url: imageUrl,
-      created_at: new Date().toISOString(),
+      url: imageUrl || null,
+      created_date: new Date().toISOString(),
       likes_count: 0,
       reactions: [],
       comments: [],
+      hashtags: [],
     };
 
     // Instant insertion at top
@@ -152,12 +154,75 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
         {/* Create Post Section */}
         <CreatePostBox onPostCreated={handleCreatePost} />
 
+        {/* Feed Selection Tabs matching index.html */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', margin: '4px 0 0' }}>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <button
+              type="button"
+              onClick={() => setFeedTab('foryou')}
+              style={{
+                fontWeight: 700,
+                fontSize: '15px',
+                color: feedTab === 'foryou' ? '#2563FF' : '#6B7280',
+                borderBottom: feedTab === 'foryou' ? '2.5px solid #2563FF' : '2.5px solid transparent',
+                paddingBottom: '8px',
+                background: 'none',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              For you
+            </button>
+            <button
+              type="button"
+              onClick={() => setFeedTab('following')}
+              style={{
+                fontWeight: 700,
+                fontSize: '15px',
+                color: feedTab === 'following' ? '#2563FF' : '#6B7280',
+                borderBottom: feedTab === 'following' ? '2.5px solid #2563FF' : '2.5px solid transparent',
+                paddingBottom: '8px',
+                background: 'none',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Following
+            </button>
+            <button
+              type="button"
+              onClick={() => setFeedTab('latest')}
+              style={{
+                fontWeight: 700,
+                fontSize: '15px',
+                color: feedTab === 'latest' ? '#2563FF' : '#6B7280',
+                borderBottom: feedTab === 'latest' ? '2.5px solid #2563FF' : '2.5px solid transparent',
+                paddingBottom: '8px',
+                background: 'none',
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Latest
+            </button>
+          </div>
+        </div>
+
         {/* Topic / Hashtag Discovery Bar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.6px' }}>
               <Tag size={13} />
-              <span>TRENDING TOPICS</span>
+              <span>POPULAR TOPICS</span>
             </div>
             <button
               type="button"
@@ -173,7 +238,7 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
 
           <div className="hashtag-filter-bar">
             {hashtags.slice(0, 8).map((h) => {
-              const tag = h.tag_name || h.hashtag;
+              const tag = h.tag || h.tag_name || h.hashtag;
               const isActive = activeTag === tag;
               return (
                 <button
@@ -303,7 +368,12 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {posts.map((post) => (
+            {(feedTab === 'following'
+              ? posts.filter((p) => (followingSet?.has(p.user_id) || p.user_id === user?.user_id))
+              : feedTab === 'latest'
+              ? [...posts].sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0))
+              : posts
+            ).map((post) => (
               <PostCard
                 key={post.post_id}
                 post={post}
@@ -312,6 +382,9 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
                 onDeletePost={handleDeletePost}
               />
             ))}
+            <div style={{ textAlign: 'center', padding: '24px 0 12px', color: '#9CA3AF', fontSize: '13.5px', fontWeight: 600 }}>
+              You're all caught up ✨
+            </div>
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, ArrowRight, UserPlus, Users } from 'lucide-react';
+import { Database, ArrowRight, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function RightSidebar({
@@ -7,79 +7,98 @@ export default function RightSidebar({
   communities = [],
   onNavigateTab,
   onUserClick,
+  onTagClick,
 }) {
   const { user, isSuperAdmin, followingSet, toggleFollow } = useAuth();
 
   return (
-    <aside className="feed-aside">
-      {/* Self Profile Banner */}
-      <div className="aside-card" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
-        <img
-          src={user?.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
-          alt={user?.username}
-          style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: '14.5px' }}>{user?.username}</div>
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            {isSuperAdmin ? 'Super Admin' : (user?.location || 'Member')}
-          </div>
-        </div>
-      </div>
+    <aside className="feed-aside" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '320px', flexShrink: 0 }}>
 
-      {/* Suggested Connections */}
-      <div className="aside-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span className="aside-card-title">Suggested for you</span>
+      {/* Who to Follow Card matching index.html */}
+      <div
+        className="card"
+        style={{
+          padding: '20px',
+          background: '#FFFFFF',
+          border: '1px solid var(--border)',
+          borderRadius: '24px',
+          boxShadow: '0 4px 20px -4px rgba(10, 14, 39, 0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h3 className="font-display" style={{ fontSize: '17px', fontWeight: 800, color: '#0A0E27' }}>
+            Who to follow
+          </h3>
           <button
             type="button"
-            className="btn-text-sm"
-            style={{ fontSize: '12px', color: 'var(--blue-primary)', fontWeight: 700 }}
-            onClick={() => onNavigateTab('connections')}
+            onClick={() => onNavigateTab('users')}
+            style={{ fontSize: '12px', color: '#2563FF', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            See All
+            See all
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {suggestedUsers.slice(0, 4).map((su) => {
-            const isFollowing = followingSet.has(su.user_id);
+            const suUserId = su.RecommendedUserID || su.user_id;
+            const suUsername = su.Username || su.username;
+            const suProfilePic = su.ProfilePic || su.profile_pic;
+            const suInterests = su.Interests || su.interests;
+            const isFollowing = followingSet.has(suUserId);
+
             return (
-              <div key={su.user_id} className="user-snippet-row">
+              <div key={suUserId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                 <div
-                  className="user-snippet-left"
-                  onClick={() => onUserClick?.(su.user_id)}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`View profile for ${su.username}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onUserClick?.(su.user_id);
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
+                  onClick={() => onUserClick?.(suUserId)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', minWidth: 0, flex: 1 }}
                 >
                   <img
-                    src={su.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
-                    alt={su.username}
-                    style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
+                    src={suProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                    alt={suUsername}
+                    style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                   />
-                  <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                      {su.username}
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: '13.5px',
+                        color: '#0A0E27',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {suUsername}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {su.interests?.split(',')[0] || 'Member'}
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        color: '#6B7280',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      @{suUsername?.toLowerCase()} · {suInterests?.split(',')[0] || 'Creator'}
                     </div>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  className={`btn-follow ${isFollowing ? 'following' : ''}`}
-                  onClick={() => toggleFollow(su.user_id)}
-                  aria-label={isFollowing ? `Unfollow ${su.username}` : `Follow ${su.username}`}
+                  onClick={() => toggleFollow(suUserId)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: isFollowing ? '#F4F5F9' : '#0A0E27',
+                    color: isFollowing ? '#4B5563' : '#FFFFFF',
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                  }}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>
@@ -89,106 +108,105 @@ export default function RightSidebar({
         </div>
       </div>
 
-      {/* Active Communities */}
-      <div className="aside-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span className="aside-card-title">Communities</span>
+      {/* Communities Card */}
+      <div
+        className="card"
+        style={{
+          padding: '20px',
+          background: '#FFFFFF',
+          border: '1px solid var(--border)',
+          borderRadius: '24px',
+          boxShadow: '0 4px 20px -4px rgba(10, 14, 39, 0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <h3 className="font-display" style={{ fontSize: '16px', fontWeight: 800, color: '#0A0E27' }}>
+            Communities
+          </h3>
           <button
             type="button"
-            className="btn-text-sm"
-            style={{ fontSize: '12px', color: 'var(--blue-primary)', fontWeight: 700 }}
             onClick={() => onNavigateTab('groups')}
+            style={{ fontSize: '12px', color: '#2563FF', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Explore
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {communities.slice(0, 3).map((grp) => (
             <div
               key={grp.group_id}
+              onClick={() => onNavigateTab('groups')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '6px 8px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-surface-secondary)',
+                padding: '8px 12px',
+                borderRadius: '12px',
+                background: '#F4F5F9',
+                cursor: 'pointer',
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: '#0A0E27', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {grp.group_name}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '11px', color: '#6B7280' }}>
                   {grp.member_count || 1} members
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn-text-sm"
-                onClick={() => onNavigateTab('groups')}
-                style={{ color: 'var(--blue-primary)', fontWeight: 600, fontSize: '11px' }}
-              >
-                View
-              </button>
+              <span style={{ fontSize: '12px', color: '#2563FF', fontWeight: 700 }}>Join</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* SQL Studio Promo for Super Admin */}
+      {/* SQL Studio Banner for Super Admin */}
       {isSuperAdmin && (
         <div
-          className="aside-card"
+          className="card"
           style={{
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)',
+            padding: '18px 20px',
+            background: 'linear-gradient(135deg, #0A0E27 0%, #1E40AF 100%)',
             color: '#fff',
-            border: 'none',
+            borderRadius: '24px',
+            boxShadow: '0 8px 24px rgba(37, 99, 255, 0.25)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Database size={16} color="#60a5fa" />
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#93c5fd', letterSpacing: '0.5px' }}>
-              DATABASE WORKBENCH
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+            <Database size={15} color="#93C5FD" />
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#93C5FD', letterSpacing: '0.6px' }}>
+              DATABASE STUDIO
             </span>
           </div>
-          <div>
-            <h5 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
-              Relational /sql Studio
-            </h5>
-            <p style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
-              Execute live queries against SQLite with millisecond timing.
-            </p>
+          <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#fff' }}>
+            Direct SQL Workbench
           </div>
+          <p style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.8)', marginTop: '4px', lineHeight: '1.4' }}>
+            Query SQLite relational tables live with 0ms execution tracking.
+          </p>
           <button
             type="button"
             onClick={() => onNavigateTab('sql')}
+            className="btn-primary"
             style={{
-              background: '#fff',
-              color: '#1e3a8a',
-              fontWeight: 700,
+              padding: '6px 14px',
               fontSize: '12px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              marginTop: '4px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              fontWeight: 700,
+              marginTop: '12px',
             }}
           >
-            <span>Launch Studio</span>
-            <ArrowRight size={14} />
+            <span>Open Studio</span>
+            <ArrowRight size={13} />
           </button>
         </div>
       )}
 
       {/* Footer Info */}
-      <footer style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-        <p>SocialSphere &middot; React + Vite Ultra-Fast Engine</p>
-        <p>&copy; 2026 SOCIALSPHERE</p>
+      <footer style={{ fontSize: '11.5px', color: '#9CA3AF', lineHeight: '1.6', padding: '0 4px' }}>
+        <p>© 2026 Social Sphere. Made for creators.</p>
       </footer>
     </aside>
   );
 }
+

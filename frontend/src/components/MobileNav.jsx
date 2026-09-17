@@ -7,15 +7,11 @@ import {
   MessageSquare,
   LogOut,
   UserCheck,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 
 export function MobileHeader({ onOpenNotifications, onOpenMessages }) {
   const { unreadNotifCount, unreadMsgCount, logout } = useAuth();
-  const { theme, toggleTheme, isDark } = useTheme();
 
   return (
     <header className="mobile-header">
@@ -23,14 +19,6 @@ export function MobileHeader({ onOpenNotifications, onOpenMessages }) {
         SocialSphere
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <button
-          onClick={toggleTheme}
-          style={{ padding: '8px', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)' }}
-          title={isDark ? 'Switch to Warm Cream Light Mode' : 'Switch to Midnight Obsidian Dark Mode'}
-          aria-label="Toggle Color Theme"
-        >
-          {isDark ? <Sun size={20} color="var(--gold-accent)" /> : <Moon size={20} color="var(--blue-primary)" />}
-        </button>
         <button
           onClick={onOpenNotifications}
           style={{ padding: '8px', position: 'relative', color: 'var(--text-primary)', borderRadius: 'var(--radius-sm)' }}

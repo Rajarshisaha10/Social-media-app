@@ -29,7 +29,7 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    email: str
+    email: Optional[str] = None
     bio: Optional[str] = "SocialSphere Member"
     location: Optional[str] = "Global"
     interests: Optional[str] = "Technology, Web Development"
@@ -38,6 +38,12 @@ class RegisterRequest(BaseModel):
 
 class FollowRequest(BaseModel):
     caller_id: Optional[int] = None
+
+class UpdateProfileRequest(BaseModel):
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    interests: Optional[str] = None
+    profile_pic: Optional[str] = None
 
 @router.post("/login")
 def login_user(payload: LoginRequest):
@@ -134,7 +140,8 @@ def register_user(payload: RegisterRequest):
     try:
         username = payload.username.strip()
         password = payload.password.strip()
-        email = payload.email.strip().lower()
+        raw_email = payload.email.strip().lower() if payload.email and payload.email.strip() else f"{username.lower()}@socialsphere.io"
+        email = raw_email
 
         if len(username) < 3:
             raise HTTPException(status_code=400, detail="Username must be at least 3 characters long.")
@@ -271,6 +278,78 @@ def get_current_user_profile(current_user: Dict[str, Any] = Depends(get_current_
     user_info = dict(user)
     user_info.pop("password", None)
     return {"success": True, "user": user_info}
+
+@router.put("/profile")
+def update_profile(
+    payload: UpdateProfileRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Update profile details (bio, location, interests, profile_pic) for authenticated user."""
+    try:
+        user_id = current_user["user_id"]
+
+        if payload.bio is not None:
+            execute_write("UPDATE Users SET bio = ? WHERE user_id = ?", (payload.bio.strip(), user_id))
+
+        if payload.location is not None or payload.interests is not None:
+            existing = query_one("SELECT user_id FROM Regular_User WHERE user_id = ?", (user_id,))
+            if existing:
+                if payload.location is not None and payload.interests is not None:
+                    execute_write("UPDATE Regular_User SET location = ?, interests = ? WHERE user_id = ?", (payload.location.strip(), payload.interests.strip(), user_id))
+                elif payload.location is not None:
+                    execute_write("UPDATE Regular_User SET location = ? WHERE user_id = ?", (payload.location.strip(), user_id))
+                elif payload.interests is not None:
+                    execute_write("UPDATE Regular_User SET interests = ? WHERE user_id = ?", (payload.interests.strip(), user_id))
+            else:
+                execute_write(
+                    "INSERT INTO Regular_User (user_id, location, interests) VALUES (?, ?, ?)",
+                    (user_id, (payload.location or "Global").strip(), (payload.interests or "").strip())
+                )
+
+        if payload.profile_pic is not None:
+            existing_pic = query_one("SELECT profile_pic_id FROM Profile_Pic WHERE user_id = ?", (user_id,))
+            if existing_pic:
+                execute_write("UPDATE Profile_Pic SET image_url = ? WHERE user_id = ?", (payload.profile_pic.strip(), user_id))
+            else:
+                execute_write("INSERT INTO Profile_Pic (user_id, image_url, pic_type) VALUES (?, ?, 'AVATAR')", (user_id, payload.profile_pic.strip()))
+
+        sql = """
+            SELECT
+                u.user_id,
+                u.username,
+                u.email,
+                u.bio,
+                u.account_status,
+                u.dob,
+                pp.image_url AS profile_pic,
+                ru.interests,
+                ru.location,
+                au.admin_level
+            FROM Users u
+            LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+            LEFT JOIN Regular_User ru ON ru.user_id = u.user_id
+            LEFT JOIN Admin_User au ON au.user_id = u.user_id
+            WHERE u.user_id = ?
+        """
+        updated_user = query_one(sql, (user_id,))
+        user_info = dict(updated_user)
+        user_info.pop("password", None)
+
+        execute_write("""
+            INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+            VALUES (?, 'PROFILE_UPDATE', 'WEB', ?)
+        """, (user_id, '{"action": "PROFILE_UPDATED"}'))
+
+        return {
+            "success": True,
+            "message": "Profile updated successfully!",
+            "user": user_info
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/logout")
 def logout_user(
@@ -573,3 +652,75 @@ def get_user_following(user_id: int = Path(...)):
     except Exception as e:
         logger.error(f"Error fetching following list: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/profile")
+def update_user_profile(
+    payload: UpdateProfileRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Update user profile bio, location, interests, and profile picture."""
+    try:
+        user_id = current_user["user_id"]
+
+        if payload.bio is not None:
+            execute_write("UPDATE Users SET bio = ? WHERE user_id = ?", (payload.bio.strip(), user_id))
+
+        if payload.location is not None or payload.interests is not None:
+            existing_reg = query_one("SELECT user_id FROM Regular_User WHERE user_id = ?", (user_id,))
+            if existing_reg:
+                if payload.location is not None and payload.interests is not None:
+                    execute_write("UPDATE Regular_User SET location = ?, interests = ? WHERE user_id = ?", (payload.location.strip(), payload.interests.strip(), user_id))
+                elif payload.location is not None:
+                    execute_write("UPDATE Regular_User SET location = ? WHERE user_id = ?", (payload.location.strip(), user_id))
+                elif payload.interests is not None:
+                    execute_write("UPDATE Regular_User SET interests = ? WHERE user_id = ?", (payload.interests.strip(), user_id))
+            else:
+                execute_write(
+                    "INSERT INTO Regular_User (user_id, location, interests) VALUES (?, ?, ?)",
+                    (user_id, (payload.location or "Global").strip(), (payload.interests or "Technology").strip())
+                )
+
+        if payload.profile_pic is not None:
+            existing_pic = query_one("SELECT user_id FROM Profile_Pic WHERE user_id = ?", (user_id,))
+            if existing_pic:
+                execute_write("UPDATE Profile_Pic SET image_url = ? WHERE user_id = ?", (payload.profile_pic.strip(), user_id))
+            else:
+                execute_write("INSERT INTO Profile_Pic (user_id, image_url) VALUES (?, ?)", (user_id, payload.profile_pic.strip()))
+
+        # Telemetry log in Event_Analysis
+        execute_write("""
+            INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata)
+            VALUES (?, 'PROFILE_UPDATE', 'WEB', ?)
+        """, (user_id, f'{{"user_id": {user_id}, "action": "UPDATE_PROFILE"}}'))
+
+        # Return full updated user object
+        sql = """
+            SELECT
+                u.user_id,
+                u.username,
+                u.email,
+                u.bio,
+                u.account_status,
+                u.dob,
+                pp.image_url AS profile_pic,
+                ru.interests,
+                ru.location,
+                au.admin_level
+            FROM Users u
+            LEFT JOIN Profile_Pic pp ON pp.user_id = u.user_id
+            LEFT JOIN Regular_User ru ON ru.user_id = u.user_id
+            LEFT JOIN Admin_User au ON au.user_id = u.user_id
+            WHERE u.user_id = ?
+        """
+        updated_user = query_one(sql, (user_id,))
+        return {
+            "success": True,
+            "message": "Profile updated successfully.",
+            "user": updated_user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating profile for user {current_user.get('user_id')}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

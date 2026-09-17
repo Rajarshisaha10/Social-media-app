@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
   const [usersList, setUsersList] = useState([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const isSuperAdmin = Boolean(
     user && (user.username?.toLowerCase() === 'rajarshi' || user.admin_level === 'SUPER_ADMIN')
@@ -50,8 +51,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.getNotifications(user.user_id);
       if (data?.notifications) {
-        const unread = data.notifications.filter((n) => !n.is_read).length;
-        setUnreadNotifCount(unread);
+        setUnreadNotifCount(data.notifications.length);
       }
     } catch (err) {
       console.warn('Notification check failed:', err);
@@ -80,6 +80,15 @@ export function AuthProvider({ children }) {
         login_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       };
       setUser(userWithTime);
+
+      // Trigger profile setup if user hasn't completed it and hasn't skipped
+      const skipped = localStorage.getItem(`profile_setup_skipped_${res.user.user_id}`);
+      const isDefaultBio = !res.user.bio || res.user.bio === 'SocialSphere Member';
+      const isDefaultLoc = !res.user.location || res.user.location === 'Global';
+      if (!skipped && (isDefaultBio || isDefaultLoc)) {
+        setShowOnboarding(true);
+      }
+
       return userWithTime;
     }
     throw new Error(res?.message || 'Login failed');
@@ -96,9 +105,26 @@ export function AuthProvider({ children }) {
         login_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       };
       setUser(userWithTime);
+      // New registered user: immediately invite them to complete their profile
+      setShowOnboarding(true);
       return userWithTime;
     }
     throw new Error(res?.message || 'Registration failed');
+  };
+
+  const updateUserProfile = async ({ bio, location, interests, profilePic }) => {
+    const res = await api.updateProfile({ bio, location, interests, profilePic });
+    if (res?.success && res.user) {
+      const updatedUser = {
+        ...user,
+        ...res.user,
+      };
+      setUser(updatedUser);
+      localStorage.setItem('socialsphere_user', JSON.stringify(updatedUser));
+      setShowOnboarding(false);
+      return updatedUser;
+    }
+    throw new Error(res?.message || 'Profile update failed');
   };
 
   const logout = async () => {
@@ -162,6 +188,9 @@ export function AuthProvider({ children }) {
         setUnreadMsgCount,
         refreshUsersAndFollowing,
         checkNotifications,
+        showOnboarding,
+        setShowOnboarding,
+        updateUserProfile,
       }}
     >
       {children}

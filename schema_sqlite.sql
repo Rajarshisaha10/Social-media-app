@@ -9,7 +9,20 @@ CREATE TABLE IF NOT EXISTS Users (
     password       TEXT NOT NULL,
     bio            TEXT,
     account_status TEXT DEFAULT 'ACTIVE',
-    dob            TEXT
+    dob            TEXT,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS User_Credentials (
+    credential_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL UNIQUE,
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    account_role  TEXT DEFAULT 'USER',
+    last_login    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cred_user
+        FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Profile_Pic (
@@ -163,4 +176,19 @@ CREATE TABLE IF NOT EXISTS Event_Analysis (
     metadata    TEXT,
     CONSTRAINT fk_event_user
         FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS User_Follow (
+    follow_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    follower_id  INTEGER NOT NULL,
+    following_id INTEGER NOT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_follower_following
+        UNIQUE (follower_id, following_id),
+    CONSTRAINT fk_follow_follower
+        FOREIGN KEY (follower_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_follow_following
+        FOREIGN KEY (following_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    CONSTRAINT chk_not_self_follow
+        CHECK (follower_id <> following_id)
 );

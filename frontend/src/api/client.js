@@ -59,6 +59,17 @@ export const api = {
 
   getCurrentUser: () => request('/api/users/me'),
 
+  updateProfile: ({ bio, location, interests, profilePic }) =>
+    request('/api/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        bio,
+        location,
+        interests,
+        profile_pic: profilePic,
+      }),
+    }),
+
   logout: (userId) =>
     request('/api/users/logout', {
       method: 'POST',

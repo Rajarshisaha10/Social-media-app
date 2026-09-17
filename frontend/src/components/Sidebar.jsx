@@ -8,123 +8,300 @@ import {
   BarChart3,
   LogOut,
   UserCheck,
-  Terminal,
-  Sun,
-  Moon,
+  PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 
-export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost }) {
+export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onOpenNotifications }) {
   const { user, logout, isSuperAdmin, unreadNotifCount, unreadMsgCount } = useAuth();
-  const { theme, toggleTheme, isDark } = useTheme();
 
   return (
-    <aside className="app-sidebar">
-      <div>
-        <div className="sidebar-logo">SocialSphere</div>
+    <aside className="app-sidebar" style={{ background: '#FFFFFF', borderRight: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {/* Brand Logo with previous Grand Hotel font */}
+        <div
+          className="sidebar-logo"
+          onClick={() => setActiveTab('feed')}
+          style={{
+            fontFamily: 'var(--font-brand)',
+            fontSize: '34px',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            userSelect: 'none',
+            padding: '8px 12px 16px',
+            margin: 0,
+            lineHeight: 1.1,
+            letterSpacing: '0.5px',
+          }}
+        >
+          Social Sphere
+        </div>
 
-        <nav className="sidebar-nav">
+        {/* Navigation Pills */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <button
-            className={`nav-link-btn ${activeTab === 'feed' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'feed' ? 700 : 500,
+              background: activeTab === 'feed' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'feed' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+            }}
             onClick={() => setActiveTab('feed')}
           >
-            <Home size={20} />
+            <Home size={19} color={activeTab === 'feed' ? '#2563FF' : '#4B5563'} />
             <span>Home</span>
           </button>
 
           <button
-            className={`nav-link-btn ${activeTab === 'messages' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'messages' ? 700 : 500,
+              background: activeTab === 'messages' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'messages' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+              position: 'relative',
+            }}
             onClick={() => setActiveTab('messages')}
           >
-            <MessageSquare size={20} />
-            <span>Messages</span>
-            {unreadMsgCount > 0 && <span className="nav-badge">{unreadMsgCount}</span>}
+            <MessageSquare size={19} color={activeTab === 'messages' ? '#2563FF' : '#4B5563'} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Messages</span>
+            {unreadMsgCount > 0 && (
+              <span
+                style={{
+                  background: '#FF2D55',
+                  color: '#fff',
+                  borderRadius: '9999px',
+                  padding: '2px 7px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                }}
+              >
+                {unreadMsgCount}
+              </span>
+            )}
           </button>
 
           <button
-            className={`nav-link-btn ${activeTab === 'groups' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'groups' ? 700 : 500,
+              background: activeTab === 'groups' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'groups' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+            }}
             onClick={() => setActiveTab('groups')}
           >
-            <UsersIcon size={20} />
+            <UsersIcon size={19} color={activeTab === 'groups' ? '#2563FF' : '#4B5563'} />
             <span>Communities</span>
           </button>
 
           <button
-            className={`nav-link-btn ${activeTab === 'connections' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'connections' ? 700 : 500,
+              background: activeTab === 'connections' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'connections' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+            }}
             onClick={() => setActiveTab('connections')}
           >
-            <UserCheck size={20} />
+            <UserCheck size={19} color={activeTab === 'connections' ? '#2563FF' : '#4B5563'} />
             <span>Connections</span>
           </button>
 
           <button
-            className={`nav-link-btn ${activeTab === 'users' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'users' ? 700 : 500,
+              background: activeTab === 'users' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'users' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+            }}
             onClick={() => setActiveTab('users')}
           >
-            <Compass size={20} />
-            <span>Explore Users</span>
+            <Compass size={19} color={activeTab === 'users' ? '#2563FF' : '#4B5563'} />
+            <span>Explore</span>
           </button>
 
           <button
-            className={`nav-link-btn ${activeTab === 'sql' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'sql' ? 700 : 500,
+              background: activeTab === 'sql' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'sql' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+            }}
             onClick={() => setActiveTab('sql')}
           >
-            <Database size={20} />
-            <span>SQL Queries</span>
+            <Database size={19} color={activeTab === 'sql' ? '#2563FF' : '#4B5563'} />
+            <span>SQL Studio</span>
           </button>
 
           <button
-            className={`nav-link-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            type="button"
+            className="nav-link-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '11px 16px',
+              borderRadius: '9999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === 'analytics' ? 700 : 500,
+              background: activeTab === 'analytics' ? '#E5EDFF' : 'transparent',
+              color: activeTab === 'analytics' ? '#2563FF' : '#4B5563',
+              transition: 'all 0.15s ease',
+            }}
             onClick={() => setActiveTab('analytics')}
           >
-            <BarChart3 size={20} />
+            <BarChart3 size={19} color={activeTab === 'analytics' ? '#2563FF' : '#4B5563'} />
             <span>Analytics</span>
           </button>
         </nav>
+
+        {/* Primary Create Post Button from index.html */}
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={onOpenCreatePost}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: '9999px',
+            marginTop: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontSize: '14px',
+            fontWeight: 700,
+          }}
+        >
+          <PlusCircle size={17} />
+          <span>Create post</span>
+        </button>
+
+
       </div>
 
-      <div className="sidebar-footer">
-        {/* Modern Theme Switcher */}
-        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Theme
-          </span>
-          <button
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            title={isDark ? 'Switch to Warm Cream Light Mode' : 'Switch to Midnight Obsidian Dark Mode'}
-            aria-label="Toggle Color Theme"
-          >
-            {isDark ? <Sun size={14} color="var(--gold-accent)" /> : <Moon size={14} color="var(--blue-primary)" />}
-            <span>{isDark ? 'Dark' : 'Light'}</span>
-          </button>
-        </div>
-
-        <div className="user-profile-bar">
-          <img
-            src={user?.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
-            alt={user?.username}
-            style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-          />
-          <div className="meta">
-            <span className="uname">{user?.username}</span>
-            <div className="urole" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-              <span>{isSuperAdmin ? 'Super Administrator' : (user?.location || 'Member')}</span>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                {user?.login_time ? `Logged in: ${user.login_time}` : (user?.last_login ? `Logged in: ${user.last_login}` : 'Active session')}
-              </span>
+      {/* User Session Footer Card */}
+      <div className="sidebar-footer" style={{ borderTop: '1px solid var(--border)', paddingTop: '14px', marginTop: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            width: '100%',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div className="story-ring" style={{ padding: '2px', borderRadius: '50%' }}>
+              <img
+                src={user?.profile_pic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                alt={user?.username}
+                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', background: '#fff' }}
+              />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '13.5px',
+                  color: '#0A0E27',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {user?.username}
+              </div>
+              <div style={{ fontSize: '11px', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isSuperAdmin ? 'Super Admin' : (user?.location || 'Creator')}
+              </div>
             </div>
           </div>
           <button
-            className="logout-icon-btn"
+            type="button"
             onClick={logout}
             title="Log out"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#6B7280',
+              background: '#F4F5F9',
+              border: 'none',
+              cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'background 0.15s ease',
+            }}
           >
-            <LogOut size={18} />
+            <LogOut size={15} />
           </button>
         </div>
       </div>
     </aside>
   );
 }
+

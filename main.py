@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
@@ -31,6 +32,9 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
+# Enable response compression (70%+ smaller payloads over network)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Enable CORS
 app.add_middleware(
@@ -85,17 +89,30 @@ def test_db_connection():
             }
         )
 
-# Mount frontend and static directories
+# Mount frontend and static directories with aggressive caching for hashed assets
 frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 frontend_assets = os.path.join(frontend_dist, "assets")
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            # Hashed Vite assets can be permanently cached in browser disk cache
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
 if os.path.exists(frontend_assets):
-    app.mount("/assets", StaticFiles(directory=frontend_assets), name="assets")
+    app.mount("/assets", CachedStaticFiles(directory=frontend_assets), name="assets")
 
 if not os.path.exists(static_dir):
     os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/healthz")
+def healthz():
+    """Ultra-fast, zero-overhead health check for Render web services and monitoring keep-alives."""
+    return {"status": "ok", "service": "social-media-platform"}
 
 def get_spa_index():
     dist_index = os.path.join(frontend_dist, "index.html")
@@ -152,7 +169,10 @@ def serve_pwa_icon(request: Request):
 def serve_ui():
     index_file = get_spa_index()
     if index_file:
-        return FileResponse(index_file)
+        return FileResponse(
+            index_file,
+            headers={"Cache-Control": "no-cache, must-revalidate"}
+        )
     return {"message": "Social Media Platform API is running. Visit /docs for API documentation."}
 
 @app.get("/sql")
@@ -160,7 +180,10 @@ def serve_sql_ui():
     """Route specifically for /sql page, serving the SPA with SQL Studio activated."""
     index_file = get_spa_index()
     if index_file:
-        return FileResponse(index_file)
+        return FileResponse(
+            index_file,
+            headers={"Cache-Control": "no-cache, must-revalidate"}
+        )
     return {"message": "SQL Studio page available. Please check static files."}
 
 

@@ -74,7 +74,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container" style={{ background: '#F4F5F9' }}>
+    <div className="app-container" style={{ background: 'var(--bg-base)' }}>
       {/* Desktop Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -88,14 +88,14 @@ export default function App() {
 
       {/* Main Content Body */}
       <div className="app-main" style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Desktop Sticky Header matching index.html lines 520-544 */}
+        {/* Desktop Sticky Header matching gather calm aesthetic */}
         <header
           className="desktop-header"
           style={{
             position: 'sticky',
             top: 0,
             zIndex: 30,
-            backgroundColor: 'rgba(255, 255, 255, 0.88)',
+            backgroundColor: 'var(--bg-glass)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             borderBottom: '1px solid var(--border)',
@@ -112,36 +112,36 @@ export default function App() {
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}
           >
             <div
-              className="sphere-emblem-glow"
+              className="brand__mark"
               style={{
                 width: '32px',
                 height: '32px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+                borderRadius: '10px',
+                background: 'rgba(194, 107, 77, 0.12)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
-                boxShadow: '0 4px 12px rgba(37, 99, 255, 0.25)',
+                color: 'var(--clay)',
                 flexShrink: 0,
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 21c0-5 3-9 8-10-1 6-4 10-8 10z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                <path d="M12 21c0-5-3-9-8-10 1 6 4 10 8 10z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                <path d="M12 21V11" stroke="currentColor" strokeWidth="1.4" />
               </svg>
             </div>
             <span
               style={{
                 fontFamily: 'var(--font-brand)',
-                fontSize: '28px',
-                color: 'var(--text-primary)',
+                fontSize: '26px',
+                fontWeight: 500,
+                color: 'var(--ink)',
                 lineHeight: 1,
-                letterSpacing: '0.5px',
+                letterSpacing: '-0.01em',
               }}
             >
-              Social Sphere
+              gather
             </span>
           </div>
 
@@ -153,12 +153,12 @@ export default function App() {
                 left: '16px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: '#9CA3AF',
+                color: 'var(--ink-mute)',
               }}
             />
             <input
               type="text"
-              placeholder="Search Social Sphere creators, tags..."
+              placeholder="Search notes, collections, people..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -168,22 +168,23 @@ export default function App() {
               }}
               style={{
                 width: '100%',
-                backgroundColor: '#F4F5F9',
+                backgroundColor: 'var(--bg-elevated)',
+                color: 'var(--ink)',
                 borderRadius: '9999px',
                 padding: '10px 16px 10px 42px',
                 fontSize: '13.5px',
-                border: '1px solid transparent',
+                border: '1px solid var(--line)',
                 outline: 'none',
                 transition: 'all 0.2s ease',
               }}
               onFocus={(e) => {
-                e.target.style.backgroundColor = '#FFFFFF';
-                e.target.style.borderColor = '#2563FF';
-                e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 255, 0.15)';
+                e.target.style.backgroundColor = 'var(--bg-card)';
+                e.target.style.borderColor = 'var(--clay)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(194, 107, 77, 0.15)';
               }}
               onBlur={(e) => {
-                e.target.style.backgroundColor = '#F4F5F9';
-                e.target.style.borderColor = 'transparent';
+                e.target.style.backgroundColor = 'var(--bg-elevated)';
+                e.target.style.borderColor = 'var(--line)';
                 e.target.style.boxShadow = 'none';
               }}
             />
@@ -200,7 +201,7 @@ export default function App() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#4B5563',
+                color: 'var(--ink-soft)',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -218,7 +219,7 @@ export default function App() {
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    backgroundColor: '#FF2D55',
+                    backgroundColor: 'var(--clay)',
                   }}
                 />
               )}
@@ -234,7 +235,7 @@ export default function App() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#4B5563',
+                color: 'var(--ink-soft)',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -252,7 +253,7 @@ export default function App() {
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    backgroundColor: '#FF2D55',
+                    backgroundColor: 'var(--clay)',
                   }}
                 />
               )}
@@ -269,7 +270,7 @@ export default function App() {
                 cursor: 'pointer',
                 transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F4F5F9')}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-elevated)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <img
@@ -277,7 +278,7 @@ export default function App() {
                 alt={user?.username}
                 style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
               />
-              <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0A0E27' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
                 {user?.username}
               </span>
             </div>
@@ -345,10 +346,10 @@ export default function App() {
         }}
       >
         <div className="tip-bubble" style={{ maxWidth: '220px', marginBottom: '8px' }}>
-          <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600, marginBottom: '2px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--ink-mute)', fontWeight: 600, marginBottom: '2px' }}>
             Nexo says:
           </div>
-          <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#0A0E27' }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)' }}>
             {DASHBOARD_TIPS[tipIndex]}
           </div>
         </div>

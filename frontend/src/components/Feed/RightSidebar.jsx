@@ -14,25 +14,25 @@ export default function RightSidebar({
   return (
     <aside className="feed-aside" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '320px', flexShrink: 0 }}>
 
-      {/* Who to Follow Card matching index.html */}
+      {/* Who to Follow Card matching gather aesthetic */}
       <div
         className="card"
         style={{
           padding: '20px',
-          background: '#FFFFFF',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: '24px',
-          boxShadow: '0 4px 20px -4px rgba(10, 14, 39, 0.04)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h3 className="font-display" style={{ fontSize: '17px', fontWeight: 800, color: '#0A0E27' }}>
+          <h3 className="font-display" style={{ fontSize: '17px', fontWeight: 600, color: 'var(--ink)' }}>
             Who to follow
           </h3>
           <button
             type="button"
             onClick={() => onNavigateTab('users')}
-            style={{ fontSize: '12px', color: '#2563FF', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ fontSize: '12px', color: 'var(--clay-deep)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
           >
             See all
           </button>
@@ -60,9 +60,9 @@ export default function RightSidebar({
                   <div style={{ minWidth: 0 }}>
                     <div
                       style={{
-                        fontWeight: 700,
+                        fontWeight: 600,
                         fontSize: '13.5px',
-                        color: '#0A0E27',
+                        color: 'var(--ink)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -73,13 +73,13 @@ export default function RightSidebar({
                     <div
                       style={{
                         fontSize: '11px',
-                        color: '#6B7280',
+                        color: 'var(--ink-mute)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      @{suUsername?.toLowerCase()} · {suInterests?.split(',')[0] || 'Creator'}
+                      @{suUsername?.toLowerCase()} · {suInterests?.split(',')[0] || 'Collector'}
                     </div>
                   </div>
                 </div>
@@ -91,11 +91,11 @@ export default function RightSidebar({
                     padding: '6px 14px',
                     borderRadius: '9999px',
                     fontSize: '12px',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     border: 'none',
                     cursor: 'pointer',
-                    background: isFollowing ? '#F4F5F9' : '#0A0E27',
-                    color: isFollowing ? '#4B5563' : '#FFFFFF',
+                    background: isFollowing ? 'var(--bg-elevated)' : 'var(--ink)',
+                    color: isFollowing ? 'var(--ink-soft)' : 'var(--bg-card)',
                     transition: 'all 0.15s ease',
                     flexShrink: 0,
                   }}
@@ -113,20 +113,20 @@ export default function RightSidebar({
         className="card"
         style={{
           padding: '20px',
-          background: '#FFFFFF',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: '24px',
-          boxShadow: '0 4px 20px -4px rgba(10, 14, 39, 0.04)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <h3 className="font-display" style={{ fontSize: '16px', fontWeight: 800, color: '#0A0E27' }}>
-            Communities
+          <h3 className="font-display" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)' }}>
+            Spaces &amp; Communities
           </h3>
           <button
             type="button"
             onClick={() => onNavigateTab('groups')}
-            style={{ fontSize: '12px', color: '#2563FF', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ fontSize: '12px', color: 'var(--clay-deep)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Explore
           </button>
@@ -143,19 +143,19 @@ export default function RightSidebar({
                 justifyContent: 'space-between',
                 padding: '8px 12px',
                 borderRadius: '12px',
-                background: '#F4F5F9',
+                background: 'var(--bg-elevated)',
                 cursor: 'pointer',
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '13px', color: '#0A0E27', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {grp.group_name}
                 </div>
-                <div style={{ fontSize: '11px', color: '#6B7280' }}>
+                <div style={{ fontSize: '11px', color: 'var(--ink-mute)' }}>
                   {grp.member_count || 1} members
                 </div>
               </div>
-              <span style={{ fontSize: '12px', color: '#2563FF', fontWeight: 700 }}>Join</span>
+              <span style={{ fontSize: '12px', color: 'var(--clay-deep)', fontWeight: 600 }}>Join</span>
             </div>
           ))}
         </div>
@@ -167,15 +167,15 @@ export default function RightSidebar({
           className="card"
           style={{
             padding: '18px 20px',
-            background: 'linear-gradient(135deg, #0A0E27 0%, #1E40AF 100%)',
+            background: 'linear-gradient(135deg, var(--ink) 0%, var(--clay-deep) 100%)',
             color: '#fff',
             borderRadius: '24px',
-            boxShadow: '0 8px 24px rgba(37, 99, 255, 0.25)',
+            boxShadow: 'var(--shadow-md)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-            <Database size={15} color="#93C5FD" />
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#93C5FD', letterSpacing: '0.6px' }}>
+            <Database size={15} color="var(--sand)" />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sand)', letterSpacing: '0.6px' }}>
               DATABASE STUDIO
             </span>
           </div>

@@ -16,9 +16,9 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
   const { user, logout, isSuperAdmin, unreadNotifCount, unreadMsgCount } = useAuth();
 
   return (
-    <aside className="app-sidebar" style={{ background: '#FFFFFF', borderRight: '1px solid var(--border)' }}>
+    <aside className="app-sidebar" style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {/* Brand Logo with previous Grand Hotel font */}
+        {/* Brand Logo with Fraunces serif */}
         <div
           className="sidebar-logo"
           onClick={() => setActiveTab('feed')}
@@ -33,36 +33,36 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
           }}
         >
           <div
-            className="sphere-emblem-glow"
+            className="brand__mark"
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #FF2D55 0%, #2563FF 100%)',
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: 'rgba(194, 107, 77, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
-              boxShadow: '0 4px 14px rgba(37, 99, 255, 0.3)',
+              color: 'var(--clay)',
               flexShrink: 0,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 21c0-5 3-9 8-10-1 6-4 10-8 10z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              <path d="M12 21c0-5-3-9-8-10 1 6 4 10 8 10z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              <path d="M12 21V11" stroke="currentColor" strokeWidth="1.4" />
             </svg>
           </div>
           <span
             style={{
               fontFamily: 'var(--font-brand)',
-              fontSize: '32px',
-              color: 'var(--text-primary)',
+              fontSize: '28px',
+              fontWeight: 500,
+              color: 'var(--ink)',
               lineHeight: 1,
-              letterSpacing: '0.5px',
+              letterSpacing: '-0.01em',
             }}
           >
-            Social Sphere
+            gather
           </span>
         </div>
 
@@ -80,14 +80,14 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'feed' ? 700 : 500,
-              background: activeTab === 'feed' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'feed' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'feed' ? 600 : 500,
+              background: activeTab === 'feed' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'feed' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
             }}
             onClick={() => setActiveTab('feed')}
           >
-            <Home size={19} color={activeTab === 'feed' ? '#2563FF' : '#4B5563'} />
+            <Home size={19} color={activeTab === 'feed' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span>Home</span>
           </button>
 
@@ -103,20 +103,20 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'messages' ? 700 : 500,
-              background: activeTab === 'messages' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'messages' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'messages' ? 600 : 500,
+              background: activeTab === 'messages' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'messages' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
               position: 'relative',
             }}
             onClick={() => setActiveTab('messages')}
           >
-            <MessageSquare size={19} color={activeTab === 'messages' ? '#2563FF' : '#4B5563'} />
+            <MessageSquare size={19} color={activeTab === 'messages' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span style={{ flex: 1, textAlign: 'left' }}>Messages</span>
             {unreadMsgCount > 0 && (
               <span
                 style={{
-                  background: '#FF2D55',
+                  background: 'var(--clay)',
                   color: '#fff',
                   borderRadius: '9999px',
                   padding: '2px 7px',
@@ -141,14 +141,14 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'groups' ? 700 : 500,
-              background: activeTab === 'groups' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'groups' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'groups' ? 600 : 500,
+              background: activeTab === 'groups' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'groups' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
             }}
             onClick={() => setActiveTab('groups')}
           >
-            <UsersIcon size={19} color={activeTab === 'groups' ? '#2563FF' : '#4B5563'} />
+            <UsersIcon size={19} color={activeTab === 'groups' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span>Communities</span>
           </button>
 
@@ -164,14 +164,14 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'connections' ? 700 : 500,
-              background: activeTab === 'connections' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'connections' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'connections' ? 600 : 500,
+              background: activeTab === 'connections' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'connections' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
             }}
             onClick={() => setActiveTab('connections')}
           >
-            <UserCheck size={19} color={activeTab === 'connections' ? '#2563FF' : '#4B5563'} />
+            <UserCheck size={19} color={activeTab === 'connections' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span>Connections</span>
           </button>
 
@@ -187,14 +187,14 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'users' ? 700 : 500,
-              background: activeTab === 'users' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'users' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'users' ? 600 : 500,
+              background: activeTab === 'users' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'users' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
             }}
             onClick={() => setActiveTab('users')}
           >
-            <Compass size={19} color={activeTab === 'users' ? '#2563FF' : '#4B5563'} />
+            <Compass size={19} color={activeTab === 'users' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span>Explore</span>
           </button>
 
@@ -210,14 +210,14 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'sql' ? 700 : 500,
-              background: activeTab === 'sql' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'sql' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'sql' ? 600 : 500,
+              background: activeTab === 'sql' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'sql' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
             }}
             onClick={() => setActiveTab('sql')}
           >
-            <Database size={19} color={activeTab === 'sql' ? '#2563FF' : '#4B5563'} />
+            <Database size={19} color={activeTab === 'sql' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span>SQL Studio</span>
           </button>
 
@@ -233,19 +233,19 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               border: 'none',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: activeTab === 'analytics' ? 700 : 500,
-              background: activeTab === 'analytics' ? '#E5EDFF' : 'transparent',
-              color: activeTab === 'analytics' ? '#2563FF' : '#4B5563',
+              fontWeight: activeTab === 'analytics' ? 600 : 500,
+              background: activeTab === 'analytics' ? 'var(--blue-light)' : 'transparent',
+              color: activeTab === 'analytics' ? 'var(--clay-deep)' : 'var(--ink-soft)',
               transition: 'all 0.15s ease',
             }}
             onClick={() => setActiveTab('analytics')}
           >
-            <BarChart3 size={19} color={activeTab === 'analytics' ? '#2563FF' : '#4B5563'} />
+            <BarChart3 size={19} color={activeTab === 'analytics' ? 'var(--clay-deep)' : 'var(--ink-soft)'} />
             <span>Analytics</span>
           </button>
         </nav>
 
-        {/* Primary Create Post Button from index.html */}
+        {/* Primary Create Post Button */}
         <button
           type="button"
           className="btn-primary"
@@ -260,14 +260,12 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
             justifyContent: 'center',
             gap: '8px',
             fontSize: '14px',
-            fontWeight: 700,
+            fontWeight: 600,
           }}
         >
           <PlusCircle size={17} />
-          <span>Create post</span>
+          <span>New note</span>
         </button>
-
-
       </div>
 
       {/* User Session Footer Card */}
@@ -292,9 +290,9 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
             <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: '13.5px',
-                  color: '#0A0E27',
+                  color: 'var(--ink)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -302,8 +300,8 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               >
                 {user?.username}
               </div>
-              <div style={{ fontSize: '11px', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isSuperAdmin ? 'Super Admin' : (user?.location || 'Creator')}
+              <div style={{ fontSize: '11px', color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isSuperAdmin ? 'Super Admin' : (user?.location || 'Quiet Collector')}
               </div>
             </div>
           </div>
@@ -318,8 +316,8 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreatePost, onO
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#6B7280',
-              background: '#F4F5F9',
+              color: 'var(--ink-soft)',
+              background: 'var(--bg-elevated)',
               border: 'none',
               cursor: 'pointer',
               flexShrink: 0,

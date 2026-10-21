@@ -4,33 +4,33 @@
 
 :root {
     /* Warm Cream Palette */
-    --ig-bg: #fdf8f3;
-    --ig-surface: #fffef9;
-    --ig-surface-secondary: #f5efe6;
-    --ig-surface-elevated: #fffef9;
-    --ig-surface-hover: #ede5d8;
+    --ig-bg: #F2EADD;
+    --ig-surface: #FFFDF7;
+    --ig-surface-secondary: #F8F2E7;
+    --ig-surface-elevated: #FFFDF7;
+    --ig-surface-hover: #F2EADD;
 
     /* Warm Borders */
-    --ig-border: #e2d5c3;
-    --ig-border-subtle: #ede8df;
-    --ig-border-dark: #1c1917;
+    --ig-border: rgba(42, 31, 24, 0.08);
+    --ig-border-subtle: rgba(42, 31, 24, 0.06);
+    --ig-border-dark: #2A1F18;
 
-    /* Rich Blue Accents */
-    --ig-blue: #2563eb;
-    --ig-blue-hover: #1d4ed8;
-    --ig-blue-subtle: #dbeafe;
-    --ig-red: #ef4444;
-    --ig-red-subtle: #fee2e2;
-    --ig-green: #10b981;
-    --ig-green-subtle: #d1fae5;
-    --ig-gold: #f59e0b;
-    --ig-gold-subtle: #fef3c7;
-    --ig-story-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    /* Clay & Terracotta Accents */
+    --ig-blue: #C26B4D;
+    --ig-blue-hover: #A5533A;
+    --ig-blue-subtle: #FBF0EB;
+    --ig-red: #C26B4D;
+    --ig-red-subtle: #FBF0EB;
+    --ig-green: #7A8B6F;
+    --ig-green-subtle: rgba(122, 139, 111, 0.14);
+    --ig-gold: #D4A574;
+    --ig-gold-subtle: rgba(212, 165, 116, 0.16);
+    --ig-story-gradient: linear-gradient(135deg, #C26B4D 0%, #D4A574 50%, #7A8B6F 100%);
 
     /* Warm Typography Colors */
-    --ig-text-primary: #1c1917;
-    --ig-text-secondary: #78716c;
-    --ig-text-muted: #a8a29e;
+    --ig-text-primary: #2A1F18;
+    --ig-text-secondary: #5C4A3D;
+    --ig-text-muted: #8E7B6A;
     --ig-text-white: #ffffff;
 
     /* Border Radii — kept clean/subtle */

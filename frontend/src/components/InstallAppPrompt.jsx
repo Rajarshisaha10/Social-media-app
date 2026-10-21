@@ -98,7 +98,7 @@ export default function InstallAppPrompt() {
               width: '40px',
               height: '40px',
               borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              background: 'var(--brand-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

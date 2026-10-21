@@ -253,19 +253,19 @@ export default function PostCard({ post, onTagClick, onUserClick, onDeletePost }
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span className="post-author-uname" style={{ fontWeight: 700, fontSize: '14.5px', color: '#0A0E27' }}>
-                {post.username || 'Creator'}
+              <span className="post-author-uname" style={{ fontWeight: 600, fontSize: '14.5px', color: 'var(--ink)' }}>
+                {post.username || 'Collector'}
               </span>
-              <i className="fas fa-circle-check" style={{ color: '#2563FF', fontSize: '12px' }} title="Verified Creator"></i>
-              <span style={{ fontSize: '12px', color: '#9CA3AF' }}>
-                @{post.username?.toLowerCase() || 'creator'} · {timeAgo(post.created_date || post.created_at)}
+              <i className="fas fa-circle-check" style={{ color: 'var(--clay)', fontSize: '12px' }} title="Verified"></i>
+              <span style={{ fontSize: '12px', color: 'var(--ink-mute)' }}>
+                @{post.username?.toLowerCase() || 'collector'} · {timeAgo(post.created_date || post.created_at)}
               </span>
               {post.username?.toLowerCase() === 'rajarshi' && (
                 <span className="admin-pill-tag">SUPER ADMIN</span>
               )}
             </div>
-            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '1px' }}>
-              Creator
+            <div style={{ fontSize: '11px', color: 'var(--ink-mute)', marginTop: '1px' }}>
+              Collector
             </div>
           </div>
         </div>

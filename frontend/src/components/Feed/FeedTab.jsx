@@ -179,10 +179,10 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
               type="button"
               onClick={() => setFeedTab('foryou')}
               style={{
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '14.5px',
-                color: feedTab === 'foryou' ? '#2563FF' : '#6B7280',
-                borderBottom: feedTab === 'foryou' ? '2.5px solid #2563FF' : '2.5px solid transparent',
+                color: feedTab === 'foryou' ? 'var(--clay-deep)' : 'var(--ink-mute)',
+                borderBottom: feedTab === 'foryou' ? '2.5px solid var(--clay)' : '2.5px solid transparent',
                 paddingBottom: '8px',
                 background: 'none',
                 borderTop: 'none',
@@ -198,10 +198,10 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
               type="button"
               onClick={() => setFeedTab('following')}
               style={{
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '14.5px',
-                color: feedTab === 'following' ? '#2563FF' : '#6B7280',
-                borderBottom: feedTab === 'following' ? '2.5px solid #2563FF' : '2.5px solid transparent',
+                color: feedTab === 'following' ? 'var(--clay-deep)' : 'var(--ink-mute)',
+                borderBottom: feedTab === 'following' ? '2.5px solid var(--clay)' : '2.5px solid transparent',
                 paddingBottom: '8px',
                 background: 'none',
                 borderTop: 'none',
@@ -217,10 +217,10 @@ export default function FeedTab({ onNavigateTab, onSelectStory, onUserClick }) {
               type="button"
               onClick={() => setFeedTab('latest')}
               style={{
-                fontWeight: 700,
+                fontWeight: 600,
                 fontSize: '14.5px',
-                color: feedTab === 'latest' ? '#2563FF' : '#6B7280',
-                borderBottom: feedTab === 'latest' ? '2.5px solid #2563FF' : '2.5px solid transparent',
+                color: feedTab === 'latest' ? 'var(--clay-deep)' : 'var(--ink-mute)',
+                borderBottom: feedTab === 'latest' ? '2.5px solid var(--clay)' : '2.5px solid transparent',
                 paddingBottom: '8px',
                 background: 'none',
                 borderTop: 'none',

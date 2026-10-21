@@ -47,10 +47,10 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
       className="card"
       style={{
         padding: 'clamp(14px, 3vw, 20px)',
-        background: '#FFFFFF',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border)',
         borderRadius: '20px',
-        boxShadow: '0 4px 20px -4px rgba(10, 14, 39, 0.04)',
+        boxShadow: 'var(--shadow-sm)',
         width: '100%',
         boxSizing: 'border-box',
       }}
@@ -67,7 +67,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <textarea
             rows={3}
-            placeholder="What's on your mind? Share moments, code, or ideas..."
+            placeholder="What's on your mind? Share a quiet thought, note, or reference..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
             spellCheck="false"
@@ -80,7 +80,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
               resize: 'none',
               fontSize: '15px',
               lineHeight: '1.5',
-              color: '#0A0E27',
+              color: 'var(--ink)',
               outline: 'none',
               background: 'transparent',
               fontFamily: 'inherit',
@@ -97,7 +97,8 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                 marginTop: '8px',
                 padding: '8px 12px',
                 borderRadius: '12px',
-                background: '#F4F5F9',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--line)',
               }}
             >
               <input
@@ -111,7 +112,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                   background: 'transparent',
                   border: 'none',
                   fontSize: '13px',
-                  color: '#0A0E27',
+                  color: 'var(--ink)',
                   outline: 'none',
                 }}
               />
@@ -121,7 +122,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                   setImageUrl('');
                   setShowImgInput(false);
                 }}
-                style={{ color: '#6B7280', padding: '4px', cursor: 'pointer', border: 'none', background: 'none' }}
+                style={{ color: 'var(--ink-mute)', padding: '4px', cursor: 'pointer', border: 'none', background: 'none' }}
               >
                 <X size={16} />
               </button>
@@ -146,7 +147,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                   position: 'absolute',
                   top: '8px',
                   right: '8px',
-                  background: 'rgba(10, 14, 39, 0.7)',
+                  background: 'rgba(42, 31, 24, 0.7)',
                   color: '#fff',
                   width: '26px',
                   height: '26px',
@@ -163,7 +164,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
             </div>
           )}
 
-          {/* Quick Actions & Submission Row matching index.html */}
+          {/* Quick Actions & Submission Row */}
           <div
             style={{
               display: 'flex',
@@ -190,8 +191,8 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: showImgInput ? '#2563FF' : '#4B5563',
-                  background: showImgInput ? '#E5EDFF' : 'transparent',
+                  color: showImgInput ? 'var(--clay-deep)' : 'var(--ink-soft)',
+                  background: showImgInput ? 'var(--blue-light)' : 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                   transition: 'background 0.15s ease',
@@ -211,7 +212,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#4B5563',
+                  color: 'var(--ink-soft)',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
@@ -227,7 +228,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                 style={{
                   fontSize: '12px',
                   fontWeight: 600,
-                  color: isOverLimit ? '#FF2D55' : '#9CA3AF',
+                  color: isOverLimit ? 'var(--clay)' : 'var(--ink-mute)',
                 }}
               >
                 {charCount}/280
@@ -241,7 +242,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                 style={{
                   padding: '7px 18px',
                   fontSize: '13px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   borderRadius: '9999px',
                   opacity: canSubmit ? 1 : 0.45,
                   cursor: canSubmit ? 'pointer' : 'not-allowed',
@@ -249,7 +250,7 @@ export default function CreatePostBox({ onPostCreated, onPostSuccess }) {
                   flexShrink: 0,
                 }}
               >
-                {submitting ? 'Posting...' : 'Post'}
+                {submitting ? 'Sharing...' : 'Share note'}
               </button>
             </div>
           </div>

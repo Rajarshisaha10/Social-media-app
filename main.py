@@ -186,6 +186,29 @@ def serve_sql_ui():
         )
     return {"message": "SQL Studio page available. Please check static files."}
 
+@app.get("/landing")
+@app.get("/index1.html")
+def serve_landing_page():
+    for f in ["index1.html", "index (1).html"]:
+        p = os.path.join(os.path.dirname(__file__), f)
+        if os.path.exists(p):
+            return FileResponse(p, headers={"Cache-Control": "no-cache, must-revalidate"})
+    return {"message": "Landing page not found"}
+
+@app.get("/styles.css")
+def serve_root_styles():
+    p = os.path.join(os.path.dirname(__file__), "styles.css")
+    if os.path.exists(p):
+        return FileResponse(p, media_type="text/css")
+    raise HTTPException(status_code=404)
+
+@app.get("/script.js")
+def serve_root_script():
+    p = os.path.join(os.path.dirname(__file__), "script.js")
+    if os.path.exists(p):
+        return FileResponse(p, media_type="application/javascript")
+    raise HTTPException(status_code=404)
+
 
 if __name__ == "__main__":
     init_db()

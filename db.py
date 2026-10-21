@@ -230,7 +230,6 @@ def _seed_mysql_data():
                 INSERT INTO Users (username, email, password, bio, account_status, dob) VALUES
                 ('rajarshi', 'rajarshi@socialsphere.io', 'dbms108', 'Lead System Administrator & Database Architect', 'ACTIVE', '1998-05-20'),
                 ('kandarp', 'kandarp@socialsphere.io', 'password123', 'Tech enthusiast & distributed systems researcher', 'ACTIVE', '1995-04-12'),
-                ('Shobita', 'shobita@socialsphere.io', 'password123', 'Landscape photographer & creative tech writer', 'ACTIVE', '1992-08-25'),
                 ('Aditi', 'aditi@socialsphere.io', 'password123', 'Fullstack engineer & open-source maintainer', 'ACTIVE', '1998-11-03'),
                 ('admin_user', 'admin@socialapp.com', 'password123', 'Platform Operations Lead', 'ACTIVE', '1988-01-15');
             """)
@@ -240,7 +239,6 @@ def _seed_mysql_data():
                 INSERT INTO User_Credentials (user_id, username, password_hash, account_role) VALUES
                 (1, 'rajarshi', 'dbms108', 'SUPER_ADMIN'),
                 (2, 'kandarp', 'password123', 'USER'),
-                (3, 'Shobita', 'password123', 'USER'),
                 (4, 'Aditi', 'password123', 'USER'),
                 (5, 'admin_user', 'password123', 'OPS_ADMIN');
             """)
@@ -255,7 +253,6 @@ def _seed_mysql_data():
                 INSERT INTO Regular_User (user_id, interests, location) VALUES
                 (1, 'Databases, Distributed Systems, SQL, Architecture', 'Zurich, Switzerland'),
                 (2, 'FastAPI, Python, Machine Learning', 'San Francisco, CA'),
-                (3, 'Photography, Mountain Expeditions, Optics', 'Denver, CO'),
                 (4, 'Web Architecture, PostgreSQL, MySQL, React', 'Seattle, WA'),
                 (5, 'Infrastructure, Security, Telemetry', 'Boston, MA');
             """)
@@ -265,7 +262,6 @@ def _seed_mysql_data():
                 INSERT INTO Profile_Pic (user_id, image_url, pic_type) VALUES
                 (1, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'AVATAR'),
                 (2, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'AVATAR'),
-                (3, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'AVATAR'),
                 (4, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'AVATAR'),
                 (5, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e', 'AVATAR');
             """)
@@ -275,7 +271,6 @@ def _seed_mysql_data():
                 INSERT INTO Post (user_id, content, url, visibility) VALUES
                 (1, 'System update: MySQL 8 17-table relational schema successfully verified with full index optimization. #database #architecture #systems', NULL, 'PUBLIC'),
                 (2, 'Excited to publish our new open source benchmarking suite for FastAPI and MySQL! #python #opensource', 'https://github.com/project', 'PUBLIC'),
-                (3, 'High alpine sunrise capture from 12,000 feet elevation in the Rocky Mountains. #photography #nature', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', 'PUBLIC'),
                 (4, 'FastAPI dependency injection makes testing multi-table relational flows effortless. #python #webdev', NULL, 'PUBLIC');
             """)
 
@@ -283,18 +278,15 @@ def _seed_mysql_data():
             cursor.execute("""
                 INSERT INTO Comment (post_id, user_id, reply_to, content) VALUES
                 (1, 2, NULL, 'Excellent work Rajarshi! The relational schema integrity is pristine.'),
-                (1, 4, 1, 'Agreed! The foreign key cascades work flawlessly.'),
-                (2, 3, NULL, 'Tested the benchmark on local node, great throughput numbers.');
+                (1, 4, 1, 'Agreed! The foreign key cascades work flawlessly.');
             """)
 
             # Reactions
             cursor.execute("""
                 INSERT INTO Reaction (post_id, user_id, reaction_type, comment_id) VALUES
                 (1, 2, 'LIKE', NULL),
-                (1, 3, 'LOVE', NULL),
                 (1, 4, 'FIRE', NULL),
-                (2, 1, 'LIKE', NULL),
-                (3, 1, 'LOVE', NULL);
+                (2, 1, 'LIKE', NULL);
             """)
 
             # Community Groups & Members
@@ -311,9 +303,7 @@ def _seed_mysql_data():
                 (1, 2, 'MEMBER'),
                 (1, 4, 'MEMBER'),
                 (2, 2, 'ADMIN'),
-                (2, 1, 'MEMBER'),
-                (3, 3, 'ADMIN'),
-                (3, 1, 'MEMBER');
+                (2, 1, 'MEMBER');
             """)
 
             # Hashtags & Post_Hashtag
@@ -333,7 +323,6 @@ def _seed_mysql_data():
                 INSERT INTO Post_Hashtag (post_id, hashtag_id) VALUES
                 (1, 1), (1, 2), (1, 3),
                 (2, 4), (2, 5),
-                (3, 6), (3, 7),
                 (4, 4), (4, 8);
             """)
 
@@ -341,8 +330,7 @@ def _seed_mysql_data():
             cursor.execute("""
                 INSERT INTO Message (sender_id, receiver_id, content, read_status) VALUES
                 (1, 2, 'Hello Alice, the new query telemetry tables are fully synchronized.', 'READ'),
-                (2, 1, 'Confirmed, latency logs are showing sub-2ms response times.', 'READ'),
-                (3, 1, 'Shared the high-resolution RAW captures in the photography archive.', 'UNREAD');
+                (2, 1, 'Confirmed, latency logs are showing sub-2ms response times.', 'READ');
             """)
 
             # Notifications
@@ -358,7 +346,6 @@ def _seed_mysql_data():
                 INSERT INTO Friend_Recommendation (user_id, recommended_user_id, score) VALUES
                 (1, 2, 0.98),
                 (1, 4, 0.94),
-                (1, 3, 0.82),
                 (2, 4, 0.91);
             """)
 
@@ -367,18 +354,14 @@ def _seed_mysql_data():
                 INSERT INTO Event_Analysis (user_id, event_type, device_type, metadata) VALUES
                 (1, 'LOGIN', 'WORKSTATION', '{"user": "rajarshi", "role": "SUPER_ADMIN", "auth": "SUCCESS"}'),
                 (1, 'SCHEMA_VERIFY', 'WORKSTATION', '{"tables": 17, "integrity": "OK"}'),
-                (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}'),
-                (3, 'REACT_POST', 'MOBILE', '{"post_id": 1, "reaction": "LOVE"}');
+                (2, 'POST_CREATE', 'WEB', '{"post_id": 2, "topic": "benchmark"}');
             """)
 
             # User_Follow (Social Follows)
             cursor.execute("""
                 INSERT INTO User_Follow (follower_id, following_id) VALUES
-                (2, 3),
                 (2, 4),
-                (3, 2),
-                (4, 2),
-                (4, 3);
+                (4, 2);
             """)
         conn.commit()
 
@@ -420,7 +403,7 @@ def _sync_mysql_admin():
             if fcount == 0:
                 cursor.execute("""
                     INSERT IGNORE INTO User_Follow (follower_id, following_id) VALUES
-                    (2, 3), (2, 4), (3, 2), (4, 2), (4, 3);
+                    (2, 4), (4, 2);
                 """)
         conn.commit()
 

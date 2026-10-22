@@ -190,13 +190,23 @@ export const api = {
       method: 'DELETE',
     }),
 
-  // SQL Studio (Admin)
+  // SQL Studio & People Operations
   getSqlPresets: () => request('/api/sql/presets'),
   getSqlSchema: () => request('/api/sql/schema'),
   executeSql: (query, userId) =>
     request('/api/sql/execute', {
       method: 'POST',
       body: JSON.stringify({ query, user_id: userId }),
+    }),
+  getSqlPeople: () => request('/api/sql/people'),
+  insertSqlPerson: (payload) =>
+    request('/api/sql/people', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  deleteSqlPerson: (userId) =>
+    request(`/api/sql/people/${userId}`, {
+      method: 'DELETE',
     }),
 
   // Analytics (Admin)

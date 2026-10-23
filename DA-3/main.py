@@ -18,6 +18,7 @@ from routers.groups import router as groups_router
 from routers.messages import router as messages_router
 from routers.notifications import router as notifications_router
 from routers.sql import router as sql_router
+from routers.graph import router as graph_router
 
 load_dotenv()
 
@@ -58,6 +59,7 @@ app.include_router(groups_router)
 app.include_router(messages_router)
 app.include_router(notifications_router)
 app.include_router(sql_router)
+app.include_router(graph_router)
 
 @app.get("/api/info")
 def read_info():
@@ -108,8 +110,11 @@ def test_neo4j_connection():
             RETURN {
                 users: COUNT { (u:User) },
                 posts: COUNT { (p:Post) },
+                communities: COUNT { (c:Community) },
                 hashtags: COUNT { (h:Hashtag) },
+                topics: COUNT { (t:Topic) },
                 follows: COUNT { ()-[:FOLLOWS]->() },
+                memberships: COUNT { ()-[:MEMBER_OF]->() },
                 likes: COUNT { ()-[:LIKED]->() }
             } AS stats
         """)
@@ -128,6 +133,16 @@ def test_neo4j_connection():
                 "error": str(error)
             }
         )
+
+
+@app.post("/api/migrate-neo4j")
+def trigger_migration():
+    """Trigger on-demand SQLite to Neo4j graph migration."""
+    from scripts.migrate_sqlite_to_neo4j import migrate
+    success = migrate()
+    if not success:
+        raise HTTPException(status_code=500, detail="Migration failed. Check Neo4j credentials.")
+    return {"success": True, "message": "SQLite to Neo4j migration executed successfully."}
 
 # Mount frontend and static directories with aggressive caching for hashed assets
 frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")

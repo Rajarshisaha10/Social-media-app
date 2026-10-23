@@ -238,6 +238,8 @@ def register_user(payload: RegisterRequest):
                     MERGE (u:User {userId: $userId})
                     SET u.handle = $handle,
                         u.displayName = $displayName,
+                        u.name = $displayName,
+                        u.username = $handle,
                         u.email = $email,
                         u.bio = $bio,
                         u.location = $location,

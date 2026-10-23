@@ -181,6 +181,10 @@ export const api = {
   getRecommendations: (userId) =>
     request(userId ? `/api/recommendations/${userId}` : '/api/recommendations'),
   getGraphData: () => request('/api/recommendations/graph-data'),
+  getGraphRecommendations: (userId) => request(`/api/graph/recommendations/${userId}`),
+  getGraphSharedCommunities: (userId) => request(`/api/graph/shared-communities/${userId}`),
+  getGraphFollowersCount: (userId) => request(`/api/graph/followers-count/${userId}`),
+  getGraphStatus: () => request('/api/graph/status'),
 
   // Notifications
   getNotifications: (userId) =>

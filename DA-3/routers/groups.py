@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Path, Query, Depends
 from db import query_all, query_one, execute_write
 from auth import get_current_user, get_optional_current_user
+from graph_db import is_neo4j_available, run_cypher
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,29 @@ def create_group(
             VALUES (?, 'GROUP_CREATE', 'WEB', ?)
         """, (user_id, f'{{"group_id": {group_id}, "group_name": "{payload.group_name}"}}'))
 
+        # Sync Community and Membership to Neo4j Graph
+        if is_neo4j_available():
+            try:
+                run_cypher("""
+                    MERGE (c:Community {communityId: $communityId})
+                    SET c.name = $name,
+                        c.description = $description,
+                        c.privacy = $privacy,
+                        c.createdAt = datetime().epochSeconds
+                    WITH c
+                    MATCH (u:User)
+                    WHERE u.userId = $userId OR toString(u.userId) = toString($userId)
+                    MERGE (u)-[:MEMBER_OF {role: 'ADMIN', joinedAt: datetime().epochSeconds}]->(c)
+                """, {
+                    "communityId": group_id,
+                    "name": payload.group_name,
+                    "description": payload.description or "",
+                    "privacy": payload.privacy_setting or "PUBLIC",
+                    "userId": user_id
+                })
+            except Exception as ge:
+                logger.warning(f"Neo4j group create sync error: {ge}")
+
         return {
             "success": True,
             "message": "Community group created successfully",
@@ -127,12 +151,37 @@ def toggle_group_membership(
                 WHERE group_id = ? AND user_id = ?
             """, (group_id, user_id))
             action = "left"
+
+            # Sync leave in Neo4j Graph
+            if is_neo4j_available():
+                try:
+                    run_cypher("""
+                        MATCH (u:User)-[r:MEMBER_OF]->(c:Community)
+                        WHERE (u.userId = $userId OR toString(u.userId) = toString($userId))
+                          AND (c.communityId = $groupId OR toString(c.communityId) = toString($groupId))
+                        DELETE r
+                    """, {"userId": user_id, "groupId": group_id})
+                except Exception as ge:
+                    logger.warning(f"Neo4j group leave sync error: {ge}")
         else:
             execute_write("""
                 INSERT INTO Group_Members (group_id, user_id, role)
                 VALUES (?, ?, 'MEMBER')
             """, (group_id, user_id))
             action = "joined"
+
+            # Sync join in Neo4j Graph
+            if is_neo4j_available():
+                try:
+                    run_cypher("""
+                        MATCH (u:User), (c:Community)
+                        WHERE (u.userId = $userId OR toString(u.userId) = toString($userId))
+                          AND (c.communityId = $groupId OR toString(c.communityId) = toString($groupId))
+                        MERGE (u)-[r:MEMBER_OF]->(c)
+                        SET r.role = 'MEMBER', r.at = datetime().epochSeconds
+                    """, {"userId": user_id, "groupId": group_id})
+                except Exception as ge:
+                    logger.warning(f"Neo4j group join sync error: {ge}")
 
         return {
             "success": True,

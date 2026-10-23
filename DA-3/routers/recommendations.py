@@ -2,7 +2,7 @@ import logging
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Path, Query, Depends, status
 from db import query_all
-from auth import get_current_user
+from auth import get_current_user, get_optional_current_user
 from graph_db import is_neo4j_available, run_cypher
 
 logger = logging.getLogger(__name__)
@@ -219,30 +219,24 @@ def get_graph_visualization_data():
 @router.get("/{user_id}")
 def get_recommendations_by_user_id(
     user_id: int = Path(..., description="ID of the user to fetch recommendations for"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)
 ):
-    """GET friend recommendations. Restricted to account owner or super admin."""
-    is_super_admin = (
-        current_user.get("admin_level") == "SUPER_ADMIN"
-        or current_user.get("username", "").lower() == "rajarshi"
-    )
-    if user_id != current_user["user_id"] and not is_super_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Forbidden: You cannot view recommendations tailored for another user."
-        )
-
+    """GET friend recommendations using Neo4j Graph Link Prediction with SQL fallback."""
     return _fetch_friend_recommendations(user_id)
 
-def _fetch_friend_recommendations(user_id: int):
+def _fetch_friend_recommendations(user_id: Any):
+    typed_user_id = int(user_id) if str(user_id).isdigit() else user_id
     # 1. Try real-time Neo4j Bio & Interest Topic Graph Recommendation
     if is_neo4j_available():
         try:
             # Query users sharing topics extracted from bio and interests, boosted by mutual friends
             cypher = """
-                MATCH (me:User {userId: $userId})
+                MATCH (me:User)
+                WHERE me.userId = $userId OR toString(me.userId) = toString($userId)
                 MATCH (me)-[:INTERESTED_IN]->(t:Topic)<-[:INTERESTED_IN]-(other:User)
                 WHERE other <> me 
+                  AND other.userId <> me.userId
+                  AND toString(other.userId) <> toString(me.userId)
                   AND NOT (me)-[:FOLLOWS]->(other)
                 WITH me, other, collect(DISTINCT t.name) AS sharedTopics, count(DISTINCT t) AS sharedTopicCount
                 OPTIONAL MATCH (me)-[:FOLLOWS]->(f:User)-[:FOLLOWS]->(other)
@@ -254,16 +248,16 @@ def _fetch_friend_recommendations(user_id: int):
                 ORDER BY matchScore DESC, size(sharedTopics) DESC
                 LIMIT 12
                 RETURN other.userId AS RecommendedUserID,
-                       other.handle AS Username,
-                       other.email AS Email,
-                       other.bio AS Bio,
-                       other.location AS Location,
-                       other.interests AS Interests,
-                       other.profilePic AS ProfilePic,
+                       coalesce(other.handle, other.username, other.displayName) AS Username,
+                       coalesce(other.email, '') AS Email,
+                       coalesce(other.bio, '') AS Bio,
+                       coalesce(other.location, 'Global') AS Location,
+                       coalesce(other.interests, '') AS Interests,
+                       coalesce(other.profilePic, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde') AS ProfilePic,
                        sharedTopics AS SharedTopics,
                        matchScore AS Score
             """
-            graph_results = run_cypher(cypher, {"userId": user_id})
+            graph_results = run_cypher(cypher, {"userId": typed_user_id})
 
             formatted_results = []
             seen_ids = set()
@@ -279,24 +273,23 @@ def _fetch_friend_recommendations(user_id: int):
             if len(formatted_results) < 6:
                 needed = 6 - len(formatted_results)
                 backfill_cypher = """
-                    MATCH (me:User {userId: $userId})
                     MATCH (other:User)
-                    WHERE other <> me 
-                      AND NOT (me)-[:FOLLOWS]->(other)
+                    WHERE other.userId <> $userId 
+                      AND toString(other.userId) <> toString($userId)
                       AND NOT other.userId IN $seenIds
                     RETURN other.userId AS RecommendedUserID,
-                           other.handle AS Username,
-                           other.email AS Email,
-                           other.bio AS Bio,
-                           other.location AS Location,
-                           other.interests AS Interests,
-                           other.profilePic AS ProfilePic,
+                           coalesce(other.handle, other.username, other.displayName) AS Username,
+                           coalesce(other.email, '') AS Email,
+                           coalesce(other.bio, '') AS Bio,
+                           coalesce(other.location, 'Global') AS Location,
+                           coalesce(other.interests, '') AS Interests,
+                           coalesce(other.profilePic, 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde') AS ProfilePic,
                            [] AS SharedTopics,
                            0.68 AS Score
                     LIMIT $needed
                 """
                 backfill = run_cypher(backfill_cypher, {
-                    "userId": user_id,
+                    "userId": typed_user_id,
                     "seenIds": list(seen_ids) if seen_ids else [-1],
                     "needed": needed
                 })
@@ -306,7 +299,7 @@ def _fetch_friend_recommendations(user_id: int):
                 return {
                     "success": True,
                     "engine": "neo4j_bio_topic_graph",
-                    "userId": user_id,
+                    "userId": typed_user_id,
                     "count": len(formatted_results),
                     "recommendations": formatted_results
                 }

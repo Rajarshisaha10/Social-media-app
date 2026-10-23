@@ -250,10 +250,12 @@ def create_post(
                     MATCH (u:User {userId: $userId})
                     MERGE (p:Post {postId: $postId})
                     SET p.content = $content,
+                        p.text = $content,
                         p.createdAt = datetime().epochSeconds,
                         p.url = $url,
                         p.visibility = $visibility
                     MERGE (u)-[:POSTED {at: datetime().epochSeconds}]->(p)
+                    MERGE (u)-[:CREATED {at: datetime().epochSeconds}]->(p)
                     WITH p
                     UNWIND $tags AS tag
                     MERGE (h:Hashtag {tag: toLower(tag)})
@@ -374,11 +376,17 @@ def react_to_post(
                         MATCH (u:User {userId: $userId})-[r:LIKED]->(p:Post {postId: $postId})
                         DELETE r
                     """, {"userId": user_id, "postId": numeric_post_id})
+                    run_cypher("""
+                        MATCH (u:User {userId: $userId})-[r:INTERACTED_WITH]->(p:Post {postId: $postId})
+                        DELETE r
+                    """, {"userId": user_id, "postId": numeric_post_id})
                 else:
                     run_cypher("""
                         MATCH (u:User {userId: $userId}), (p:Post {postId: $postId})
                         MERGE (u)-[r:LIKED]->(p)
                         SET r.at = datetime().epochSeconds, r.type = $reactionType
+                        MERGE (u)-[r2:INTERACTED_WITH]->(p)
+                        SET r2.at = datetime().epochSeconds, r2.type = $reactionType
                     """, {"userId": user_id, "postId": numeric_post_id, "reactionType": payload.reaction_type})
             except Exception as ge:
                 logger.warning(f"Neo4j reaction sync error: {ge}")

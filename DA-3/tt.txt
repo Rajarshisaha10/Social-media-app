@@ -1,0 +1,60 @@
+┌──────────────────────────────────────┬────────────────────────────────────────────────────────┐
+│ Database Technology                  │ Exact Production Role & Scope                          │
+├──────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Column-Family (ScyllaDB / Cassandra) │ Primary Write Store: Timelines, Newsfeeds, Activity    │
+│                                      │ streams, Raw Likes/Comments storage (10M+ writes/sec).  │
+├──────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Graph DB (Neo4j / Memgraph)          │ Social topology, 2-hop FoF, mutual connection graph,   │
+│                                      │ cluster community detection (Louvain algorithm).       │
+├──────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Search Engine (Elasticsearch / Meili)│ Full-text post search, instant handle typeahead,       │
+│                                      │ exploratory hashtag/attribute filtering.               │
+├──────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Vector DB (Qdrant / Milvus)          │ Deep recommendation retrieval: User interest vector to │
+│                                      │ post semantic embedding similarity search (HNSW).      │
+├──────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│ Distributed SQL (CockroachDB)        │ High-integrity financial/identity data: User accounts, │
+│                                      │ billing, monetization, privacy & compliance settings.  │
+└──────────────────────────────────────┴────────────────────────────────────────────────────────┘
+
+
+                      ┌────────────────────────────────────────┐
+                      │          API / INGESTION TIER          │
+                      └───────────────────┬────────────────────┘
+                                          │
+                                          ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ 1. PRIMARY WRITE STORE: Column-Family (ScyllaDB / Cassandra) OR Distributed SQL (CockroachDB)│
+│    • Authoritative source of truth for Posts, Timelines, User Profiles, and Raw Likes        │
+└─────────────────────────────────────────┬────────────────────────────────────────────────────┘
+                                          │
+                                          ▼ (Asynchronous Change Data Capture via Apache Kafka)
+                     ┌────────────────────┴────────────────────┐
+                     │                                         │
+                     ▼                                         ▼
+┌────────────────────────────────────────┐   ┌─────────────────────────────────────────────────┐
+│ 2. GRAPH DB (Neo4j / Memgraph)         │   │ 3. SEARCH ENGINE (Elasticsearch / OpenSearch)   │
+│    • Strictly stores:                  │   │    • Strictly stores:                           │
+│      - User-to-User FOLLOWS network    │   │      - Post content (stemmed, fuzzy, synonyms)  │
+│      - 2-hop Link Prediction (FoF)     │   │      - Edge N-Gram handle typeahead (@username) │
+│      - Local cluster topic affinity    │   │      - Multi-attribute filters & date ranges    │
+└────────────────────────────────────────┘   └─────────────────────────────────────────────────┘
+
+                    ┌─────────────────────────────────────────┐
+                    │ 4. DISTRIBUTED SQL (CockroachDB / Yugabyte) │
+                    │    • Strictly stores:                     │
+                    │      - User Accounts & Identity Data      │
+                    │      - Subscription & Billing Transactions│
+                    │      - Privacy & Legal Consent Records    │
+                    └──────────────┬────────────────────────────┘
+                                 │
+                                 ▼
+                  ┌──────────────┴──────────────┐
+                  │                             │
+                  ▼                             ▼
+┌──────────────────────────────────┐     ┌────────────────────────────────────────┐
+│ 5. VECTOR DB (Qdrant / Milvus)   │     │ 6. ANALYTICS / ML WORKFLOWS (Optional)   │
+│    • Stores:                     │     │    • Pre-computed embeddings              │
+│      - User Interest Vectors     │     │    • Topic cluster assignments          │
+│      - Post Semantic Embeddings  │     │    • Recommendation scoring models      │
+└──────────────────────────────────┘     └────────────────────────────────────────┘

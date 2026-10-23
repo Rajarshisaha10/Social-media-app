@@ -1,0 +1,47 @@
+version: "1.0"
+project: "social-media-platform"
+
+services:
+  # 1. FastAPI Backend Service
+  backend:
+    type: web
+    runtime: python
+    build:
+      command: "pip install -r requirements.txt"
+    deploy:
+      port: 8000
+      command: "uvicorn main:app --host 0.0.0.0 --port 8000"
+    env:
+      - key: DB_HOST
+        fromDatabase:
+          name: "mysql-db"
+          property: "host"
+      - key: DB_PORT
+        fromDatabase:
+          name: "mysql-db"
+          property: "port"
+      - key: DB_USER
+        fromDatabase:
+          name: "mysql-db"
+          property: "username"
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: "mysql-db"
+          property: "password"
+      - key: DB_NAME
+        value: "social_media"
+
+  # 2. Managed MySQL Database
+  mysql-db:
+    type: database
+    image: "mysql:8.0"
+    deploy:
+      port: 3306
+    volumes:
+      - name: "mysql_data"
+        mount_path: "/var/lib/mysql"
+    env:
+      - key: MYSQL_DATABASE
+        value: "social_media"
+      - key: MYSQL_ROOT_PASSWORD
+        value: "raju@123"

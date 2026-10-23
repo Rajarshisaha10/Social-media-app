@@ -1,0 +1,212 @@
+import React from 'react';
+import { Database, ArrowRight, Sparkles, Users } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+export default function RightSidebar({
+  suggestedUsers = [],
+  communities = [],
+  onNavigateTab,
+  onUserClick,
+  onTagClick,
+}) {
+  const { user, isSuperAdmin, followingSet, toggleFollow } = useAuth();
+
+  return (
+    <aside className="feed-aside" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '320px', flexShrink: 0 }}>
+
+      {/* Who to Follow Card matching gather aesthetic */}
+      <div
+        className="card"
+        style={{
+          padding: '20px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          borderRadius: '24px',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h3 className="font-display" style={{ fontSize: '17px', fontWeight: 600, color: 'var(--ink)' }}>
+            Who to follow
+          </h3>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('users')}
+            style={{ fontSize: '12px', color: 'var(--clay-deep)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            See all
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {suggestedUsers.slice(0, 4).map((su) => {
+            const suUserId = su.RecommendedUserID || su.user_id;
+            const suUsername = su.Username || su.username;
+            const suProfilePic = su.ProfilePic || su.profile_pic;
+            const suInterests = su.Interests || su.interests;
+            const isFollowing = followingSet.has(suUserId);
+
+            return (
+              <div key={suUserId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <div
+                  onClick={() => onUserClick?.(suUserId)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', minWidth: 0, flex: 1 }}
+                >
+                  <img
+                    src={suProfilePic || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
+                    alt={suUsername}
+                    style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: '13.5px',
+                        color: 'var(--ink)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {suUsername}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--ink-mute)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      @{suUsername?.toLowerCase()} · {suInterests?.split(',')[0] || 'Collector'}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toggleFollow(suUserId)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: isFollowing ? 'var(--bg-elevated)' : 'var(--ink)',
+                    color: isFollowing ? 'var(--ink-soft)' : 'var(--bg-card)',
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Communities Card */}
+      <div
+        className="card"
+        style={{
+          padding: '20px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          borderRadius: '24px',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <h3 className="font-display" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)' }}>
+            Spaces &amp; Communities
+          </h3>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('groups')}
+            style={{ fontSize: '12px', color: 'var(--clay-deep)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            Explore
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {communities.slice(0, 3).map((grp) => (
+            <div
+              key={grp.group_id}
+              onClick={() => onNavigateTab('groups')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: '12px',
+                background: 'var(--bg-elevated)',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {grp.group_name}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--ink-mute)' }}>
+                  {grp.member_count || 1} members
+                </div>
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--clay-deep)', fontWeight: 600 }}>Join</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SQL Studio Banner for Super Admin */}
+      {isSuperAdmin && (
+        <div
+          className="card"
+          style={{
+            padding: '18px 20px',
+            background: 'linear-gradient(135deg, var(--ink) 0%, var(--clay-deep) 100%)',
+            color: '#fff',
+            borderRadius: '24px',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+            <Database size={15} color="var(--sand)" />
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sand)', letterSpacing: '0.6px' }}>
+              DATABASE STUDIO
+            </span>
+          </div>
+          <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#fff' }}>
+            Direct SQL Workbench
+          </div>
+          <p style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.8)', marginTop: '4px', lineHeight: '1.4' }}>
+            Query SQLite relational tables live with 0ms execution tracking.
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('sql')}
+            className="btn-primary"
+            style={{
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: 700,
+              marginTop: '12px',
+            }}
+          >
+            <span>Open Studio</span>
+            <ArrowRight size={13} />
+          </button>
+        </div>
+      )}
+
+      {/* Footer Info */}
+      <footer style={{ fontSize: '11.5px', color: '#9CA3AF', lineHeight: '1.6', padding: '0 4px' }}>
+        <p>© 2026 Social Sphere. Made for creators.</p>
+      </footer>
+    </aside>
+  );
+}
+
